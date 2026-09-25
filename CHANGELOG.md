@@ -1,8 +1,80 @@
 # Changelog
 
-格式规范（`spec/`）与工具（`thesis_ci`）一起发版。规范在 v1.0 之前的不兼容改动在这里逐条记录。
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
+
+## v0.3.0 — English first (2026-09-25)
+
+The archives are English-first from now on: the Chinese version of a key document lives at `zh-CN/<same path>`, and
+every other file is in English. thesis-ci follows: its documentation, specification data and example archive are in
+English, the checks read English content properly, and a new check keeps English files free of Chinese, Japanese and
+Korean text. File formats are unchanged apart from the optional `title_original`; archives keep `spec_version: "0.2"`.
+
+### Incompatible changes
+
+- New check `C-LANGUAGE` (both, error; 35 checks): a text file outside the root `zh-CN/` directory must not contain
+  Chinese, Japanese or Korean characters (CJK ideographs, kana, hangul, CJK punctuation and full-width forms). Exempt
+  are `zh-CN/`; tests and fixtures (`tests/`, `test/` and `fixtures/` directories, `test_*.py`, `*_test.py`,
+  `conftest.py`); and the `title_original` of a `sources.yml` entry. One error per file, at its first line with CJK
+  text. An archive still written in Chinese fails until its translation lands.
+- English sentences are split at `.`, `!`, `?` and `;` followed by whitespace (not after `U.S.`, `Inc.`, `Corp.`,
+  `Ltd.`, `e.g.`, `i.e.`, `vs.`, `No. 1`, an initial or an abbreviated month, and not in a decimal or a source tag). A
+  line break inside an English paragraph no longer ends a sentence; blank lines, headings, list items, table rows and
+  block quotes do. `C-SRC-TAG`, `C-SRC-FACT` and the price-multiple rule of `C-PUBLIC-NO-VALUATION` work sentence by
+  sentence, so one tag no longer covers several English sentences on a line, and a tag on the next line of a
+  hard-wrapped sentence now counts. A tag written right after the period (`16%.[src:TAG]`) belongs to that sentence.
+  Lines with CJK characters are split exactly as before. A finding points at the line of the fact number.
+- The Chinese version of public content is public content: the wording checks of `C-PUBLIC-NO-VALUATION`,
+  `C-PUBLIC-NO-ADVICE`, `C-PUBLIC-NO-AMOUNTS`, `C-NO-PRICE-FEED` (share prices) and `C-DEPENDS` (neutrality), and
+  `C-SRC-TAG`, read `zh-CN/companies/`, `zh-CN/industries/`, `zh-CN/forecasts/`, `zh-CN/letters/` and
+  `zh-CN/mistakes.md`; tags there resolve as for the English file (SPEC 8.5).
+- `spec/checks.yml` ties checks to constitution rules as "Constitution rule N" (it used the Chinese form);
+  `C-CONSTITUTION-MAP` reads the new form.
+
+### English support
+
+- Fact numbers (SPEC 3.4): English units in any letter case (`3 Billion`, `16 PERCENT`), plus `ppt` / `ppts`, `bln`,
+  `mln`, currency names (`dollars`, `euros`, `yuan`, `yen`, ...), ISO codes after the number (`5 USD`) and `CHF`,
+  `INR`, `KRW`, `TWD`, `SGD` before it. English dates (`September 30, 2026`), `3Q26` / `1H26` and section numbers
+  (`Item 15`, `Note 12`) are not quantities for the price-multiple rule.
+- 00 §H4 in English (SPEC 7.5). `C-PUBLIC-NO-VALUATION`: `implied return` (annual, annualized, IRR), `price grade`,
+  `price rating`, `value centre`; `central value`, `fair` / `value` / `buy` / `cheap range`, `intrinsic value` and `margin of safety`
+  with a number (and "a 30% margin of safety", "a 30% discount to intrinsic value"); a price event on a range
+  ("entered the buy range"); the multiples `price-to-earnings`, `price/earnings`, `PE ratio` and "trades at 25 times
+  earnings". `C-PUBLIC-NO-ADVICE`: recommending a buy, a sell, adding, reducing, or opening or closing a position
+  ("analysts recommend buying the stock", "we recommend ACME", "our recommendation is to buy"), ratings ("rated a Buy", "upgraded to Buy", "Rating: Sell", "Buy-rated", "is a buy"),
+  "should buy / sell" with the investor as subject, "the shares should be sold", adding to, trimming or accumulating a
+  position, buying on dips, "top pick", "worth buying", "time to buy". As with the Chinese terms, a negative sentence is
+  no exception ("we do not recommend buying" fails, 00 §H4). Not advice: a company buying back its own
+  shares ("buybacks", "the company should buy back stock", "we recommend buying back shares"), a company's own trades
+  ("Berkshire trimmed its position"), corporate actions ("the board recommended selling the division") and product
+  names ("Best Buy", "Buy with Prime", "Buy Box"). The v0.2 pattern "I / we recommend adding / trimming / reducing" now
+  needs a security or a position after the verb, so "we suggest adding a source tag" or "we recommend reducing debt"
+  (in a README, say) no longer fails.
+- `C-PUBLIC-NO-VALUATION` and `C-PUBLIC-NO-ADVICE` also read the progress files `docs/STATUS.md` and `CLAUDE.md` (and
+  their Chinese versions): a progress file once listed two companies' price-grade changes. The rule documents
+  (`docs/DESIGN.md`, `docs/decisions/`, `constitution/`) are still not read. A price grade next to a ticker
+  ("AXP B− → C", "AXP: C") in a sentence about prices or valuation is an error, unless the sentence speaks of the
+  business, management, quality, culture or capital-allocation ratings.
+- `C-STORY`: a story in English is at most 350 words, about two minutes read aloud; a story in Chinese, Japanese or
+  Korean keeps the 700-character limit. A story is measured in characters when it has at least as many CJK characters
+  as English words.
+- `C-DEPENDS`: "we hold ACME" or "I own shares of ACME" in an industry module (a ticker in capitals; "we hold that ..."
+  is an opinion). `C-PUBLIC-NO-AMOUNTS`: a portfolio weight in a two-minute story.
+- `C-SINGLE-ORDER`: a negation up to 12 characters before the tranche wording (`without tranches`) now counts.
+
+### Documentation and data in English
+
+- `README.md`, `spec/SPEC.md`, `CHANGELOG.md` and `LICENSE-SPEC.md` are in English. The Chinese text of the README and
+  the specification is kept in `zh-CN/README.md` and `zh-CN/spec/SPEC.md`, which carry the 0.3.0 additions too.
+- The titles and descriptions of `spec/checks.yml`, the descriptions and `where` of `spec/metrics.yml`, the titles and
+  descriptions of the JSON Schemas and the Lynch templates (claims, questions, `fail_if`, `where`, notes) are in
+  English; every id, key, enum and number is unchanged. `sources.schema.json` has an optional `title_original`.
+- The example archive (`src/thesis_ci/fixtures/workspace`) is in English, with the Chinese version of the ACME story
+  in `public/zh-CN/` and a `title_original` in `public/companies/ACME/sources.yml`. The selftest cases are in English;
+  the cases that fed Chinese text are kept in `tests/test_chinese.py`.
+- Code comments, docstrings and lint messages are in English; the Chinese detection lists (units, the §H4 phrases and
+  patterns, neutrality phrases, sell reasons, tranche wording) are unchanged.
 
 ## v0.2.1 — bug fix (2026-09-25)
 
@@ -160,15 +232,15 @@ files are unchanged; the lint is stricter where noted, so content that passed be
   and `implied_return` must beat it (error); clearing the first bar but not VOO is a warning. With no Berkshire
   number, VOO is the bar. A holding below either line is a warning.
 - `C-PUBLIC-NO-VALUATION`: the price-multiple terms also cover price-to-book (`市净率`, `P/B`, `price-to-book`) and
-  the market price against book value in words ("价格低于 1.2 倍账面"). A company's disclosed average repurchase price
+  the market price against book value in words (`价格低于 1.2 倍账面`). A company's disclosed average repurchase price
   against book is a company fact (00 §H2 item 3) and is not flagged.
 - `C-CONCENTRATION`: 10–20% is an entry bar, not a target (constitution rule 4). A buy/add memo's `target_weight`
   below 10% is an error; above 20% is allowed, with a warning when the new optional `weight_note` is empty. More
   holdings than `max_holdings`, or `max_holdings` above 5, is a warning ("about 4–5 companies").
 - `C-SINGLE-ORDER`: a buy/add memo whose `order.note` or `summary` plans tranches (`分两批`, `scale in`, ...) is an
   error even with `order.type: single`; several live buy/add memos for one company within 31 days warn.
-- `C-DECISION-RIGHTS`: `levels.L3.who` must name the owner (董事长).
-- `C-CONSTITUTION-MAP`: every check that `spec/checks.yml` ties to a constitution rule (宪法第 N 条) must be
+- `C-DECISION-RIGHTS`: `levels.L3.who` must name the owner (the chairman).
+- `C-CONSTITUTION-MAP`: every check that `spec/checks.yml` ties to a constitution rule (by rule number) must be
   referenced by some rule; dropping a rule from `rules.yml` no longer passes.
 - `C-AGENT-ISOLATION`: `can_see` may not list what `cannot_see` hides (`conclusions`, `draft_conclusions`, `thesis`;
   the last token decides, so `thesis_question_list` stays allowed).

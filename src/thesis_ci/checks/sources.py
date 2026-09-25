@@ -6,10 +6,11 @@ from pathlib import Path
 from typing import Any, Callable, Iterator
 
 from ..engine import Context, Issue, check
-from ..repo import Repo, is_yaml, walk_items
+from ..repo import Repo, is_yaml, translated_rel, walk_items
 from ..textscan import snippet, source_tags, untagged_facts
 
-# Markdown under these top-level directories is archive content (facts need tags).
+# Markdown under these top-level directories is archive content (facts need tags), and so is its Chinese version
+# under zh-CN/ (the same facts, the same tags).
 ARCHIVE_DIRS = ("companies", "industries", "letters")
 # Root-level archive Markdown: the public mistakes list says its fact numbers carry [src:] tags as usual.
 ARCHIVE_ROOT_FILES = ("mistakes.md",)
@@ -62,7 +63,7 @@ def prose_issues(
 def c_src_tag(ctx: Context) -> Iterator[Issue]:
     repo = ctx.repo
     for path in repo.all_files:
-        rel = repo.rel(path)
+        rel = translated_rel(repo.rel(path))
         in_archive = ("/" in rel and rel.split("/")[0] in ARCHIVE_DIRS) or rel in ARCHIVE_ROOT_FILES
         if path.suffix.lower() not in MARKDOWN_SUFFIXES or not in_archive:
             continue

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/constitution-rules.schema.json",
-  "title": "宪法规则与对应检查 constitution/rules.yml",
+  "title": "Constitution rules and their checks constitution/rules.yml",
   "type": "object",
   "required": [
     "rules"

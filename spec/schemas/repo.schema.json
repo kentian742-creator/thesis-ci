@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/repo.schema.json",
-  "title": "档案仓库标记 repo.yml",
+  "title": "Archive repository marker repo.yml",
   "type": "object",
   "required": [
     "visibility",
@@ -22,7 +22,7 @@
         "0.1",
         "0.2"
       ],
-      "description": "档案遵循的规范版本；0.1 只在迁移期接受（C-SCHEMA 报警告）"
+      "description": "The specification version the archive follows; 0.1 is accepted only during the migration (C-SCHEMA gives a warning)"
     },
     "counterpart": {
       "type": "string"

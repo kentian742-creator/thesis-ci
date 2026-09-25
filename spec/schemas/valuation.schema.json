@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/valuation.schema.json",
-  "title": "价值区间 valuation.yml（仅私有仓库）",
+  "title": "Value ranges valuation.yml (private repository only)",
   "type": "object",
   "required": [
     "company",
@@ -30,7 +30,7 @@
         "proposed",
         "effective"
       ],
-      "description": "proposed：待 04C 审的重算版本；effective：生效版本（§V20：任何时刻只有一个生效版本）"
+      "description": "proposed: a recalculated version awaiting review by 04C; effective: the version in force (§V20: only one version is in force at any time)"
     },
     "currency": {
       "type": "string"
@@ -38,7 +38,7 @@
     "source": {
       "type": "string",
       "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-      "description": "来源标签，TAG 或 TAG#LOCATOR"
+      "description": "Source tag, TAG or TAG#LOCATOR"
     },
     "price_reference": {
       "oneOf": [
@@ -96,12 +96,12 @@
               "null"
             ]
           },
-          "description": "误差带 [低, 高]：与 center 同单位的绝对区间（不是相对比例）"
+          "description": "Error band [low, high]: an absolute range in the unit of center (not a relative proportion)"
         },
         "source": {
           "type": "string",
           "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-          "description": "来源标签，TAG 或 TAG#LOCATOR"
+          "description": "Source tag, TAG or TAG#LOCATOR"
         },
         "note": {
           "type": "string"
@@ -118,7 +118,7 @@
         "minimum": 0,
         "maximum": 1
       },
-      "description": "安全边际区间 [下限, 上限]，小数；默认 [0.25, 0.35]（§V2）"
+      "description": "Margin-of-safety range [lower bound, upper bound], as decimals; default [0.25, 0.35] (§V2)"
     },
     "discount_rate": {
       "type": "object",
@@ -145,7 +145,7 @@
               "type": "null"
             }
           ],
-          "description": "10 年期美国国债收益率的取值日期"
+          "description": "The date the 10-year US Treasury yield was read"
         },
         "premium": {
           "type": [
@@ -162,11 +162,11 @@
         "source": {
           "type": "string",
           "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-          "description": "来源标签，TAG 或 TAG#LOCATOR"
+          "description": "Source tag, TAG or TAG#LOCATOR"
         },
         "note": {
           "type": "string",
-          "description": "溢价的判断依据：本公司现金流记录里哪些读数让它更可预测、哪些更不可预测（§V1、§V10）"
+          "description": "The basis for the premium: which readings in this company's cash-flow record make it more predictable and which less (§V1, §V10)"
         }
       },
       "additionalProperties": false,
@@ -215,7 +215,7 @@
         "source": {
           "type": "string",
           "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-          "description": "来源标签，TAG 或 TAG#LOCATOR"
+          "description": "Source tag, TAG or TAG#LOCATOR"
         }
       },
       "additionalProperties": false
@@ -241,11 +241,11 @@
         "source": {
           "type": "string",
           "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-          "description": "来源标签，TAG 或 TAG#LOCATOR"
+          "description": "Source tag, TAG or TAG#LOCATOR"
         }
       },
       "additionalProperties": false,
-      "description": "第二参照锚：可比资产的市场隐含回报（§V6）"
+      "description": "The second reference anchor: the market-implied return of a comparable asset (§V6)"
     },
     "price_rating": {
       "oneOf": [
@@ -257,7 +257,7 @@
           "type": "null"
         }
       ],
-      "description": "价格评级按 §V11 的机械尺给出，不加正负号"
+      "description": "Price grade, given by the mechanical scale of §V11, without a plus or minus sign"
     },
     "quality_rating": {
       "oneOf": [
@@ -269,7 +269,7 @@
           "type": "null"
         }
       ],
-      "description": "生意评级（与 thesis.yml 的 ratings.business 同一把尺）"
+      "description": "Business rating (on the same scale as ratings.business in thesis.yml)"
     },
     "method_note": {
       "type": "string"
@@ -312,7 +312,7 @@
         "source": {
           "type": "string",
           "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-          "description": "来源标签，TAG 或 TAG#LOCATOR"
+          "description": "Source tag, TAG or TAG#LOCATOR"
         },
         "note": {
           "type": "string"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/agent.schema.json",
-  "title": "角色定义 agents/<role>.yml",
+  "title": "Role definition agents/<role>.yml",
   "type": "object",
   "required": [
     "role",
@@ -95,7 +95,7 @@
       "items": {
         "type": "string"
       },
-      "description": "使用的提示词编号，如 03、04"
+      "description": "Numbers of the prompts used, such as 03 and 04"
     },
     "trust_managed": {
       "type": "boolean"

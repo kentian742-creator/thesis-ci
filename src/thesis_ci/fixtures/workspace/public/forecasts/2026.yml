@@ -3,7 +3,7 @@ forecasts:
   - id: F-2026-001
     company: ACME
     domain: other
-    statement: 本季营收同比增速不低于上季
+    statement: Year-on-year revenue growth this quarter is no lower than last quarter's
     probability: 0.6
     made_at: 2026-09-20
     resolves_by: 2026-10-28

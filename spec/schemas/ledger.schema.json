@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/ledger.schema.json",
-  "title": "双向言行账本 ledger.yml",
+  "title": "Two-sided say-do ledger ledger.yml",
   "type": "object",
   "required": [
     "company",
@@ -70,7 +70,7 @@
           "source": {
             "type": "string",
             "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-            "description": "来源标签，TAG 或 TAG#LOCATOR"
+            "description": "Source tag, TAG or TAG#LOCATOR"
           },
           "status": {
             "enum": [
@@ -87,14 +87,14 @@
               "boolean",
               "null"
             ],
-            "description": "坦诚度：未兑现是否在下一封信里主动承认"
+            "description": "Candor: whether an unmet commitment is acknowledged, unprompted, in the next letter"
           },
           "settlement_source": {
             "oneOf": [
               {
                 "type": "string",
                 "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-                "description": "来源标签，TAG 或 TAG#LOCATOR"
+                "description": "Source tag, TAG or TAG#LOCATOR"
               },
               {
                 "type": "null"
@@ -108,7 +108,7 @@
             "type": "number",
             "minimum": 0.05,
             "maximum": 0.95,
-            "description": "系统与所有者一侧必填（§P3）"
+            "description": "Required on the system and owner sides (§P3)"
           },
           "last_mentioned": {
             "oneOf": [
@@ -121,20 +121,20 @@
                 "type": "null"
               }
             ],
-            "description": "管理层最近一次在沟通中提到这条承诺的日期（判断“悄然消失”）"
+            "description": "The date management last mentioned this commitment in its communications (to judge \"silently dropped\")"
           },
           "acknowledged_source": {
             "oneOf": [
               {
                 "type": "string",
                 "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-                "description": "来源标签，TAG 或 TAG#LOCATOR"
+                "description": "Source tag, TAG or TAG#LOCATOR"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "未兑现时主动承认的出处"
+            "description": "Where an unmet commitment was acknowledged unprompted"
           }
         },
         "additionalProperties": false,
@@ -197,14 +197,14 @@
           "source": {
             "type": "string",
             "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-            "description": "来源标签，TAG 或 TAG#LOCATOR"
+            "description": "Source tag, TAG or TAG#LOCATOR"
           },
           "value_range_ref": {
             "type": [
               "string",
               "null"
             ],
-            "description": "私有 valuation.yml 的版本引用"
+            "description": "Version reference of the private valuation.yml"
           }
         },
         "additionalProperties": false

@@ -55,7 +55,8 @@ def put(ws: Path, rel: str, text: str) -> None:
 
 
 def story_line(ws: Path, text: str) -> None:
-    edit(ws, STORY, "最可能错在哪", text + "\n最可能错在哪")
+    """Add ``text`` to the story as a line of its own, before the last sentence."""
+    edit(ws, STORY, selftest.STORY_END, text + "\n" + selftest.STORY_END)
 
 
 def fake_ots(tmp_path: Path, monkeypatch, output: str, status: int, digest: str | None = None) -> None:
@@ -88,9 +89,11 @@ def test_c_schema_clean_example_uses_every_new_key(ws, lint):
     ("effective_from: FY2027Q2", "effective_from: FY2027", True),  # effective_from is a quarter
     ("metric: recurring_share_v2.recurring", "metric: recurring_share_v2.recurring.us", True),
     ("metric: recurring_share_v2.recurring", "metric: Recurring", True),
-    ("judge_notes: 只比较公司自己公布的中期目标；分析师预期不算目标。", "judge_notes: [只比较公司自己公布的中期目标, 分析师预期不算目标]", False),
-    ("where: [本期与此前三期的业绩新闻稿与电话会, 投资者日材料]", "where: 本期业绩新闻稿", False),
-    ("where: [本期与此前三期的业绩新闻稿与电话会, 投资者日材料]", "where: 3", True),
+    ("judge_notes: Compare only the medium-term targets the company itself published; analysts' expectations are not targets.",
+     "judge_notes: [Compare only the medium-term targets the company itself published, Analysts' expectations are not targets]", False),
+    ("where: [earnings press releases and calls of this period and the three before, investor day materials]",
+     "where: this period's earnings press release", False),
+    ("where: [earnings press releases and calls of this period and the three before, investor day materials]", "where: 3", True),
     ("    data: mixed\n    effective_from: FY2027Q2", "    data: external\n    effective_from: FY2027Q2", True),  # != metric_def
     ("origin: proposal:04B", "origin: proposal:04B-lite", False),
     ("origin: proposal:04B", "origin: archive:breaker", False),
@@ -157,7 +160,8 @@ def test_c_schema_owner_file_may_only_override(ws, lint):
     start, end = text.index("items:\n"), text.index("overrides:")
     (ws / OWNER_PREREG).write_text(text[:start] + "items: []\n" + text[end:], encoding="utf-8")
     assert lint(ws, "C-SCHEMA") == []
-    edit(ws, OWNER_PREREG, "overrides:\n  - {id: ACME-FY2027Q1-1, probability: 0.7, note: 渠道调研显示订单改善（所有者的判断）}\n", "")
+    edit(ws, OWNER_PREREG, "overrides:\n  - {id: ACME-FY2027Q1-1, probability: 0.7, note: Channel checks show orders improving "
+                           "(the owner's judgment)}\n", "")
     assert lint(ws, "C-SCHEMA")
 
 
@@ -277,7 +281,7 @@ def test_c_test_metric_component_without_components(ws, lint):
 def test_c_test_metric_legacy_param_defs_still_resolve(ws, lint):
     """C-TEST-METRIC: params.metric_defs (0.1) still defines sub-metrics while archives migrate to components."""
     edit(ws, THESIS, "    metric: gross_margin\n",
-         "    metric: gross_margin\n    params: {metric_defs: [{id: attach_rate, description: 配套率, unit: '%', data: filing_text}]}\n")
+         "    metric: gross_margin\n    params: {metric_defs: [{id: attach_rate, description: attach rate, unit: '%', data: filing_text}]}\n")
     edit(ws, THESIS, 'rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}',
          'rule: {all_of: [{metric: gross_margin, op: "<", threshold: 55}, {metric: attach_rate.us, op: "<", threshold: 30}]}')
     assert lint(ws, "C-TEST-METRIC") == []
@@ -305,7 +309,8 @@ def test_c_tests_min_retirement_follows_the_period(ws, lint):
 
 def test_c_test_qual_evidence_where_must_name_documents(ws, lint):
     """C-TEST-QUAL-EVIDENCE: where lists the documents the judge reads (an empty list does not)."""
-    edit(ws, THESIS, "where: [本期与此前三期的业绩新闻稿与电话会, 投资者日材料]", "where: []")
+    edit(ws, THESIS, "where: [earnings press releases and calls of this period and the three before, investor day materials]",
+         "where: []")
     assert "needs where" in lint(ws, "C-TEST-QUAL-EVIDENCE")[0].message
 
 
@@ -377,8 +382,8 @@ def test_c_public_no_valuation_price_multiples(ws, lint, text, flagged):
 
 def test_c_public_no_valuation_price_multiples_in_yaml_and_mistakes(ws, lint):
     """C-PUBLIC-NO-VALUATION: the multiples check reads YAML content and mistakes.md too, sentence by sentence."""
-    edit(ws, THESIS, "todo:\n  - 补充分部数据", "todo:\n  - 补充分部数据；市值读数不写\n  - 市盈率 30 倍时复核")
-    put(ws, "public/mistakes.md", "# 错误清单\n\n上一版写了市值 3,000 亿美元[src:OO-LOG-2026-09]。\n")
+    edit(ws, THESIS, "todo:\n  - Add segment data", "todo:\n  - Add segment data; no market cap readings\n  - Review when the P/E reaches 30")
+    put(ws, "public/mistakes.md", "# Mistakes\n\nThe previous version gave a market cap of $300 billion [src:OO-LOG-2026-09].\n")
     found = lint(ws, "C-PUBLIC-NO-VALUATION")
     assert sorted((f.file, f.line) for f in found) == [("companies/ACME/thesis.yml", 166), ("mistakes.md", 3)]
 
@@ -540,14 +545,17 @@ def test_c_test_frozen_unknown_base_ref(ws, lint):
 @pytest.mark.skipif(GIT is None, reason="git not installed")
 @pytest.mark.parametrize("old, new, period, flagged", [
     ('rule: {op: "<", threshold: 55,', 'rule: {op: "<", threshold: 50,', "FY2027Q1", True),
-    ("fail_if: 连续两个季度低于 55%", "fail_if: 连续三个季度低于 55%", "FY2027Q1", True),
-    ("warn_if: 低于 58%", "warn_if: 低于 57%", "FY2027Q1", True),
+    ("fail_if: below 55% for two consecutive quarters", "fail_if: below 55% for three consecutive quarters", "FY2027Q1", True),
+    ("warn_if: below 58%", "warn_if: below 57%", "FY2027Q1", True),
     ("    max_age_quarters: 4\n", "    max_age_quarters: 6\n", "FY2027Q1", True),
     ('rule: {op: "<", threshold: 55,', 'rule: {op: "<", threshold: 50,', "FY2026Q4", False),  # not in force yet
-    ("fail_if: 连续两年低于 50%，且经常性收入同比下降", "fail_if: 连续两年低于 45%，且经常性收入同比下降", "FY2027Q1", False),  # from FY2027Q2
-    ("fail_if: 连续两年低于 50%\n", "fail_if: 连续两年低于 40%\n", "FY2027Q2", False),  # ACME-Q4 retired at FY2027Q2
-    ("fail_if: 连续两年低于 50%\n", "fail_if: 连续两年低于 40%\n", "FY2027Q1", True),
-    ("claim: 毛利率守住定价权", "claim: 毛利率守住定价权与护城河", "FY2027Q1", False),  # not a criterion
+    ("fail_if: below 50% for two consecutive years, and", "fail_if: below 45% for two consecutive years, and", "FY2027Q1",
+     False),  # in force from FY2027Q2
+    ("fail_if: below 50% for two consecutive years\n", "fail_if: below 40% for two consecutive years\n", "FY2027Q2",
+     False),  # ACME-Q4 retired at FY2027Q2
+    ("fail_if: below 50% for two consecutive years\n", "fail_if: below 40% for two consecutive years\n", "FY2027Q1", True),
+    ("claim: Gross margin shows that pricing power holds", "claim: Gross margin shows that pricing power and the moat hold",
+     "FY2027Q1", False),  # not a criterion
     ('rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}',
      'rule:\n      op: "<"\n      threshold: 55\n      unit: "%"\n      consecutive: 2\n      period: quarter', "FY2027Q1", False),
 ])
@@ -565,7 +573,7 @@ def test_c_test_frozen_tests_without_effective_from_count_as_in_force(ws, lint):
     edit(ws, THESIS, "    data: xbrl\n    effective_from: FY2027Q1\n    first_readable", "    data: xbrl\n    first_readable")
     selftest.apply(ws, (selftest.git_commit("public"),))
     edit(ws, THESIS, "    data: xbrl\n    first_readable", "    data: xbrl\n    effective_from: FY2027Q1\n    first_readable")
-    edit(ws, THESIS, "todo:\n", "  - {id: ACME-S9, type: staleness, claim: 未知清单每季复查, origin: manual, severity: watch,"
+    edit(ws, THESIS, "todo:\n", "  - {id: ACME-S9, type: staleness, claim: The unknowns register is reviewed every quarter, origin: manual, severity: watch,"
                                " covers: [other], section: unknowns, max_age_quarters: 1, effective_from: FY2027Q2}\ntodo:\n")
     assert lint(ws, "C-TEST-FROZEN", base_ref="HEAD", period="FY2027Q1") == []
     edit(ws, THESIS, 'rule: {op: "<", threshold: 55,', 'rule: {op: "<", threshold: 50,')

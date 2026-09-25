@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/industry.schema.json",
-  "title": "行业模块 industry.yml",
+  "title": "Industry module industry.yml",
   "type": "object",
   "required": [
     "id",
@@ -37,12 +37,12 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 3,
-      "description": "行业研究员的信任等级（流水线维护，§G8）"
+      "description": "The industry researcher's trust level (maintained by the pipeline, §G8)"
     },
     "source": {
       "type": "string",
       "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-      "description": "来源标签，TAG 或 TAG#LOCATOR"
+      "description": "Source tag, TAG or TAG#LOCATOR"
     },
     "summary": {
       "type": "string"
@@ -130,7 +130,7 @@
                 "other"
               ]
             },
-            "description": "触发时，依赖公司中覆盖这些维度的测试要重跑"
+            "description": "When the signpost triggers, the tests of dependent companies that cover these dimensions are run again"
           }
         },
         "additionalProperties": false
@@ -174,7 +174,7 @@
         "source": {
           "type": "string",
           "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-          "description": "来源标签，TAG 或 TAG#LOCATOR"
+          "description": "Source tag, TAG or TAG#LOCATOR"
         },
         "note": {
           "type": "string"

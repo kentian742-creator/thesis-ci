@@ -1,32 +1,32 @@
 category: cyclical
-name: 周期型
-lynch: 收入和利润随经济或信贷周期起落；关键是知道周期走到哪一段，而不是看单季数字。
-watch: [周期指标, 拨备或库存, 杠杆, 周期底部的资本配置]
+name: Cyclical
+lynch: Revenue and profit rise and fall with the economic or credit cycle; the key is knowing which stage of the cycle it is in, not the numbers of a single quarter.
+watch: [cycle indicators, provisions or inventories, leverage, capital allocation at the bottom of the cycle]
 tests:
   - key: Q-cycle
     type: quantitative
-    claim: 周期指标没有转向恶化段
+    claim: The cycle indicator has not turned into its deteriorating stage
     covers: [balance_sheet]
     metric: provision_for_credit_losses
-    fail_if: 拨备同比增速连续 2 个季度超过 50%
+    fail_if: provision growth above 50% year on year for 2 consecutive quarters
     rule: {op: ">", threshold: 50, unit: "%", consecutive: 2, period: quarter}
     data: xbrl
     severity: watch
   - key: Q-leverage
     type: quantitative
-    claim: 杠杆在周期低点前没有上升
+    claim: Leverage has not risen ahead of the low point of the cycle
     covers: [balance_sheet]
     metric: net_debt_to_ebitda
-    fail_if: 高于 3 倍
+    fail_if: above 3x
     rule: {op: ">", threshold: 3, unit: x, consecutive: 1, period: year}
     data: xbrl
     severity: watch
   - key: L-cycle-capalloc
     type: qualitative
-    claim: 周期高点没有追加昂贵的产能或回购
+    claim: No expensive capacity or buybacks are added at the top of the cycle
     covers: [capital_allocation]
-    question: 本期是否在利润创新高的同时大幅提高资本开支或回购？
-    fail_if: 是，且管理层没有说明周期假设
-    where: [本期与此前三期的 10-Q／10-K（资本开支、回购与现金流量表）, 业绩电话会]
+    question: In this period, did capital expenditure or buybacks rise sharply while profit reached a record high?
+    fail_if: Yes, and management did not state its assumption about the cycle
+    where: ["the 10-Q/10-K of this period and the three before (capital expenditure, buybacks and the cash flow statement)", earnings calls]
     lookback: 4
     severity: watch

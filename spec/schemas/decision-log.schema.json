@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/decision-log.schema.json",
-  "title": "决策日志（仅私有仓库；沿用九个字段）",
+  "title": "Decision log (private repository only; keeps the nine fields)",
   "type": "object",
   "required": [
     "entries"

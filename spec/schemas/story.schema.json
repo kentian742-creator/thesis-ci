@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/story.schema.json",
-  "title": "两分钟故事 story.md 的 front matter",
+  "title": "Front matter of the two-minute story story.md",
   "type": "object",
   "required": [
     "company",

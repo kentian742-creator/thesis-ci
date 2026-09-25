@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/prereg-settlement.schema.json",
-  "title": "预注册结算 prereg/<期间>.settlement.yml（流水线维护）",
+  "title": "Pre-registration settlement prereg/<period>.settlement.yml (maintained by the pipeline)",
   "type": "object",
   "required": [
     "company",
@@ -16,14 +16,14 @@
     "period": {
       "type": "string",
       "pattern": "^FY\\d{4}Q[1-4]$",
-      "description": "按公司财年写的期间 FY<年>Q<季>"
+      "description": "The period in the company's fiscal year, FY<year>Q<quarter>"
     },
     "acceptance_datetime": {
       "type": [
         "string",
         "null"
       ],
-      "description": "业绩文件的 EDGAR acceptanceDateTime（ISO 8601 含时区，或 EDGAR 的 YYYYMMDDHHMMSS）"
+      "description": "EDGAR acceptanceDateTime of the results filing (ISO 8601 with a time zone, or EDGAR's YYYYMMDDHHMMSS)"
     },
     "accession": {
       "type": [
@@ -37,14 +37,14 @@
         "string",
         "null"
       ],
-      "description": "条目文件合并进默认分支的时间（取自 GitHub，含时区）"
+      "description": "When the items file was merged into the default branch (taken from GitHub, with a time zone)"
     },
     "ots_proof": {
       "type": [
         "string",
         "null"
       ],
-      "description": "OpenTimestamps 证明文件路径（prereg/<期间>.yml.ots）"
+      "description": "Path of the OpenTimestamps proof (prereg/<period>.yml.ots)"
     },
     "results": {
       "type": "array",
@@ -81,7 +81,7 @@
             "string",
             "null"
           ],
-          "description": "用到的数值"
+          "description": "The values used"
         },
         "calculation": {
           "type": [
@@ -94,14 +94,14 @@
             "string",
             "null"
           ],
-          "description": "一句以内的原文摘录与来源标签"
+          "description": "A quotation of at most one sentence from the original text, with its source tag"
         },
         "source": {
           "oneOf": [
             {
               "type": "string",
               "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-              "description": "来源标签，TAG 或 TAG#LOCATOR"
+              "description": "Source tag, TAG or TAG#LOCATOR"
             },
             {
               "type": "null"
@@ -113,7 +113,7 @@
             "string",
             "null"
           ],
-          "description": "只按 criterion 一步一步写"
+          "description": "Written step by step, following criterion only"
         },
         "settled_at": {
           "oneOf": [
@@ -132,7 +132,7 @@
             "object",
             "null"
           ],
-          "description": "判定标准有歧义时总部的裁定"
+          "description": "HQ's ruling when the criterion is ambiguous"
         }
       },
       "additionalProperties": false

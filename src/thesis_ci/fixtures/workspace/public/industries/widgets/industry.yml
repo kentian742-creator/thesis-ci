@@ -1,38 +1,38 @@
 id: widgets
-name: 小部件（示例行业）
+name: Widgets (example industry)
 name_en: Widgets (fictitious)
 as_of: 2026-09-15
 reviewed: 2026-09-15
 trust_level: 1
 source: IND-WIDGETS-2026-09
-summary: 行业由少数供应商主导，前三家合计份额约 70%[src:IND-WIDGETS-2026-09#p2]。
+summary: A few suppliers dominate the industry; the top three together hold about 70% of the market [src:IND-WIDGETS-2026-09#p2].
 structure:
-  - 下游是工厂自动化，认证周期长
+  - Demand comes from factory automation, where certification cycles are long
 signposts:
   - id: WID-SP1
-    title: 开放接口标准的采用
-    observable: 采用开放接口标准的新产线占比
-    threshold: 超过 30% 时触发复核
+    title: Adoption of the open interface standard
+    observable: Share of new production lines that adopt the open interface standard
+    threshold: above 30% triggers a review
     rule: {op: ">", threshold: 30, unit: "%", consecutive: 1, period: year}
     check_frequency: annual
-    data_source: 行业协会年度调查
+    data_source: industry association annual survey
     current_reading: {value: 12, unit: "%", period: "2025", source: IND-WIDGETS-2026-09#p9}
-    implication: 兼容性护城河变窄
+    implication: The compatibility moat narrows
     tests_to_rerun: [moat, pricing_power]
   - id: WID-SP2
-    title: 新进入者拿到认证
-    observable: 新供应商获得主要产线认证的数量
-    threshold: 一年内出现两家以上
+    title: A new entrant gets certified
+    observable: Number of new suppliers certified for the main production lines
+    threshold: two or more within one year
     check_frequency: annual
-    data_source: 认证机构公告
+    data_source: certification body announcements
     current_reading: null
-    implication: 转换成本下降
+    implication: Switching costs fall
     tests_to_rerun: [moat]
   - id: WID-SP3
-    title: 价格战
-    observable: 行业平均售价的年度变化
-    threshold: 连续两年下降超过 5%
+    title: Price war
+    observable: Annual change in the industry's average selling price
+    threshold: down more than 5% for two consecutive years
     check_frequency: annual
-    data_source: 行业协会年度调查
-    implication: 定价权减弱
+    data_source: industry association annual survey
+    implication: Pricing power weakens
     tests_to_rerun: [pricing_power]

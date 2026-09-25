@@ -1,9 +1,17 @@
-# 林奇六类监控模板
+# Monitoring templates for Lynch's six categories
 
-公司按林奇分类套用默认测试，再从企业报告的论点破坏信号和前瞻指标补充。模板里的门槛是默认值：公司经理可以按公司情况改写，但必须在测试的 `note` 里写明理由；改写后的门槛同样要在结果出来之前写下。
+A company takes the default tests of its Lynch category, supplemented from the thesis breakers and watch signals of the
+company report. The thresholds in a template are defaults: the company manager may rewrite them for the company, but
+must state the reason in the test's `note`; a rewritten threshold, too, must be written down before the results are out.
 
-模板测试的 `origin` 写成 `template:<category>`。套用时补上 `id` 和 `effective_from`（从哪一期起判定）；定性测试另写 `judge: independent_model`、`evidence: required`，模板给出的 `where`（判定时读哪些文件）与 `lookback`（读几期，含本期）是默认值，可以按公司改写。
+The `origin` of a template test is `template:<category>`. When a template is applied, add `id` and `effective_from` (the
+period from which the test is judged); qualitative tests also get `judge: independent_model` and `evidence: required`, and
+the `where` (which documents are read for the judgment) and `lookback` (how many periods are read, the current one
+included) given by the template are defaults that can be rewritten for the company.
 
-类别变化时，旧模板的测试不删除：写 `retired_at`（从哪一期起不再判定），新模板的测试写 `effective_from`；逐条接替的新测试写 `supersedes`（被接替的测试 id）。
+When the category changes, the old template's tests are not deleted: they get `retired_at` (the period from which they
+are no longer judged), and the new template's tests get `effective_from`; a new test that replaces an old one item by
+item gives `supersedes` (the id of the test it replaces).
 
-所有模板共有三条时效测试：`moat`、`management` 各 4 个季度，`bear_case`（反方论证）2 个季度。
+All templates share three staleness tests: `moat` and `management` at 4 quarters each, and `bear_case` (the bear case)
+at 2 quarters.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/sources.schema.json",
-  "title": "来源标签表 sources.yml",
+  "title": "Source tag table sources.yml",
   "type": "object",
   "required": [
     "sources"
@@ -38,7 +38,12 @@
             ]
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "The title in English; for a source in another language, its English translation followed by \"(in Chinese)\" or the like"
+          },
+          "title_original": {
+            "type": "string",
+            "description": "The title verbatim in the source's own language (e.g. a Chinese report title); the one field of an archive outside zh-CN/ that may contain CJK text (C-LANGUAGE)"
           },
           "issuer_cik": {
             "type": [
@@ -101,11 +106,11 @@
               "string",
               "null"
             ],
-            "description": "私有文件写 private:<path>"
+            "description": "For a private file, write private:<path>"
           },
           "primary": {
             "type": "boolean",
-            "description": "是否一手来源"
+            "description": "Whether this is a primary source"
           },
           "note": {
             "type": "string"

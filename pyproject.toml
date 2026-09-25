@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thesis-ci"
-version = "0.2.1"
+version = "0.3.0"
 description = "Thesis as code: lint investment-thesis archives (thesis.yml, sources, pre-registrations) and score forecast calibration."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -45,6 +45,7 @@ include = [
     "/LICENSE",
     "/LICENSE-SPEC.md",
     "/CHANGELOG.md",
+    "/zh-CN",
     "/action.yml",
 ]
 

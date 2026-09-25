@@ -45,9 +45,20 @@ event: {period: FY2026Q4, expected_release: 2026-07-29, form: 8-K, placeholder: 
 deadline: "2026-07-28T23:59:59-04:00"
 author: system
 items:
-  - {id: ACME-FY2026Q4-1, statement: 本季营收同比增速不低于上季, probability: 0.6, criterion: 以 10-K 为准,
-     data_source: 10-K, horizon: quarter, resolves_by: 2026-08-31, domain: other, added_by: system}
+  - {id: ACME-FY2026Q4-1, statement: Year-on-year revenue growth this quarter is no lower than last quarter's,
+     probability: 0.6, criterion: per the 10-K, data_source: 10-K, horizon: quarter, resolves_by: 2026-08-31,
+     domain: other, added_by: system}
 """
+STORY_END = "Where this is most likely wrong"  # the story's last sentence; cases insert text in front of it
+LETTER = "public/letters/2026-09.md"
+IND_README = "public/industries/widgets/README.md"
+ZH_STORY = "public/zh-CN/companies/ACME/story.md"
+SOURCES = "public/companies/ACME/sources.yml"
+# Chinese text for the cases that need it, written as escapes so that this module holds no CJK characters.
+CJK = "\u4e2d\u6587"                                  # "Chinese"
+CN_ADVICE = "\u5efa\u8bae\u4e70\u5165\u3002"          # "Recommend buying." (a 00 §H4 term)
+CN_UNTAGGED = "\u8425\u6536\u589e\u957f 16%\u3002"    # "Revenue grew 16%." with the Chinese full stop, no tag
+FULLWIDTH_COMMA = "\uff0c"
 
 # Key-shaped strings assembled at runtime so no secret-like literal is ever committed.
 FAKE_KEY = "sk-" + "ant-" + "api03-" + "Q7w" * 12
@@ -73,6 +84,11 @@ def git_commit(side: str) -> tuple:
     return ("git_commit", side)
 
 
+def before_story_end(text: str) -> tuple:
+    """Insert ``text`` in front of the story's last sentence."""
+    return replace(STORY, STORY_END, text + " " + STORY_END)
+
+
 @dataclass(frozen=True)
 class Case:
     check: str
@@ -90,23 +106,23 @@ CASES: tuple[Case, ...] = (
     Case("C-SCHEMA", PUB, (replace(THESIS, "as_of: 2026-09-22", "as_of: 2026-02-30"),), "impossible date"),
     Case("C-SCHEMA", PRIV, (replace(BUY_MEMO, "timeout_days: 14", "timeout_days: 30"),), "memo timeout_days must be 14"),
     Case("C-SCHEMA", PUB, (delete("public/repo.yml"),), "repo.yml missing"),
-    Case("C-SRC-TAG", PUB, (replace(STORY, "最可能错在哪", "营收增长 16%。最可能错在哪"),), "untagged fact sentence"),
+    Case("C-SRC-TAG", PUB, (before_story_end("Revenue grew 16%."),), "untagged fact sentence"),
     Case("C-SRC-TAG", PUB, (replace(STORY, "[src:ACME-RPT-2026-09#p5]", "[src:NOPE-2026#p5]"),), "unknown tag"),
-    Case("C-SRC-TAG", PUB, (replace("public/letters/2026-09.md", "3 美元[src:OO-LOG-2026-09]", "3 美元"),), "untagged number in a letter"),
-    Case("C-SRC-FACT", PUB, (replace(THESIS, "占比 60%[src:ACME-RPT-2026-09#p4]", "占比 60%"),), "untagged fact in summary"),
+    Case("C-SRC-TAG", PUB, (replace(LETTER, "$3 [src:OO-LOG-2026-09]", "$3"),), "untagged number in a letter"),
+    Case("C-SRC-FACT", PUB, (replace(THESIS, "60% of revenue [src:ACME-RPT-2026-09#p4]", "60% of revenue"),), "untagged fact in summary"),
     Case("C-SRC-FACT", PUB, (replace(THESIS, "source: ACME-10K-FY2026#Item8\ntests:", "source: ACME-10K-FY2099#Item8\ntests:"),),
          "baseline_facts source not in sources.yml"),
     Case("C-SRC-FACT", PRIV, (replace(ACME_VAL, "source: ACME-RPT-2026-09#p41", "source: ACME-RPT-1999#p41"),), "valuation source unresolved"),
-    Case("C-SRC-ACCESSION", PUB, (replace("public/companies/ACME/sources.yml", "accession: 0000000001-26-000001", "accession: null"),),
+    Case("C-SRC-ACCESSION", PUB, (replace(SOURCES, "accession: 0000000001-26-000001", "accession: null"),),
          "filing without accession"),
     Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/companies/ACME/valuation.yml", "company: ACME\n"),), "valuation.yml in public"),
-    Case("C-PUBLIC-NO-VALUATION", PUB, (replace(STORY, "最可能错在哪", "目标价尚未确定。最可能错在哪"),), "price-range wording"),
+    Case("C-PUBLIC-NO-VALUATION", PUB, (before_story_end("The target price is not set yet."),), "price-range wording"),
     Case("C-PUBLIC-NO-VALUATION", PUB, (replace(THESIS, "todo:", "price_rating: B\ntodo:"),), "valuation key in public YAML"),
     Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/memos/2026-09-20-x.yml", "id: x\n"),), "memos/ in public"),
-    Case("C-PUBLIC-NO-ADVICE", PUB, (replace(STORY, "最可能错在哪", "建议买入。最可能错在哪"),), "advice wording in story"),
+    Case("C-PUBLIC-NO-ADVICE", PUB, (before_story_end("We recommend buying the shares."),), "advice wording in story"),
     Case("C-PUBLIC-NO-ADVICE", PUB, (replace("public/README.md", "Not investment advice.", "Strong buy."),), "advice in README"),
     Case("C-PUBLIC-NO-AMOUNTS", PUB, (write("public/companies/ACME/updates/2026-10.yml", "shares_held: 100\n"),), "amount key"),
-    Case("C-PUBLIC-NO-AMOUNTS", PUB, (replace("public/letters/2026-09.md", "低于预算", "账户 U12345678 低于预算"),), "account number"),
+    Case("C-PUBLIC-NO-AMOUNTS", PUB, (replace(LETTER, "below budget", "below budget; account U12345678"),), "account number"),
     Case("C-NO-PRICE-FEED", PUB, (write("public/pipeline/prices.py", "import yfinance\n"),), "price feed import"),
     Case("C-NO-PRICE-FEED", PRIV, (write("private/pipeline/fetch.py", "URL = 'https://query1.finance.yahoo.com/v7/finance/quote'\n"),),
          "quote endpoint in private code"),
@@ -135,11 +151,13 @@ CASES: tuple[Case, ...] = (
     Case("C-TEST-QUAL-EVIDENCE", PUB, (replace(THESIS, "judge: independent_model", "judge: company_manager"),), "wrong judge"),
     Case("C-STALENESS", PUB, (replace(THESIS, "  moat: 2026-09-20", "  moat: 2025-01-15"),), "moat review too old"),
     Case("C-DEPENDS", PUB, (replace(THESIS, "depends_on: [industries/widgets]", "depends_on: [industries/gadgets]"),), "unknown industry"),
-    Case("C-DEPENDS", PUB, (replace("public/industries/widgets/README.md", "本模块只描述行业本身", "ACME 是我们的持仓"),), "holding in module"),
-    Case("C-DEPENDS", PUB, (replace(INDUSTRY, "implication: 定价权减弱", "implication: 定价权减弱，建议减持"),), "advice in module"),
+    Case("C-DEPENDS", PUB, (replace(IND_README, "This module describes only the industry itself", "ACME is one of our holdings"),),
+         "holding in module"),
+    Case("C-DEPENDS", PUB, (replace(INDUSTRY, "implication: Pricing power weakens", "implication: Pricing power weakens, so investors should sell"),),
+         "advice in module"),
     Case("C-STORY", PUB, (delete(STORY),), "story.md missing"),
     Case("C-STORY", PUB, (replace(STORY, "company: ACME", "company: BETA"),), "company mismatch"),
-    Case("C-STORY", PUB, (replace(STORY, "最可能错在哪", "长" * 701 + "最可能错在哪"),), "story too long"),
+    Case("C-STORY", PUB, (before_story_end("word " * 351),), "English story over 350 words"),
     Case("C-RATING-ORDER", PRIV, (replace(RANKING, ", reason: Management deterioration under review; below the hurdle (fictitious).}", "}"),),
          "ranking row without a reason"),
     Case("C-RATING-ORDER", PUB, (replace(THESIS, "  management: B+\n", ""),), "management rating missing"),
@@ -179,18 +197,19 @@ CASES: tuple[Case, ...] = (
     Case("C-SCHEMA", PUB, (replace(THESIS, "status: holding\n", "status: holding\nstatus: candidate\n"),), "duplicate YAML key"),
     Case("C-SCHEMA", PUB, (replace(THESIS, "company: ACME\n", "company: ACMF\n"),), "thesis company does not match its directory"),
     Case("C-SCHEMA", PRIV, (replace("private/repo.yml", "visibility: private", "visibility: public"),), "both archives public"),
-    Case("C-SRC-TAG", PUB, (replace(STORY, "最可能错在哪", "Revenue grew 16 percent。最可能错在哪"),), "untagged English unit"),
-    Case("C-SRC-TAG", PUB, (write("public/mistakes.md", "# 错误清单\n\n核销率写成 2.5%，实为 2.0%。\n"),), "untagged mistakes.md"),
+    Case("C-SRC-TAG", PUB, (before_story_end("Revenue grew 16 percent."),), "untagged English unit"),
+    Case("C-SRC-TAG", PUB, (write("public/mistakes.md", "# Mistakes\n\nThe net write-off rate was given as 2.5%; it is 2.0%.\n"),),
+         "untagged mistakes.md"),
     Case("C-SRC-FACT", PUB, (write(f"{UPDATE}.yml", "facts: [{value: 1, source: NOPE-2026#p1}]\n"),), "unresolved source in an update"),
     Case("C-PUBLIC-NO-VALUATION", PUB, (write(f"{UPDATE}.yml", "---\nnote: x\n---\nvalue_ranges: {fair: [1, 2]}\n"),),
          "value_ranges in a second YAML document"),
     Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/.data/valuation.yml", "company: ACME\n"),), "valuation.yml in a hidden directory"),
     Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/forecasts/dash.json", '{"ACME": {"valueRanges": [1, 2]}}'),), "JSON valueRanges"),
-    Case("C-PUBLIC-NO-ADVICE", PUB, (write(f"{UPDATE}.md", "结论：建议减仓。\n"),), "建议减仓 in an update"),
+    Case("C-PUBLIC-NO-ADVICE", PUB, (write(f"{UPDATE}.md", "Conclusion: trim the position.\n"),), "trimming advice in an update"),
     Case("C-PUBLIC-NO-AMOUNTS", PUB, (write("public/forecasts/pos.json", '{"position_size": 0.15}'),), "JSON position_size"),
-    Case("C-PUBLIC-NO-AMOUNTS", PUB, (replace("public/letters/2026-09.md", "低于预算", "低于预算；我们的仓位 15%"),), "position in a letter"),
+    Case("C-PUBLIC-NO-AMOUNTS", PUB, (replace(LETTER, "below budget", "below budget; our position is 15%"),), "position in a letter"),
     Case("C-NO-PRICE-FEED", PUB, (write("public/pipeline/prices.py", "from polygon import RESTClient\n"),), "polygon client import"),
-    Case("C-NO-PRICE-FEED", PUB, (replace(STORY, "最可能错在哪", "现价 $350[src:ACME-RPT-2026-09#p5]。最可能错在哪"),),
+    Case("C-NO-PRICE-FEED", PUB, (before_story_end("The shares closed at $350 [src:ACME-RPT-2026-09#p5]."),),
          "share price displayed in the story"),
     Case("C-NO-TRADING", PRIV, (write("private/pipeline/broker.py", "from futu import OpenSecTradeContext\n"),), "futu broker import"),
     Case("C-LLM-ENTRY", PUB, (write("public/pipeline/draft.py", "import requests\nrequests.post('https://api.anthropic.com/v1/messages')\n"),),
@@ -200,13 +219,13 @@ CASES: tuple[Case, ...] = (
     Case("C-NO-SECRETS", PUB, (write("public/.claude/settings.json", '{"env": {"ANTHROPIC_API_KEY": "' + FAKE_KEY + '"}}'),),
          "key in .claude/settings.json"),
     Case("C-NO-SECRETS", PRIV, (write("private/deploy_key", FAKE_PEM),), "private key file"),
-    Case("C-DEPENDS", PUB, (replace("public/industries/widgets/README.md", "本模块只描述行业本身", "我们持有 ACME"),), "我们持有 in module"),
+    Case("C-DEPENDS", PUB, (replace(IND_README, "This module describes only the industry itself", "We hold ACME"),), "'we hold' in module"),
     Case("C-STORY", PUB, (replace(STORY, "status: holding", "status: candidate"),), "story status differs from thesis"),
     Case("C-SELL-REASONS", PRIV, (replace(RIGHTS, ", better_opportunity]", ", better_opportunity, price_decline]"),
                                   replace(TRIM_MEMO, "sell_reason: management_deterioration", "sell_reason: price_decline")),
          "edited public sell_reasons let a price-decline trim through"),
     Case("C-HURDLE", PRIV, (replace(BUY_MEMO, "hurdle: 0.09", "hurdle: 0.05"),), "memo hurdle below the valuation hurdle"),
-    Case("C-SINGLE-ORDER", PRIV, (replace(BUY_MEMO, "order: {type: single}", "order: {type: single, note: 分两批建仓}"),),
+    Case("C-SINGLE-ORDER", PRIV, (replace(BUY_MEMO, "order: {type: single}", "order: {type: single, note: build it in two tranches}"),),
          "two tranches in the order note"),
     Case("C-DECISION-RIGHTS", PUB, (replace(RIGHTS, "who: owner", "who: hq agent"),), "L3 decided by an agent"),
     Case("C-CONSTITUTION-MAP", PUB, (replace(RULES, "  - id: R6\n    title: Sell only for permanent deterioration or a clearly better "
@@ -244,13 +263,15 @@ CASES: tuple[Case, ...] = (
          "escalation for a cross-company reason"),
     Case("C-SRC-FACT", PUB, (replace(LEDGER, "    acknowledged_source: null\n", "    acknowledged_source: ACME-10Q-FY2099Q1#p1\n"),),
          "acknowledged_source unresolved"),
-    Case("C-PUBLIC-NO-VALUATION", PUB, (replace(STORY, "最可能错在哪", "市盈率 25 倍[src:ACME-RPT-2026-09#p5]。最可能错在哪"),),
+    Case("C-PUBLIC-NO-VALUATION", PUB, (before_story_end("P/E is 25x [src:ACME-RPT-2026-09#p5]."),),
          "price-derived multiple with a number"),
-    Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/mistakes.md", "# 错误清单\n\n上一版把价值中枢写进了公开文件。\n"),),
+    Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/mistakes.md", "# Mistakes\n\nThe previous version put the implied return in a "
+                                                                   "public file.\n"),),
          "valuation wording in mistakes.md"),
     Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/escalations/2026-09-21-ACME.yml", "id: x\n"),), "escalations/ in public"),
-    Case("C-PUBLIC-NO-ADVICE", PUB, (replace(PATCH_UPDATE, "这改变论点吗？不改变。", "这改变论点吗？不改变，建议加仓。"),),
-         "建议加仓 in an update"),
+    Case("C-PUBLIC-NO-ADVICE", PUB, (replace(PATCH_UPDATE, "Does this change the thesis? No.", "Does this change the thesis? No; add to "
+                                                                                                "the position."),),
+         "adding advice in an update"),
     Case("C-TESTS-MIN", PUB, (replace(THESIS, "supersedes: ACME-Q4", "supersedes: ACME-Q9"),), "supersedes names no test"),
     Case("C-TESTS-MIN", PUB, (replace(THESIS, "    effective_from: FY2027Q1\n  - id: ACME-Q2", "    effective_from: FY2027Q1\n    retired_at: FY2027Q2\n  - id: ACME-Q2"),
                               replace(THESIS, "    effective_from: FY2027Q1\n    first_readable", "    effective_from: FY2027Q1\n    retired_at: FY2027Q2\n    first_readable"),
@@ -283,6 +304,26 @@ CASES: tuple[Case, ...] = (
          "company manager's prompt takes the blind answers"),
     Case("C-PROMPT-ISOLATION", PRIV, (replace(PROMPT_14, "inputs: [filings, question_list_stripped]", "inputs: [filings, question_list_stripped, thesis]"),),
          "blind read takes the thesis"),
+    # --- English content and the zh-CN/ convention (thesis-ci 0.3.0)
+    Case("C-SRC-TAG", PUB, (replace(STORY, "60% of revenue [src:ACME-RPT-2026-09#p4]",
+                                    "60% of revenue. It was 55% a year earlier [src:ACME-RPT-2026-09#p4]"),),
+         "one tag for two English sentences"),
+    Case("C-SRC-TAG", PUB, (replace(ZH_STORY, "[src:ACME-10K-FY2026#Item8]", "[src:ACME-10K-FY2026#Item8]\n" + CN_UNTAGGED),),
+         "untagged fact in the Chinese version of the story"),
+    Case("C-PUBLIC-NO-VALUATION", PUB, (before_story_end("The central value is $120."),), "central value with a number"),
+    Case("C-PUBLIC-NO-ADVICE", PUB, (replace(LETTER, "below budget.", "below budget. We rate ACME a buy."),), "rated a buy in a letter"),
+    Case("C-PUBLIC-NO-ADVICE", PUB, (replace(ZH_STORY, "[src:ACME-10K-FY2026#Item8]", "[src:ACME-10K-FY2026#Item8]\n" + CN_ADVICE),),
+         "advice in the Chinese version of the story"),
+    Case("C-PUBLIC-NO-VALUATION", PUB, (write("public/docs/STATUS.md", "# Status\n\n- [x] Grades recomputed with the §V11 "
+                                                                     "scale (AXP B− → C, BRK B+ → B).\n"),),
+         "price-grade change in the public progress file"),
+    Case("C-PUBLIC-NO-ADVICE", PUB, (write("public/CLAUDE.md", "# Notes for agents\n\nRating: Buy\n"),), "a rating in CLAUDE.md"),
+    Case("C-LANGUAGE", PUB, (before_story_end(f"The {CJK} name is ACME."),), "Chinese in the English story"),
+    Case("C-LANGUAGE", PRIV, (replace(BUY_MEMO, "summary: Build the position in one order (fictitious).",
+                                      f"summary: Build the position in one order ({CJK})."),), "Chinese in a private memo"),
+    Case("C-LANGUAGE", PUB, (replace(SOURCES, "title: ACME company report (in Chinese, fictitious)", f"title: ACME {CJK}"),),
+         "a Chinese title outside title_original"),
+    Case("C-LANGUAGE", PUB, (write("public/docs/notes.md", f"Notes{FULLWIDTH_COMMA} more notes\n"),), "full-width punctuation"),
 )
 
 

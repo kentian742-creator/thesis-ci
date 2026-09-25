@@ -1,3 +1,3 @@
-# 小部件（示例行业）
+# Widgets (example industry)
 
-行业由少数供应商主导，前三家合计份额约 70%[src:IND-WIDGETS-2026-09#p2]。本模块只描述行业本身，路标见 industry.yml。
+A few suppliers dominate the industry; the top three together hold about 70% of the market [src:IND-WIDGETS-2026-09#p2]. This module describes only the industry itself; the signposts are in industry.yml.

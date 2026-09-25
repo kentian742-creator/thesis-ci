@@ -33,6 +33,8 @@ UPDATE = "public/companies/ACME/updates/2026-10"
 BUY_MEMO = "private/memos/2026-09-20-ACME-entry.yml"
 TRIM_MEMO = "private/memos/2026-09-22-BETA-trim.yml"
 FAKE_KEY = selftest.FAKE_KEY
+STORY_END = selftest.STORY_END  # the English story's last sentence
+MODULE_ONLY = "This module describes only the industry itself"  # a sentence of the industry README
 
 
 def edit(ws: Path, rel: str, old: str, new: str) -> None:
@@ -44,7 +46,8 @@ def put(ws: Path, rel: str, text: str) -> None:
 
 
 def story_line(ws: Path, text: str) -> None:
-    edit(ws, STORY, "最可能错在哪", text + "\n最可能错在哪")
+    """Add ``text`` to the story as a line of its own, before the last sentence."""
+    edit(ws, STORY, STORY_END, text + "\n" + STORY_END)
 
 
 # --------------------------------------------------------------------------- file walking
@@ -92,7 +95,7 @@ def test_c_schema_byte_order_mark_is_ignored(ws, lint):
 
 def test_c_story_crlf_line_endings(ws, lint):
     """C-STORY: Windows line endings do not hide story.md's front matter or its fenced code."""
-    story_line(ws, "```\n毛利率 66%\n```")
+    story_line(ws, "```\ngross margin 66%\n```")
     path = ws / STORY
     path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
     assert lint(ws, "C-STORY") == [] and lint(ws, "C-SCHEMA") == [] and lint(ws, "C-SRC-TAG") == []
@@ -185,7 +188,8 @@ def test_c_src_tag_invisible_characters_do_not_split_a_fact():
 
 def test_c_src_tag_mistakes_md_is_archive_content(ws, lint):
     """C-SRC-TAG: the public mistakes list (mistakes.md) tags its fact numbers like any archive Markdown."""
-    put(ws, "public/mistakes.md", "# 错误清单\n\n核销率写成 2.5%，实为 2.0%[src:OO-LOG-2026-09]。\n毛利率写成 60%。\n")
+    put(ws, "public/mistakes.md", "# Mistakes\n\nThe write-off rate was given as 2.5%, but it is 2.0% [src:OO-LOG-2026-09].\n"
+                                  "Gross margin was given as 60%.\n")
     found = lint(ws, "C-SRC-TAG")
     assert [(f.file, f.line) for f in found] == [("mistakes.md", 4)]
 
@@ -256,7 +260,7 @@ def test_c_public_no_advice_chinese_wording(ws, lint, text, flagged):
     ("We rate ACME Overweight.", True),
     ("Rating: Underweight", True),
     ("Strong sell.", True),
-    ("We never recommend buying or selling.", False),
+    ("We never recommend buying or selling.", True),  # a negative sentence is no exception (00 §H4)
     ("Strong buyer power keeps bottler margins thin.", False),
     ("Sugar taxes target overweight and obese adults.", False),
     ("| Overweight | 39% |", False),
@@ -273,7 +277,7 @@ def test_c_public_no_amounts_json_multidoc_and_paper_accounts(ws, lint):
     """C-PUBLIC-NO-AMOUNTS: keys in JSON data and later YAML documents; IBKR paper accounts (DU...)."""
     put(ws, "public/forecasts/pos.json", '{"positionSize": 0.15}')
     put(ws, f"{UPDATE}.yml", "---\nnote: x\n---\ncost_basis: 180\n")
-    edit(ws, LETTER, "低于预算", "低于预算，模拟账户 DU1234567")
+    edit(ws, LETTER, "below budget", "below budget; paper account DU1234567")
     assert sorted(f.file for f in lint(ws, "C-PUBLIC-NO-AMOUNTS")) == [
         "companies/ACME/updates/2026-10.yml", "forecasts/pos.json", "letters/2026-09.md"]
 
@@ -296,8 +300,8 @@ def test_c_public_no_amounts_tool_config_and_unicode_escapes(ws, lint):
 ])
 def test_c_public_no_amounts_position_wording(ws, lint, path, text, flagged):
     """C-PUBLIC-NO-AMOUNTS: the owner's position sizes in prose; another company's holdings are facts."""
-    edit(ws, path, "低于预算" if path == LETTER else "最可能错在哪",
-         ("低于预算。" if path == LETTER else "") + text + ("" if path == LETTER else "。最可能错在哪"))
+    anchor = "below budget." if path == LETTER else STORY_END
+    edit(ws, path, anchor, anchor + "\n" + text if path == LETTER else text + "\n" + anchor)
     assert bool(lint(ws, "C-PUBLIC-NO-AMOUNTS")) is flagged
 
 
@@ -421,7 +425,7 @@ def test_c_no_secrets_more_formats_fewer_false_alarms(ws, lint, text, flagged):
 ])
 def test_c_depends_neutrality_wording(ws, lint, text, flagged):
     """C-DEPENDS: first-person holdings and dependants in other words; legal entities stay allowed."""
-    edit(ws, IND_README, "本模块只描述行业本身", text)
+    edit(ws, IND_README, MODULE_ONLY, text)
     assert bool(lint(ws, "C-DEPENDS")) is flagged
 
 
@@ -472,7 +476,8 @@ def test_c_single_order_repeated_entry_memos(ws, lint):
 
 
 def test_c_decision_rights_l3_is_the_owner(ws, lint):
-    """C-DECISION-RIGHTS: money matters are never delegated: levels.L3.who names the owner (董事长)."""
+    """C-DECISION-RIGHTS: money matters are never delegated: levels.L3.who names the owner (the chairman); the
+    Chinese words for the owner count too."""
     edit(ws, RIGHTS, "who: owner", "who: hq_capital_allocator agent")
     assert "L3.who must be the owner" in lint(ws, "C-DECISION-RIGHTS")[0].message
     edit(ws, RIGHTS, "who: hq_capital_allocator agent", "who: 你（董事长）")
@@ -480,7 +485,7 @@ def test_c_decision_rights_l3_is_the_owner(ws, lint):
 
 
 def test_c_constitution_map_every_constitution_rule_is_mapped(ws, lint):
-    """C-CONSTITUTION-MAP: dropping a constitution rule from rules.yml leaves its check unmapped (宪法第 N 条)."""
+    """C-CONSTITUTION-MAP: dropping a constitution rule from rules.yml leaves its check unmapped (Constitution rule N)."""
     text = (ws / RULES).read_text(encoding="utf-8")
     start, end = text.index("  - id: R7"), text.index("  - id: R8")
     (ws / RULES).write_text(text[:start] + text[end:], encoding="utf-8")

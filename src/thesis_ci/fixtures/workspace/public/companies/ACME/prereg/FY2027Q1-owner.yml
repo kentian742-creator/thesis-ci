@@ -8,13 +8,13 @@ deadline: "2026-10-27T23:59:59-04:00"
 author: owner
 items:
   - id: ACME-FY2027Q1-3
-    statement: 本季毛利率不低于上季
+    statement: Gross margin this quarter is no lower than last quarter's
     probability: 0.55
-    criterion: 以 10-Q 利润表的毛利 ÷ 营收为准，保留一位小数；相等算作不低于
-    data_source: 10-Q 利润表
+    criterion: Gross profit ÷ revenue from the 10-Q income statement, to one decimal place; equal counts as no lower
+    data_source: 10-Q income statement
     horizon: quarter
     resolves_by: 2026-11-30
     domain: other
     added_by: owner
 overrides:
-  - {id: ACME-FY2027Q1-1, probability: 0.7, note: 渠道调研显示订单改善（所有者的判断）}
+  - {id: ACME-FY2027Q1-1, probability: 0.7, note: Channel checks show orders improving (the owner's judgment)}

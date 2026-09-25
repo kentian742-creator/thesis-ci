@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/escalation.schema.json",
-  "title": "升级请求 escalations/<YYYY-MM-DD>-<TICKER>-<slug>.yml（仅私有仓库）",
+  "title": "Escalation request escalations/<YYYY-MM-DD>-<TICKER>-<slug>.yml (private repository only)",
   "type": "object",
   "required": [
     "id",
@@ -50,7 +50,7 @@
           "source": {
             "type": "string",
             "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-            "description": "来源标签，TAG 或 TAG#LOCATOR"
+            "description": "Source tag, TAG or TAG#LOCATOR"
           }
         },
         "additionalProperties": false
@@ -63,7 +63,7 @@
         "management_deterioration",
         "capital_allocation_failure"
       ],
-      "description": "R6 的四种企业内部原因之一（“明显更好的机会”只由总部提出）"
+      "description": "One of R6's four reasons inside the company (\"a clearly better opportunity\" is raised only by HQ)"
     },
     "conclusion": {
       "type": "string"

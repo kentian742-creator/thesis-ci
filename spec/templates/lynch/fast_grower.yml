@@ -1,41 +1,41 @@
 category: fast_grower
-name: 快速增长型
-lynch: 年增 20–25% 的小而进取的公司；风险在增长失速、扩张失去单位经济、资产负债表跟不上。
-watch: [增速, 单位经济是否随扩张变差, 再投资回报, 现金与负债]
+name: Fast grower
+lynch: Small, aggressive companies growing 20–25% a year; the risks are growth stalling, expansion losing its unit economics and the balance sheet falling behind.
+watch: [growth rate, whether unit economics worsen with expansion, returns on reinvestment, cash and debt]
 tests:
   - key: Q-growth
     type: quantitative
-    claim: 增长仍在快速增长型的区间
+    claim: Growth is still in the fast-grower range
     covers: [growth]
     metric: revenue_yoy
-    fail_if: 连续 2 个季度低于 15%
+    fail_if: below 15% for 2 consecutive quarters
     rule: {op: "<", threshold: 15, unit: "%", consecutive: 2, period: quarter}
     data: xbrl
     severity: watch
   - key: Q-margin
     type: quantitative
-    claim: 扩张没有吃掉单位经济
+    claim: Expansion has not eaten up the unit economics
     covers: [unit_economics, pricing_power]
     metric: operating_margin
-    fail_if: 同比下降超过 5 个百分点，连续 2 个季度
+    fail_if: down more than 5 percentage points year on year, for 2 consecutive quarters
     rule: {op: "decrease", threshold: 5, unit: pp, consecutive: 2, period: quarter}
     data: xbrl
     severity: watch
   - key: Q-cash
     type: quantitative
-    claim: 资产负债表撑得住扩张
+    claim: The balance sheet can carry the expansion
     covers: [balance_sheet]
     metric: net_cash
-    fail_if: 由净现金转为净负债
+    fail_if: net cash turns into net debt
     rule: {op: "<", threshold: 0, unit: USD, consecutive: 1, period: quarter}
     data: xbrl
     severity: watch
   - key: L-reinvest
     type: qualitative
-    claim: 新的扩张方向仍在公司的能力范围内
+    claim: New directions of expansion are still within the company's capabilities
     covers: [capital_allocation]
-    question: 本期文件是否披露了进入与现有业务无关的新领域的重大投资或收购？
-    fail_if: 是，且金额超过上一财年自由现金流的 25%
-    where: [本期 10-Q／10-K 的收购与投资附注, 8-K（重大收购）, 业绩新闻稿]
+    question: Do this period's filings disclose a major investment or acquisition in a new field unrelated to the existing business?
+    fail_if: Yes, and the amount exceeds 25% of the previous fiscal year's free cash flow
+    where: [notes on acquisitions and investments in this period's 10-Q/10-K, 8-K (major acquisitions), earnings press release]
     lookback: 1
     severity: watch

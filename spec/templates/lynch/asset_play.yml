@@ -1,32 +1,32 @@
 category: asset_play
-name: 资产富裕型
-lynch: 持有市场忽视的有价资产（现金、地产、投资组合、牌照）；关键在资产价值是否被保全和兑现。
-watch: [账面或资产价值增长, 资产被耗散的迹象, 资本返还]
+name: Asset play
+lynch: Holds valuable assets the market overlooks (cash, real estate, an investment portfolio, licenses); the key is whether the value of the assets is preserved and realized.
+watch: [growth of book or asset value, signs that assets are being dissipated, returns of capital]
 tests:
   - key: Q-book
     type: quantitative
-    claim: 每股资产价值在增长
+    claim: Asset value per share is growing
     covers: [returns_on_capital]
     metric: book_value_per_share_yoy
-    fail_if: 连续 2 年下降
+    fail_if: down for 2 consecutive years
     rule: {op: "<", threshold: 0, unit: "%", consecutive: 2, period: year}
     data: xbrl
     severity: watch
   - key: Q-cash-drag
     type: quantitative
-    claim: 闲置现金没有变成拖累
+    claim: Idle cash has not become a drag
     covers: [capital_allocation]
     metric: cash_and_tbills_to_total_assets
-    fail_if: 连续 2 年高于 30%
+    fail_if: above 30% for 2 consecutive years
     rule: {op: ">", threshold: 30, unit: "%", consecutive: 2, period: year}
     data: xbrl
     severity: watch
   - key: L-dissipation
     type: qualitative
-    claim: 资产没有被低价处置或拿去做回报不明的投资
+    claim: Assets are not sold off cheaply or put into investments with unclear returns
     covers: [capital_allocation, management]
-    question: 本期是否有低于账面价值的重大资产出售，或回报不明的大额投资？
-    fail_if: 是
-    where: [本期 10-Q／10-K 的资产处置与投资附注, 业绩新闻稿]
+    question: In this period, was there a major sale of assets below book value, or a large investment with unclear returns?
+    fail_if: "yes"
+    where: [notes on asset disposals and investments in this period's 10-Q/10-K, earnings press release]
     lookback: 1
     severity: watch

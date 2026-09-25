@@ -1,52 +1,52 @@
 category: stalwart
-name: 稳定增长型
-lynch: 大而稳的公司，收入年增约 10–12%；赚钱靠持续性，风险在增长悄悄放慢和为增长而做的昂贵配置。
-watch: [增速是否在放慢, 资本回报是否守住, 回购是否真的缩减股本, 大额并购或资本开支的回报]
+name: Stalwart
+lynch: Large, steady companies whose revenue grows about 10–12% a year; the money is made through persistence, and the risks are growth quietly slowing and expensive allocations made for growth.
+watch: [whether growth is slowing, whether returns on capital hold, whether buybacks really shrink the share count, returns on large acquisitions or capital expenditure]
 tests:
   - key: Q-growth
     type: quantitative
-    claim: 增长没有滑出稳定增长型的区间
+    claim: Growth has not slipped out of the stalwart range
     covers: [growth]
     metric: revenue_yoy
-    fail_if: 连续 4 个季度低于 5%
+    fail_if: below 5% for 4 consecutive quarters
     rule: {op: "<", threshold: 5, unit: "%", consecutive: 4, period: quarter}
-    warn_if: 连续 2 个季度低于 8%
+    warn_if: below 8% for 2 consecutive quarters
     warn_rule: {op: "<", threshold: 8, unit: "%", consecutive: 2, period: quarter}
     data: xbrl
     severity: watch
   - key: Q-returns
     type: quantitative
-    claim: 投入资本回报守在优秀企业的水平
+    claim: Return on invested capital holds at the level of an excellent business
     covers: [returns_on_capital, moat]
     metric: roic
-    fail_if: 连续 2 年低于 12%
+    fail_if: below 12% for 2 consecutive years
     rule: {op: "<", threshold: 12, unit: "%", consecutive: 2, period: year}
     data: xbrl
     severity: watch
   - key: Q-buyback
     type: quantitative
-    claim: 回购在真正缩减股本，而不是抵消股权激励
+    claim: Buybacks really shrink the share count instead of offsetting stock-based compensation
     covers: [capital_allocation]
     metric: diluted_shares_yoy
-    fail_if: 连续 2 年大于 0
+    fail_if: above 0 for 2 consecutive years
     rule: {op: ">", threshold: 0, unit: "%", consecutive: 2, period: year}
     data: xbrl
     severity: watch
   - key: Q-fcf
     type: quantitative
-    claim: 利润能变成现金
+    claim: Profit turns into cash
     covers: [free_cash_flow]
     metric: fcf_conversion
-    fail_if: 连续 2 年低于 70%
+    fail_if: below 70% for 2 consecutive years
     rule: {op: "<", threshold: 70, unit: "%", consecutive: 2, period: year}
     data: xbrl
     severity: watch
   - key: L-guidance
     type: qualitative
-    claim: 管理层没有下调已公布的中期财务目标
+    claim: Management has not lowered the medium-term financial targets it published
     covers: [management]
-    question: 本期文件中，管理层是否下调或撤回了此前公布的中期财务目标？
-    fail_if: 是，且没有同时给出可检验的新目标
-    where: [本期与此前三期（共四期）的业绩新闻稿、电话会与投资者日材料]
+    question: In this period's documents, did management lower or withdraw the medium-term financial targets it had published?
+    fail_if: Yes, without giving new, testable targets at the same time
+    where: ["earnings press releases, calls and investor day materials of this period and the three before (four periods in all)"]
     lookback: 4
     severity: watch

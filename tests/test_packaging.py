@@ -52,4 +52,4 @@ def test_cli_runs_from_the_unpacked_wheel(wheel, tmp_path):
     proc = subprocess.run([sys.executable, "-c", code, str(site)], capture_output=True, text=True, cwd=tmp_path, timeout=300)
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert proc.stdout.splitlines()[0] == str(site / "thesis_ci" / "spec")
-    assert "34/34 checks pass" in proc.stdout
+    assert "35/35 checks pass" in proc.stdout

@@ -35,6 +35,14 @@ BINARY_SUFFIXES = {
 YAML_SUFFIXES = (".yml", ".yaml")
 MAX_TEXT_BYTES = 5_000_000
 _MERGE_TAG = "tag:yaml.org,2002:merge"
+# Archives are English-first; the Chinese version of a key document lives at zh-CN/<same path>. A zh-CN/ file is
+# published content wherever the file it translates is, and its source tags resolve like that file's.
+ZH_DIR = "zh-CN"
+
+
+def translated_rel(rel: str) -> str:
+    """The path of the file a zh-CN/ file translates (zh-CN/letters/x.md -> letters/x.md); any other path as it is."""
+    return rel[len(ZH_DIR) + 1:] if rel.startswith(ZH_DIR + "/") else rel
 
 
 def jsonable(obj: Any) -> Any:
@@ -413,8 +421,12 @@ class Repo:
         return self._tags[sources_file]
 
     def known_tags(self, path: Path) -> set[str]:
-        """Tags resolvable from ``path``: sources.yml in its directory and each parent up to the root."""
-        rel_dir = Path(self.rel(path)).parent
+        """Tags resolvable from ``path``: sources.yml in its directory and each parent up to the root.
+
+        A file under zh-CN/ resolves its tags like the file it translates (zh-CN/companies/X/story.md reads
+        companies/X/sources.yml).
+        """
+        rel_dir = Path(translated_rel(self.rel(path))).parent
         if rel_dir.is_absolute():  # outside the repository: only its own directory applies
             dirs = [self.root, rel_dir]
         else:

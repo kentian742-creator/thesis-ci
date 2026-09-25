@@ -1,32 +1,32 @@
 category: turnaround
-name: 困境反转型
-lynch: 遭受重创、可能破产或正在修复的公司；关键在流动性能否撑到修复完成。
-watch: [流动性, 债务到期, 利润率修复进度, 修复计划的里程碑]
+name: Turnaround
+lynch: Companies that have been battered, may go bankrupt or are recovering; the key is whether liquidity lasts until the recovery is complete.
+watch: [liquidity, debt maturities, progress of the margin recovery, milestones of the recovery plan]
 tests:
   - key: Q-liquidity
     type: quantitative
-    claim: 流动性撑得到修复完成
+    claim: Liquidity lasts until the recovery is complete
     covers: [balance_sheet]
     metric: net_cash
-    fail_if: 现金低于未来 12 个月到期债务
+    fail_if: cash below the debt maturing in the next 12 months
     rule: {op: "<", threshold: 0, unit: USD, consecutive: 1, period: quarter}
     data: xbrl
     severity: breaker
   - key: Q-margin
     type: quantitative
-    claim: 利润率在修复
+    claim: Margins are recovering
     covers: [unit_economics]
     metric: operating_margin
-    fail_if: 连续 2 个季度同比下降
+    fail_if: down year on year for 2 consecutive quarters
     rule: {op: "decrease", threshold: 0, unit: pp, consecutive: 2, period: quarter}
     data: xbrl
     severity: watch
   - key: L-milestones
     type: qualitative
-    claim: 修复计划的里程碑按时兑现
+    claim: The milestones of the recovery plan are met on time
     covers: [management]
-    question: 管理层上期承诺的修复里程碑，本期是否按时兑现？
-    fail_if: 否，且未解释原因
-    where: [本期与上一期的 10-Q／10-K、业绩新闻稿与电话会]
+    question: Were the recovery milestones management promised last period met on time in this period?
+    fail_if: No, and no reason was given
+    where: ["the 10-Q/10-K, earnings press releases and calls of this period and the one before"]
     lookback: 2
     severity: watch

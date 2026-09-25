@@ -21,6 +21,9 @@ SETTLEMENT = "public/companies/ACME/prereg/FY2027Q1.settlement.yml"
 BUY_MEMO = "private/memos/2026-09-20-ACME-entry.yml"
 ACME_VAL = "private/companies/ACME/valuation.yml"
 BETA_VAL = "private/companies/BETA/valuation.yml"
+LETTER = "public/letters/2026-09.md"
+STORY_END = selftest.STORY_END  # the English story's last sentence
+MODULE_ONLY = "This module describes only the industry itself"  # a sentence of the industry README
 
 
 def edit(ws: Path, rel: str, old: str, new: str) -> None:
@@ -73,7 +76,8 @@ def test_vacuous_pass_on_empty_archives(tmp_path):
 # --------------------------------------------------------------------------- C-SCHEMA
 def test_c_schema_reports_branch_errors_with_lines(ws, lint):
     """C-SCHEMA: a qualitative test missing its question is reported precisely, not as an opaque oneOf."""
-    edit(ws, THESIS, "    question: 本期文件中，管理层是否下调或撤回了此前公布的中期财务目标？\n", "")
+    edit(ws, THESIS, "    question: In this period's documents, did management lower or withdraw the medium-term financial "
+                     "targets it had published?\n", "")
     found = lint(ws, "C-SCHEMA")
     assert len(found) == 1
     assert "'question' is a required property" in found[0].message
@@ -113,9 +117,9 @@ def test_c_schema_private_only_schemas_not_applied_in_public(ws, lint):
 # --------------------------------------------------------------------------- C-SRC-TAG
 def test_c_src_tag_code_spans_and_root_sources(ws, lint):
     """C-SRC-TAG: code spans are ignored; letters resolve tags through the root sources.yml."""
-    edit(ws, STORY, "最可能错在哪", "`增长 16%` 不算。最可能错在哪")
+    edit(ws, STORY, STORY_END, "`growth 16%` does not count. " + STORY_END)
     assert lint(ws, "C-SRC-TAG") == []
-    edit(ws, "public/letters/2026-09.md", "[src:OO-LOG-2026-09]", "[src:ACME-RPT-2026-09#p1]")
+    edit(ws, LETTER, "[src:OO-LOG-2026-09]", "[src:ACME-RPT-2026-09#p1]")
     found = lint(ws, "C-SRC-TAG")
     assert len(found) == 1 and "ACME-RPT-2026-09" in found[0].message
 
@@ -139,22 +143,25 @@ def test_c_src_tag_only_archive_markdown(ws, lint):
 def test_c_src_fact_criteria_are_exempt(ws, lint):
     """C-SRC-FACT: fail_if, warn_if, threshold, question and rule are pre-registered criteria, not facts."""
     edit(ws, THESIS, 'rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}',
-         'rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter, note: 低于 55% 即失败}')
-    edit(ws, THESIS, "question: 本期文件中", "question: 毛利率是否低于 50%？本期文件中")
+         'rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter, note: fails below 55%}')
+    edit(ws, THESIS, "question: In this period's documents", "question: Is gross margin below 50%? In this period's documents")
     assert lint(ws, "C-SRC-FACT") == []
 
 
 @pytest.mark.parametrize(
     "path, old, new",
     [
-        (THESIS, "    - 新的开放标准让兼容性不再值钱", "    - 份额跌到 20% 以下"),
-        (THESIS, "claim: 自由现金流随收入增长", "claim: 自由现金流三年增长 40%"),
-        (THESIS, "category_rationale: 收入多年稳定增长约 11%[src:ACME-RPT-2026-09#p3]", "category_rationale: 收入多年稳定增长约 11%"),
-        (THESIS, "    label: 毛利率", "    label: 毛利率 62%"),
-        (INDUSTRY, "  - 下游是工厂自动化，认证周期长", "  - 下游是工厂自动化，占需求 80%"),
-        (INDUSTRY, "implication: 兼容性护城河变窄", "implication: 份额可能下降 10 个百分点"),
-        (INDUSTRY, "observable: 采用开放接口标准的新产线占比", "observable: 占比（去年 12%）"),
-        ("public/companies/ACME/ledger.yml", "30 亿美元[src:ACME-10K-FY2026#Item5]", "30 亿美元"),
+        (THESIS, "    - A new open standard makes compatibility worthless", "    - Market share falls below 20%"),
+        (THESIS, "claim: Free cash flow grows with revenue", "claim: Free cash flow grew 40% in three years"),
+        (THESIS, "by about 11% a year for many years [src:ACME-RPT-2026-09#p3]", "by about 11% a year for many years"),
+        (THESIS, "    label: Gross margin", "    label: Gross margin 62%"),
+        (INDUSTRY, "  - Demand comes from factory automation, where certification cycles are long",
+         "  - Demand comes from factory automation, 80% of it"),
+        (INDUSTRY, "implication: The compatibility moat narrows", "implication: Share could fall 10 percentage points"),
+        (INDUSTRY, "observable: Share of new production lines that adopt the open interface standard",
+         "observable: Share of new production lines (12% last year)"),
+        ("public/companies/ACME/ledger.yml", "$3 billion of stock within three years [src:ACME-10K-FY2026#Item5]",
+         "$3 billion of stock within three years"),
     ],
 )
 def test_c_src_fact_free_text_needs_tags(ws, lint, path, old, new):
@@ -165,8 +172,9 @@ def test_c_src_fact_free_text_needs_tags(ws, lint, path, old, new):
 
 def test_c_src_fact_predictions_and_todo_are_not_facts(ws, lint):
     """C-SRC-FACT: prereg statements are predictions and todo items are not facts."""
-    edit(ws, PREREG, "statement: 本季营收同比增速不低于上季", "statement: 本季营收同比增速不低于 8%")
-    edit(ws, THESIS, "  - 补充分部数据", "  - 补充分部数据（报告只给了 40% 的口径）")
+    edit(ws, PREREG, "statement: Year-on-year revenue growth this quarter is no lower than last quarter's",
+         "statement: Year-on-year revenue growth this quarter is at least 8%")
+    edit(ws, THESIS, "  - Add segment data", "  - Add segment data (the report covers only 40% of revenue)")
     assert lint(ws, "C-SRC-FACT") == []
 
 
@@ -190,7 +198,7 @@ def test_c_src_accession_is_a_warning(ws, lint):
 def test_c_public_no_valuation_keys_phrases_and_dirs(ws, lint):
     """C-PUBLIC-NO-VALUATION: value_ranges key, English phrases (any case) and decision-log/ are errors."""
     edit(ws, "public/forecasts/2026.yml", "brier: null", "brier: null\n    value_ranges: {fair: [1, 2]}")
-    edit(ws, "public/letters/2026-09.md", "低于预算", "no Price Target here")
+    edit(ws, LETTER, "below budget", "no Price Target here")
     put(ws, "public/decision-log/2026.yml", "entries: []\n")
     messages = " ".join(f.message for f in lint(ws, "C-PUBLIC-NO-VALUATION"))
     assert "value_ranges" in messages and "price target" in messages and "decision-log" in messages
@@ -198,7 +206,7 @@ def test_c_public_no_valuation_keys_phrases_and_dirs(ws, lint):
 
 def test_c_public_no_valuation_ignores_docs(ws, lint):
     """C-PUBLIC-NO-VALUATION: wording checks cover companies/, industries/, forecasts/, letters/ only."""
-    put(ws, "public/docs/DESIGN.md", "价值区间与目标价只放在私有仓库。\n")
+    put(ws, "public/docs/DESIGN.md", "Value ranges and the target price live in the private repository only.\n")
     assert lint(ws, "C-PUBLIC-NO-VALUATION") == []
 
 
@@ -212,7 +220,7 @@ def test_c_public_no_advice_readme_anywhere_and_case(ws, lint):
 
 def test_c_public_no_amounts_weight_key_and_short_ids(ws, lint):
     """C-PUBLIC-NO-AMOUNTS: a weight key is an error; short U-numbers are not account ids."""
-    edit(ws, "public/letters/2026-09.md", "低于预算", "U123 型号低于预算")
+    edit(ws, LETTER, "below budget", "below budget; the U123 model")
     assert lint(ws, "C-PUBLIC-NO-AMOUNTS") == []
     edit(ws, "public/forecasts/2026.yml", "brier: null", "brier: null\n    weight: 0.15")
     assert len(lint(ws, "C-PUBLIC-NO-AMOUNTS")) == 1
@@ -239,7 +247,7 @@ def test_c_no_price_feed_workflows_and_json(ws, lint):
 
 def test_c_no_trading_workflow_and_prose(ws, lint):
     """C-NO-TRADING: broker names in workflows are flagged; prose is not code."""
-    put(ws, "public/letters/2026-10.md", "本系统不会连接 Schwab。\n")
+    put(ws, "public/letters/2026-10.md", "This system never connects to Schwab.\n")
     assert lint(ws, "C-NO-TRADING") == []
     put(ws, "public/.github/workflows/x.yml", "jobs: {a: {steps: [{run: python -m ib_insync}]}}\n")
     assert len(lint(ws, "C-NO-TRADING")) == 1
@@ -333,8 +341,8 @@ def test_c_test_metric_rules(ws, lint, old, new, level):
 def test_c_test_metric_metric_def_and_param_defs(ws, lint):
     """C-TEST-METRIC: metric_def replaces the registry; params.metric_defs and dotted ids define sub-metrics."""
     edit(ws, THESIS, "    metric: gross_margin\n",
-         "    metric_def: {id: widget_margin, description: 部件毛利率, unit: '%', data: xbrl, xbrl: [us-gaap:GrossProfit]}\n"
-         "    params: {metric_defs: [{id: attach_rate, description: 配套率, unit: '%', data: filing_text}]}\n")
+         "    metric_def: {id: widget_margin, description: widget gross margin, unit: '%', data: xbrl, xbrl: [us-gaap:GrossProfit]}\n"
+         "    params: {metric_defs: [{id: attach_rate, description: attach rate, unit: '%', data: filing_text}]}\n")
     edit(ws, THESIS, 'rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}',
          'rule: {all_of: [{metric: widget_margin, op: "<", threshold: 55}, {metric: attach_rate.us, op: "<", threshold: 30}]}')
     assert lint(ws, "C-TEST-METRIC") == []
@@ -344,7 +352,7 @@ def test_c_test_metric_metric_def_and_param_defs(ws, lint):
 
 def test_c_test_qual_evidence_needs_question(ws, lint):
     """C-TEST-QUAL-EVIDENCE: question and fail_if must be non-empty."""
-    edit(ws, THESIS, "fail_if: 是，且没有同时给出可检验的新目标", 'fail_if: " "')
+    edit(ws, THESIS, "fail_if: Yes, without giving new, testable targets at the same time", 'fail_if: " "')
     assert "fail_if" in lint(ws, "C-TEST-QUAL-EVIDENCE")[0].message
 
 
@@ -377,22 +385,22 @@ def test_c_staleness_missing_section(ws, lint):
 
 # --------------------------------------------------------------------------- archive structure
 def test_c_depends_allows_bank_holding_company(ws, lint):
-    """C-DEPENDS: 'bank holding company' and 控股公司 are ordinary words; 'our holdings' is not."""
-    edit(ws, IND_README, "本模块只描述行业本身", "AXP is a bank holding company；多家为控股公司")
+    """C-DEPENDS: 'bank holding company' is an ordinary word; 'our holdings' is not."""
+    edit(ws, IND_README, MODULE_ONLY, "AXP is a bank holding company")
     assert lint(ws, "C-DEPENDS") == []
     edit(ws, IND_README, "AXP is a bank holding company", "one of our holdings")
     assert len(lint(ws, "C-DEPENDS")) == 1
 
 
 def test_c_depends_flags_depends_on_in_module(ws, lint):
-    """C-DEPENDS: industry modules may not list dependants (depends_on / 依赖本行业)."""
+    """C-DEPENDS: industry modules may not list dependants (depends_on, companies that depend on this industry)."""
     edit(ws, INDUSTRY, "tests_to_rerun: [moat, pricing_power]", "tests_to_rerun: [moat, pricing_power]\n    # depends_on: ACME")
-    edit(ws, IND_README, "本模块只描述行业本身", "依赖本行业的公司：ACME")
+    edit(ws, IND_README, MODULE_ONLY, "Companies that depend on this industry: ACME")
     assert len(lint(ws, "C-DEPENDS")) == 2
 
 
 def test_c_story_prose_limit_ignores_tags(ws, lint):
-    """C-STORY: exactly 700 prose characters pass even with many source tags."""
+    """C-STORY: a story in Chinese passes at exactly 700 prose characters, however many source tags it has."""
     text = (ws / STORY).read_text(encoding="utf-8")
     fm = text[: text.index("# ACME")]
     body = ("字" * 70 + "[src:ACME-RPT-2026-09#p1]\n") * 10
@@ -473,7 +481,7 @@ def test_c_concentration_max_holdings_above_five_warns(ws, lint):
     ("0.10", None, []),
     ("0.20", None, []),
     ("0.30", None, ["warning"]),        # above the bar's top without a reason
-    ("0.30", "理解最深、确定性最高", []),  # higher conviction, reason stated
+    ("0.30", "the business we understand best and are surest of", []),  # higher conviction, reason stated
 ])
 def test_c_concentration_entry_bar_not_target(ws, lint, weight, note, levels):
     """C-CONCENTRATION: 10-20% is an entry bar, not a target (rule 4)."""

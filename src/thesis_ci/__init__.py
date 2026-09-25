@@ -4,4 +4,4 @@ thesis.yml is the source, thesis tests are the unit tests, and every new 10-Q / 
 This package lints archive repositories against the format contract in ``spec/``.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"

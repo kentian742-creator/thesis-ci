@@ -12,14 +12,15 @@ from typing import Any, Iterator
 
 from ..engine import Context, Issue, check
 from ..repo import Doc, Repo
-from ..textscan import compile_wording, split_front_matter, story_length
+from ..textscan import compile_wording, split_front_matter, story_is_cjk, story_length, story_words
 from .public import ADVICE_WORDING, content_files, forbidden_wording
 from .schema import schema_issues
 from .thesis_tests import theses
 
 DEPENDS_RE = re.compile(r"^industries/[a-z0-9-]+$")
 # Industry modules describe the industry only: no holdings, no dependants (spec/checks.yml, C-DEPENDS).
-# "bank holding company" / 控股公司 / "demand depends on" are ordinary words and stay allowed.
+# "bank holding company", the Chinese word for a holding company and "demand depends on" are ordinary words and stay
+# allowed.
 NEUTRALITY_PHRASES = (
     "持仓", "portfolio holding", "depends_on",
     "我们持有", "我持有", "本人持有", "仓位", "本组合", "我们的组合", "我们的投资组合",
@@ -29,13 +30,20 @@ NEUTRALITY_PATTERNS = (
     # "our holding company" (a 20-F's own words) is a legal entity, not a portfolio holding
     ("our holding", r"(?<![A-Za-z])our\s+holdings?(?!\s+(?:company|companies|structure|entity|entities))(?![A-Za-z])"),
     ("our position", r"(?<![A-Za-z])our\s+(?:positions?|stakes?)\s+in(?![A-Za-z])"),
-    ("依赖本行业的公司", r"依赖(?:于)?\s*(?:本|该|此|这个|这一)\s*(?:行业|模块)"),
+    ("companies that depend on this industry", r"依赖(?:于)?\s*(?:本|该|此|这个|这一)\s*(?:行业|模块)"),
     ("companies that depend on this industry",
      r"(?<![A-Za-z])(?:companies|firms|holdings|tickers|stocks|theses)\s+(?:that\s+|which\s+)?"
      r"(?:depend|depends|depending|rely|relies|relying)\s+on\s+(?:this|the)\s+(?:industry|module|sector)(?![A-Za-z])"),
+    # the English for the first-person holding phrases above: "we hold ACME", "I own shares of ACME" (a ticker in
+    # capitals; "we hold that ..." is an opinion, not a holding)
+    ("we hold", r"(?<![A-Za-z])(?:we|i)\s+(?:currently\s+|still\s+|also\s+|now\s+)?(?:hold|own)\s+"
+                r"(?:(?:shares|stock|a\s+stake|a\s+position)\s+(?:of|in)\s+)?(?-i:[A-Z][A-Z0-9.]{0,9})(?![A-Za-z0-9])"),
 )
 NEUTRALITY_WORDING = compile_wording(NEUTRALITY_PHRASES, NEUTRALITY_PATTERNS)
+# SPEC 5: a story in Chinese, Japanese or Korean is at most 700 characters; an English story at most 350 words, about
+# two minutes read aloud (150–175 words a minute) and about what 700 Chinese characters become in English.
 STORY_MAX_CHARS = 700
+STORY_MAX_WORDS = 350
 UTC = dt.timezone.utc
 try:  # EDGAR's clock: acceptance times and filing days are US Eastern
     from zoneinfo import ZoneInfo
@@ -84,9 +92,15 @@ def c_story(ctx: Context) -> Iterator[Issue]:
                 if told is not None and recorded is not None and told != recorded:
                     yield Issue(path, f"front matter {key} {told!r} does not match thesis.yml {key} {recorded!r}", doc.line(key))
         _fm, body = split_front_matter(repo.text(path) or "")
-        n = story_length(body)
-        if n > STORY_MAX_CHARS:
-            yield Issue(path, f"story body is {n} characters (limit {STORY_MAX_CHARS}, tags and markup excluded)")
+        if story_is_cjk(body):
+            n = story_length(body)
+            if n > STORY_MAX_CHARS:
+                yield Issue(path, f"story body is {n} characters (limit {STORY_MAX_CHARS}, tags and markup excluded)")
+        else:
+            n = story_words(body)
+            if n > STORY_MAX_WORDS:
+                yield Issue(path, f"story body is {n} words (limit {STORY_MAX_WORDS} words for a story in English, "
+                                  "tags and markup excluded)")
 
 
 def to_datetime(value: Any) -> dt.datetime | None:

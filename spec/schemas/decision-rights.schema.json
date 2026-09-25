@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/decision-rights.schema.json",
-  "title": "三级决策权与信任等级 decision-rights.yml",
+  "title": "Three decision levels and trust levels decision-rights.yml",
   "type": "object",
   "required": [
     "levels",
@@ -217,7 +217,7 @@
         },
         "routing": {
           "type": "object",
-          "description": "按信任等级分流（§G9）：3 自动合并并公开；2 自动合并、公开前由总部复核；1 先留私有仓库；0 暂停自治",
+          "description": "Routing by trust level (§G9): 3 auto-merge and publish; 2 auto-merge, reviewed by HQ before publishing; 1 kept in the private repository first; 0 autonomy paused",
           "properties": {
             "0": {
               "type": "string"
@@ -242,7 +242,7 @@
         },
         "scoring": {
           "type": "object",
-          "description": "信任等级怎样计分：事实错误、分歧裁定、谁的哪类产出算一次更新"
+          "description": "How trust levels are scored: fact errors, divergence rulings, which output of whom counts as one update"
         }
       },
       "additionalProperties": false
@@ -322,7 +322,7 @@
         "rule": {
           "type": "string",
           "minLength": 1,
-          "description": "排名依据的条款，例如 §V13（不按单一指标机械排序）"
+          "description": "The clause the ranking follows, e.g. §V13 (no mechanical sort by a single metric)"
         },
         "candidates": {
           "type": "integer",
@@ -336,7 +336,7 @@
     },
     "gate": {
       "type": "object",
-      "description": "放行关口（17A 的 gate_rules）"
+      "description": "Release gates (the gate_rules of 17A)"
     },
     "budget": {
       "type": "object",

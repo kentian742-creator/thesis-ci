@@ -1,32 +1,32 @@
 category: slow_grower
-name: 缓慢增长型
-lynch: 大而老的公司，增速接近 GDP；持有它主要为分红，风险在分红不可持续和为找增长而乱投资。
-watch: [分红覆盖, 分红增长, 多元化并购]
+name: Slow grower
+lynch: Large, old companies growing about as fast as GDP; they are held mainly for the dividend, and the risks are a dividend that cannot be sustained and reckless investment in search of growth.
+watch: [dividend coverage, dividend growth, diversifying acquisitions]
 tests:
   - key: Q-payout
     type: quantitative
-    claim: 分红由自由现金流覆盖
+    claim: The dividend is covered by free cash flow
     covers: [free_cash_flow, capital_allocation]
     metric: shareholder_return_to_fcf
-    fail_if: 连续 2 年高于 110%
+    fail_if: above 110% for 2 consecutive years
     rule: {op: ">", threshold: 110, unit: "%", consecutive: 2, period: year}
     data: xbrl
     severity: watch
   - key: Q-returns
     type: quantitative
-    claim: 资本回报没有被稀释
+    claim: Returns on capital have not been diluted
     covers: [returns_on_capital]
     metric: roic
-    fail_if: 连续 2 年低于 10%
+    fail_if: below 10% for 2 consecutive years
     rule: {op: "<", threshold: 10, unit: "%", consecutive: 2, period: year}
     data: xbrl
     severity: watch
   - key: L-diworsify
     type: qualitative
-    claim: 没有为找增长而乱多元化
+    claim: No reckless diversification in search of growth
     covers: [capital_allocation]
-    question: 本期是否宣布了与主业无关、金额超过市值 10% 的收购？
-    fail_if: 是
-    where: [本期 8-K（重大收购）, 10-Q／10-K 的收购附注]
+    question: In this period, was an acquisition announced that is unrelated to the core business and larger than 10% of market capitalization?
+    fail_if: "yes"
+    where: [this period's 8-K (major acquisitions), notes on acquisitions in the 10-Q/10-K]
     lookback: 1
     severity: watch

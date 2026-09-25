@@ -10,7 +10,7 @@ filer:
   earnings_form: 8-K
   annual_form: 10-K
 category: stalwart
-category_rationale: 收入多年稳定增长约 11%[src:ACME-RPT-2026-09#p3]，属于稳定增长型。
+category_rationale: Revenue has grown steadily by about 11% a year for many years [src:ACME-RPT-2026-09#p3], which makes it a stalwart.
 domain: other
 depends_on: [industries/widgets]
 trust_level: 1
@@ -35,18 +35,18 @@ ratings:
   capital_allocation: B
   source: ACME-RPT-2026-09#p2
 thesis:
-  summary: 工厂离不开的小部件龙头，经常性收入占比 60%[src:ACME-RPT-2026-09#p4]。
+  summary: The leading maker of small parts that factories cannot do without; recurring revenue is 60% of revenue [src:ACME-RPT-2026-09#p4].
   pillars:
     - id: P1
-      claim: 客户换供应商要重新认证整条产线，转换成本高
+      claim: A customer that changes suppliers must recertify whole production lines, so switching costs are high
       source: ACME-RPT-2026-09#p5
     - id: P2
-      claim: 自由现金流随收入增长
+      claim: Free cash flow grows with revenue
   permanent_loss_paths:
-    - 新的开放标准让兼容性不再值钱
+    - A new open standard makes compatibility worthless
 baseline_facts:
   - id: F1
-    label: 毛利率
+    label: Gross margin
     value: 62
     unit: "%"
     period: FY2026
@@ -55,25 +55,25 @@ baseline_facts:
 tests:
   - id: ACME-Q1
     type: quantitative
-    claim: 回购在真正缩减股本
+    claim: Buybacks really shrink the share count
     origin: template:stalwart
     severity: watch
     covers: [capital_allocation]
     metric: diluted_shares_yoy
-    fail_if: 连续 2 年大于 0
+    fail_if: above 0 for 2 consecutive years
     rule: {op: ">", threshold: 0, unit: "%", consecutive: 2, period: year}
     data: xbrl
     effective_from: FY2027Q1
   - id: ACME-Q2
     type: quantitative
-    claim: 毛利率守住定价权
+    claim: Gross margin shows that pricing power holds
     origin: report:breaker
     severity: breaker
     covers: [pricing_power, moat]
     metric: gross_margin
-    fail_if: 连续两个季度低于 55%
+    fail_if: below 55% for two consecutive quarters
     rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}
-    warn_if: 低于 58%
+    warn_if: below 58%
     warn_rule: {op: "<", threshold: 58, unit: "%", consecutive: 1, period: quarter}
     data: xbrl
     effective_from: FY2027Q1
@@ -81,12 +81,12 @@ tests:
     baseline: {value: 62, unit: "%", period: FY2026, source: ACME-10K-FY2026#Item8}
   - id: ACME-Q3
     type: quantitative
-    claim: 利润能变成现金，资本回报守住
+    claim: Profit turns into cash and returns on capital hold
     origin: template:stalwart
     severity: watch
     covers: [free_cash_flow, returns_on_capital]
     metric: fcf_conversion
-    fail_if: 连续 2 年低于 70%
+    fail_if: below 70% for 2 consecutive years
     rule:
       all_of:
         - {op: "<", threshold: 70, unit: "%", consecutive: 2, period: year}
@@ -94,34 +94,34 @@ tests:
     effective_from: FY2027Q1
   - id: ACME-Q4
     type: quantitative
-    claim: 经常性收入占比守住（旧收入分解口径）
+    claim: Recurring revenue holds its share of revenue (old revenue disaggregation basis)
     origin: report:watch
     severity: watch
     covers: [moat]
-    metric_def: {id: recurring_share, description: 经常性收入 ÷ 总收入（旧口径）, unit: "%", data: filing_text, where: 10-K 收入分解附注}
-    fail_if: 连续两年低于 50%
+    metric_def: {id: recurring_share, description: recurring revenue ÷ total revenue (old basis), unit: "%", data: filing_text, where: revenue disaggregation note of the 10-K}
+    fail_if: below 50% for two consecutive years
     rule: {op: "<", threshold: 50, unit: "%", consecutive: 2, period: year}
     data: filing_text
     effective_from: FY2027Q1
     retired_at: FY2027Q2
-    note: 公司自 FY2027Q2 起改用新的收入分解口径，本条只作记录，由 ACME-Q5 接替。
+    note: From FY2027Q2 the company discloses its revenue on a new disaggregation basis; this test is kept as a record only and is replaced by ACME-Q5.
   - id: ACME-Q5
     type: quantitative
-    claim: 经常性收入占比守住，且经常性收入本身没有萎缩
+    claim: Recurring revenue holds its share of revenue, and recurring revenue itself has not shrunk
     origin: proposal:04B
     severity: watch
     covers: [moat]
     supersedes: ACME-Q4
     metric_def:
       id: recurring_share_v2
-      description: 经常性收入 ÷ 总收入（新口径）
+      description: recurring revenue ÷ total revenue (new basis)
       unit: "%"
       data: mixed
       formula: recurring / revenue
       components:
-        recurring: {description: 经常性收入（服务与订阅）, unit: USD, where: 10-K 收入分解附注}
-        revenue: {description: 总收入, unit: USD, xbrl: ["us-gaap:Revenues"]}
-    fail_if: 连续两年低于 50%，且经常性收入同比下降
+        recurring: {description: recurring revenue (services and subscriptions), unit: USD, where: revenue disaggregation note of the 10-K}
+        revenue: {description: total revenue, unit: USD, xbrl: ["us-gaap:Revenues"]}
+    fail_if: below 50% for two consecutive years, and recurring revenue down year on year
     rule:
       all_of:
         - {metric: recurring_share_v2, op: "<", threshold: 50, unit: "%", consecutive: 2, period: year}
@@ -131,21 +131,21 @@ tests:
     effective_from: FY2027Q2
   - id: ACME-L1
     type: qualitative
-    claim: 管理层没有下调已公布的中期财务目标
+    claim: Management has not lowered the medium-term financial targets it published
     origin: template:stalwart
     severity: watch
     covers: [management]
-    question: 本期文件中，管理层是否下调或撤回了此前公布的中期财务目标？
-    fail_if: 是，且没有同时给出可检验的新目标
+    question: In this period's documents, did management lower or withdraw the medium-term financial targets it had published?
+    fail_if: Yes, without giving new, testable targets at the same time
     judge: independent_model
     evidence: required
-    where: [本期与此前三期的业绩新闻稿与电话会, 投资者日材料]
+    where: [earnings press releases and calls of this period and the three before, investor day materials]
     lookback: 4
-    judge_notes: 只比较公司自己公布的中期目标；分析师预期不算目标。
+    judge_notes: Compare only the medium-term targets the company itself published; analysts' expectations are not targets.
     effective_from: FY2027Q1
   - id: ACME-S1
     type: staleness
-    claim: 护城河判断不超过四个季度未复核
+    claim: The moat judgment goes no longer than four quarters without a review
     origin: template:stalwart
     severity: watch
     covers: [moat]
@@ -154,7 +154,7 @@ tests:
     effective_from: FY2027Q1
   - id: ACME-S2
     type: staleness
-    claim: 反方论证（最可能错在哪）每两个季度重新审视
+    claim: The bear case (where this is most likely wrong) is re-examined every two quarters
     origin: template:stalwart
     severity: watch
     covers: [other]
@@ -162,4 +162,4 @@ tests:
     max_age_quarters: 2
     effective_from: FY2027Q1
 todo:
-  - 补充分部数据
+  - Add segment data

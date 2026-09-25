@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/memo.schema.json",
-  "title": "L3 备忘录（仅私有仓库）",
+  "title": "L3 memo (private repository only)",
   "type": "object",
   "required": [
     "id",
@@ -21,7 +21,7 @@
     "company": {
       "type": "string",
       "pattern": "^[A-Z][A-Z0-9.]{0,9}$",
-      "description": "修宪备忘录（amend_constitution）可省略"
+      "description": "May be omitted in a memo amending the constitution (amend_constitution)"
     },
     "action": {
       "enum": [
@@ -74,7 +74,7 @@
         "string",
         "null"
       ],
-      "description": "目标仓位高于入选门槛上沿（20%）时，写明为什么这家公司值得更大的仓位（宪法第 4 条）"
+      "description": "When the target weight is above the top of the entry bar (20%), why this company deserves a larger position (constitution rule 4)"
     },
     "order": {
       "type": "object",
@@ -153,7 +153,7 @@
           }
         }
       },
-      "description": "至少两个选项，其中一个的 key 是 maintain（默认选项，§G2）"
+      "description": "At least two options, one of which has key maintain (the default option, §G2)"
     },
     "evidence": {
       "type": "array",
@@ -170,7 +170,7 @@
           "source": {
             "type": "string",
             "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
-            "description": "来源标签，TAG 或 TAG#LOCATOR"
+            "description": "Source tag, TAG or TAG#LOCATOR"
           }
         },
         "additionalProperties": false
@@ -191,14 +191,14 @@
         },
         "update": {
           "type": "string",
-          "description": "触发这份备忘录的季度更新（路径或 PR）"
+          "description": "The quarterly update that triggered this memo (a path or a PR)"
         }
       },
       "additionalProperties": false
     },
     "drafted_by": {
       "const": "hq_capital_allocator",
-      "description": "备忘录只由总部起草（17B）"
+      "description": "Memos are drafted only by HQ (17B)"
     }
   },
   "additionalProperties": false,

@@ -19,17 +19,19 @@ RANKING = "hq/ranking.yml"  # private: the series ranking (17C, §V13)
 MONEY_ACTIONS = ("buy", "add", "trim", "sell")
 L3_ONLY = MONEY_ACTIONS + ("amend_constitution",)
 ENTRY_BAND = (0.10, 0.20)
-# Constitution rule 6: never sell for these. Matched by keyword, English snake_case or Chinese.
+# Constitution rule 6: never sell for these. Matched by keyword, in English snake_case or in Chinese.
 FORBIDDEN_SELL_CONCEPTS = {
     "price decline": ("price_decline", "price_drop", "price_fall", "price_down", "drawdown", "下跌"),
     "recession": ("recession", "衰退"),
     "panic": ("panic", "恐慌"),
     "single-quarter miss": ("quarter_miss", "quarterly_miss", "single_quarter", "earnings_miss", "单季", "不及预期"),
 }
-# L3 is the owner's level (DESIGN: 董事长).
+# L3 is the owner's level (DESIGN calls the owner the chairman); the Chinese words for chairman, owner and "you"
+# are matched too.
 OWNER_RE = re.compile(r"owner|chairman|董事长|主人|你", re.I)
 TICKER_RE = re.compile(r"^[A-Z][A-Z0-9.]{0,9}$")
-# Constitution rule 8 (one order builds a position): wording of a staged entry in a buy/add memo.
+# Constitution rule 8 (one order builds a position): wording of a staged entry in a buy/add memo, in Chinese or
+# English.
 TRANCHE_RE = re.compile(
     r"分\s*(?:[两二三四五六几多]|\d+)\s*(?:批|次|笔|步)|分批|分步(?:建仓|买入|加仓)|逐步(?:建仓|买入|加仓)|定投"
     r"|(?:第[一二三四1-4]|首)批|先买\s*(?:一半|部分|入?\s*\d+\s*%)"
@@ -303,7 +305,7 @@ def c_single_order(ctx: Context) -> Iterator[Issue]:
         for where in (("order", "note"), ("summary",)):
             text = dig(memo, *where)
             for m in TRANCHE_RE.finditer(text if isinstance(text, str) else ""):
-                if not NEGATION_RE.search(text[max(0, m.start() - 6): m.start()]):
+                if not NEGATION_RE.search(text[max(0, m.start() - 12): m.start()]):
                     yield Issue(path, f"{memo.get('action')} memo {'.'.join(where)} plans a staged entry ('{m.group(0)}'); "
                                       "one order builds the position (constitution rule 8)", doc.line(*where))
                     break
@@ -363,7 +365,7 @@ def c_decision_rights(ctx: Context) -> Iterator[Issue]:
         yield Issue(path, f"L3 is missing {missing}", doc.line("levels", "L3"))
     who = dig(data, "levels", "L3", "who")
     if not (isinstance(who, str) and OWNER_RE.search(who)):
-        yield Issue(path, f"levels.L3.who must be the owner (董事长): money matters and constitution changes are "
+        yield Issue(path, f"levels.L3.who must be the owner (the chairman): money matters and constitution changes are "
                           f"never delegated, found {who!r}", doc.line("levels", "L3", "who") or doc.line("levels", "L3"))
     seen = Counter(a for acts in actions.values() for a in set(acts))
     dupes = sorted(a for a, n in seen.items() if n > 1)
@@ -408,7 +410,7 @@ def c_constitution_map(ctx: Context) -> Iterator[Issue]:
                 yield Issue(path, f"rule {rid}: {cid} has no implementation", line)
             elif cid != "C-CONSTITUTION-MAP" and not selftest_passes(cid):
                 yield Issue(path, f"rule {rid}: {cid} fails its selftest", line)
-    # The other direction: every constitution rule the registry enforces ("宪法第 N 条") must be mapped, so
+    # The other direction: every constitution rule the registry enforces ("Constitution rule N") must be mapped, so
     # dropping a rule from rules.yml does not silently leave it without an executable check.
     for number, cids in sorted(constitution_checks().items()):
         if not referenced.intersection(cids):
@@ -417,10 +419,10 @@ def c_constitution_map(ctx: Context) -> Iterator[Issue]:
 
 
 def constitution_checks() -> dict[int, list[str]]:
-    """Constitution rule number -> the registered checks whose description cites it (宪法第 N 条)."""
+    """Constitution rule number -> the registered checks whose description cites it ("Constitution rule N")."""
     out: dict[int, list[str]] = {}
     for meta in contract.registered_checks():
-        for number in re.findall(r"宪法第\s*(\d+)\s*条", str(meta.get("description", ""))):
+        for number in re.findall(r"(?<![A-Za-z])constitution\s+rule\s+(\d+)", str(meta.get("description", "")), re.I):
             out.setdefault(int(number), []).append(meta["id"])
     return out
 

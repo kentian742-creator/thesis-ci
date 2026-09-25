@@ -1,18 +1,20 @@
-# thesis-ci 格式规范 v0.2
+# thesis-ci format specification v0.2
 
-本规范定义“论点即代码”的文件格式。规范文本以 CC BY 4.0 许可发布；实现代码以 MIT 许可发布。
-规范中的“必须 / 不得 / 应当”按 RFC 2119 理解。机器可读的定义以 `spec/schemas/*.schema.json`、`spec/checks.yml`、`spec/metrics.yml` 和 `spec/templates/lynch/*.yml` 为准；本文件与它们冲突时，以机器可读文件为准。
+A Chinese version is in [zh-CN/spec/SPEC.md](../zh-CN/spec/SPEC.md).
 
-文中的“00 §X”指档案所遵循的系列规则（提示词 00）的条款，例如 §H4（公私分离）、§G7（先写下，后验证）。
+This specification defines the file formats of "thesis as code". The specification text is licensed under CC BY 4.0; the implementation code is licensed under MIT.
+"MUST", "MUST NOT" and "SHOULD" in this specification are to be read as described in RFC 2119. The machine-readable definitions are `spec/schemas/*.schema.json`, `spec/checks.yml`, `spec/metrics.yml` and `spec/templates/lynch/*.yml`; where this file conflicts with them, the machine-readable files prevail.
 
-## 1. 仓库角色
+In this text, "00 §X" means a clause of the series rules (prompt 00) that the archives follow, for example §H4 (public/private separation) and §G7 (write it down first, verify later).
 
-| 角色 | 标记 | 说明 |
+## 1. Repository roles
+
+| Role | Marker | Contents |
 | --- | --- | --- |
-| 公开档案仓库 | `repo.yml` 中 `visibility: public` | 宪法、方法、thesis.yml、两分钟故事、预注册、预测、账本、季度更新、股东信 |
-| 私有档案仓库 | `repo.yml` 中 `visibility: private` | 价值区间、L3 备忘录、升级请求、系列排名、带金额的决策日志、完整报告、提示词 |
+| Public archive repository | `visibility: public` in `repo.yml` | Constitution, method, thesis.yml, two-minute stories, pre-registrations, forecasts, ledgers, quarterly updates, letters to the owner |
+| Private archive repository | `visibility: private` in `repo.yml` | Value ranges, L3 memos, escalation requests, series ranking, decision log with amounts, complete reports, prompts |
 
-每个档案仓库根目录必须有 `repo.yml`：
+Every archive repository MUST have a `repo.yml` at its root:
 
 ```yaml
 visibility: public          # public | private
@@ -20,117 +22,118 @@ owner: kentian742-creator
 spec_version: "0.2"
 ```
 
-`thesis-ci lint <path>` 读取 `repo.yml` 决定适用哪些检查（见 `spec/checks.yml` 的 `scope`）。迁移期内 `spec_version: "0.1"` 仍被接受，但 `C-SCHEMA` 报警告；档案按本规范迁移完成后改为 `"0.2"`。
+`thesis-ci lint <path>` reads `repo.yml` to decide which checks apply (see `scope` in `spec/checks.yml`). During the migration `spec_version: "0.1"` is still accepted, but `C-SCHEMA` gives a warning; once an archive has been migrated to this specification, set it to `"0.2"`.
 
-## 2. 目录约定
+## 2. Directory layout
 
 ```text
-companies/<TICKER>/thesis.yml     # 公开；论点与 thesis tests
-companies/<TICKER>/story.md       # 公开；两分钟持有理由
-companies/<TICKER>/sources.yml    # 公开；来源标签表
-companies/<TICKER>/prereg/        # 公开；预注册，每个业绩事件一组文件（2.1）
-companies/<TICKER>/ledger.yml     # 公开；言行账本（可为空列表）
-companies/<TICKER>/updates/       # 公开；每次更新的记录（Markdown，front matter 含 reviewed_sections）
-industries/<id>/industry.yml      # 公开；行业模块与路标
-industries/<id>/README.md         # 公开；行业模块摘要
+companies/<TICKER>/thesis.yml     # public; thesis and thesis tests
+companies/<TICKER>/story.md       # public; the two-minute reason for holding
+companies/<TICKER>/sources.yml    # public; source tag table
+companies/<TICKER>/prereg/        # public; pre-registrations, one set of files per earnings event (2.1)
+companies/<TICKER>/ledger.yml     # public; say-do ledger (may be an empty list)
+companies/<TICKER>/updates/       # public; a record of every update (Markdown; the front matter includes reviewed_sections)
+industries/<id>/industry.yml      # public; industry module and signposts
+industries/<id>/README.md         # public; industry module summary
 industries/<id>/sources.yml
-forecasts/<YYYY>.yml              # 公开；系统预测与你的覆盖
-letters/<YYYY-MM>.md              # 公开；月度股东信
-mistakes.md                       # 公开；错误清单（00 §G5）
-constitution/rules.yml            # 公开；宪法规则与对应检查
-constitution/decision-rights.yml  # 公开；三级决策权、信任等级与分流
-agents/<role>.yml                 # 公开；角色定义（可见范围）
-trust/levels.yml                  # 公开，可选；流水线算出的信任等级（4.2）
-sources.yml                       # 可选；仓库级来源标签表
+forecasts/<YYYY>.yml              # public; system forecasts and your overrides
+letters/<YYYY-MM>.md              # public; monthly letters
+mistakes.md                       # public; mistakes list (00 §G5)
+constitution/rules.yml            # public; constitution rules and their checks
+constitution/decision-rights.yml  # public; three decision levels, trust levels and routing
+agents/<role>.yml                 # public; role definitions (what each role can see)
+trust/levels.yml                  # public, optional; trust levels computed by the pipeline (4.2)
+sources.yml                       # optional; repository-level source tag table
+zh-CN/<path>                      # the Chinese version of a key document (8.5)
 
-# 私有仓库
-companies/<TICKER>/valuation.yml  # 价值区间、折现率、隐含回报（第 7 节）
+# private repository
+companies/<TICKER>/valuation.yml  # value ranges, discount rate, implied return (section 7)
 companies/<TICKER>/sources.yml
-memos/<YYYY-MM-DD>-<TICKER>-<slug>.yml        # L3 备忘录（总部起草）
-escalations/<YYYY-MM-DD>-<TICKER>-<slug>.yml  # 升级请求（公司经理起草，交总部）
-hq/ranking.yml                    # 系列排名（00 §V13）
+memos/<YYYY-MM-DD>-<TICKER>-<slug>.yml        # L3 memos (drafted by HQ)
+escalations/<YYYY-MM-DD>-<TICKER>-<slug>.yml  # escalation requests (drafted by the company manager, sent to HQ)
+hq/ranking.yml                    # series ranking (00 §V13)
 decision-log/<YYYY>.yml
-prompts/<编号>-<名称>.md          # 提示词；front matter 声明各部分的角色与输入（8.3）
+prompts/<number>-<name>.md        # prompts; the front matter declares the role and inputs of each part (8.3)
 ```
 
-文件名到 schema 的映射（第一条匹配的生效）：
+Mapping from file names to schemas (the first match applies):
 
-| 文件 | schema |
+| File | Schema |
 | --- | --- |
 | `repo.yml` | `repo.schema.json` |
 | `companies/*/thesis.yml` | `thesis.schema.json` |
-| `companies/*/sources.yml`、`industries/*/sources.yml`、`sources.yml` | `sources.schema.json` |
-| `companies/*/story.md` 的 front matter | `story.schema.json` |
+| `companies/*/sources.yml`, `industries/*/sources.yml`, `sources.yml` | `sources.schema.json` |
+| front matter of `companies/*/story.md` | `story.schema.json` |
 | `companies/*/prereg/*.settlement.yml` | `prereg-settlement.schema.json` |
-| `companies/*/prereg/*.yml`（`<期间>.yml` 与 `<期间>-owner.yml`） | `prereg.schema.json` |
+| `companies/*/prereg/*.yml` (`<period>.yml` and `<period>-owner.yml`) | `prereg.schema.json` |
 | `companies/*/ledger.yml` | `ledger.schema.json` |
-| `companies/*/valuation.yml` | `valuation.schema.json`（仅私有仓库） |
+| `companies/*/valuation.yml` | `valuation.schema.json` (private repository only) |
 | `industries/*/industry.yml` | `industry.schema.json` |
 | `forecasts/*.yml` | `forecast.schema.json` |
 | `constitution/decision-rights.yml` | `decision-rights.schema.json` |
 | `constitution/rules.yml` | `constitution-rules.schema.json` |
 | `agents/*.yml` | `agent.schema.json` |
-| `memos/*.yml` | `memo.schema.json`（仅私有仓库） |
-| `escalations/*.yml` | `escalation.schema.json`（仅私有仓库） |
-| `decision-log/*.yml` | `decision-log.schema.json`（仅私有仓库） |
+| `memos/*.yml` | `memo.schema.json` (private repository only) |
+| `escalations/*.yml` | `escalation.schema.json` (private repository only) |
+| `decision-log/*.yml` | `decision-log.schema.json` (private repository only) |
 
-其余 YAML（`trust/levels.yml`、`hq/ranking.yml`、`updates/*.yml` 等）只检查语法和重复键，内容由对应的检查读取。
+Other YAML files (`trust/levels.yml`, `hq/ranking.yml`, `updates/*.yml` and so on) are checked only for syntax and repeated keys; their content is read by the checks concerned.
 
-### 2.1 预注册三件套
+### 2.1 The pre-registration trio
 
-每个业绩事件（期间 `FY<年>Q<季>`，按公司财年）在 `companies/<TICKER>/prereg/` 下最多有四个文件：
+Each earnings event (period `FY<year>Q<quarter>`, in the company's fiscal year) has at most four files in `companies/<TICKER>/prereg/`:
 
-| 文件 | 谁写 | 内容 | 何时不可变 |
+| File | Written by | Contents | Immutable |
 | --- | --- | --- | --- |
-| `<期间>.yml` | 系统（15A，`author: system`） | 文件头与 1–8 条预期 | 截止时间之后 |
-| `<期间>-owner.yml` | 所有者（`author: owner`） | 新加的条目（`added_by: owner`）与对系统条目概率的改写 `overrides` | 截止时间之后 |
-| `<期间>.yml.ots`（及 `<期间>-owner.yml.ots`） | 流水线 | OpenTimestamps 时间戳证明 | — |
-| `<期间>.settlement.yml` | 流水线（15B 与 GitHub） | 合并时间、接收时间、登记号、结算结果 | 随结算补写 |
+| `<period>.yml` | the system (15A, `author: system`) | file header and 1–8 expectations | after the deadline |
+| `<period>-owner.yml` | the owner (`author: owner`) | new items (`added_by: owner`) and `overrides` that rewrite the probabilities of system items | after the deadline |
+| `<period>.yml.ots` (and `<period>-owner.yml.ots`) | the pipeline | OpenTimestamps timestamp proof | — |
+| `<period>.settlement.yml` | the pipeline (15B and GitHub) | merge time, acceptance time, accession number, settlement results | filled in at settlement |
 
-条目文件（`prereg.schema.json`）：
+Items file (`prereg.schema.json`):
 
 ```yaml
 company: MSFT
 event:
-  period: FY2027Q1             # 文件名里的期间，必须一致
+  period: FY2027Q1             # the period in the file name; must match
   expected_release: 2026-10-28
   form: 8-K                    # 8-K | 6-K | 10-Q | 10-K | 20-F
-  placeholder: false           # 发布日是否为占位
-deadline: "2026-10-27T23:59:59-04:00"   # 带时区偏移的 ISO 8601；发布日前一天结束（美国东部时间）
-author: system                 # system | owner，与文件名一致
-horizon: mixed                 # 可选：quarter | 18m | mixed
+  placeholder: false           # whether the release date is a placeholder
+deadline: "2026-10-27T23:59:59-04:00"   # ISO 8601 with a UTC offset; the end of the day before the release date (US Eastern Time)
+author: system                 # system | owner, matching the file name
+horizon: mixed                 # optional: quarter | 18m | mixed
 items:
-  - id: MSFT-FY2027Q1-1        # <TICKER>-<期间>-<序号>
-    statement: 本季营收同比增速不低于上季
+  - id: MSFT-FY2027Q1-1        # <TICKER>-<period>-<n>
+    statement: Year-on-year revenue growth this quarter is no lower than last quarter's
     probability: 0.6           # 0.05–0.95
-    criterion: 以 10-Q 利润表为准……
-    data_source: 10-Q 利润表
+    criterion: Per the 10-Q income statement ...
+    data_source: 10-Q income statement
     horizon: quarter           # quarter | 18m
     resolves_by: 2026-11-30
     domain: enterprise_software
-    added_by: system           # 系统文件里只能是 system
-    pillar: P1                 # 可选
-    falsifies_thesis: true     # 可选
-    reference: 参照类别、频率与出处   # 可选
+    added_by: system           # always system in the system's file
+    pillar: P1                 # optional
+    falsifies_thesis: true     # optional
+    reference: reference class, frequency and source   # optional
 ```
 
-- 系统文件至少 1 条、至多 8 条，不得有 `overrides`。所有者文件的条目写 `added_by: owner`，可以只有 `overrides: [{id, probability, note?}]`（此时 `items: []`），但不能两者都空；它的 `deadline` 与系统文件相同。
-- 条目文件里不写 `merged_at`、`ots_proof`、`acceptance_datetime`、`accession` 或结算结果：这些在截止时间之后才知道，写进结算文件，条目文件因此可以在截止前打上时间戳并保持不变。
-- 结算文件（`prereg-settlement.schema.json`）：`company`、`period`，可选 `acceptance_datetime`、`accession`、`merged_at`（条目文件合并进默认分支的时间，取自 GitHub）、`ots_proof`，以及 `results: [{id, outcome, values?, calculation?, evidence?, source?, reasoning?, settled_at?, hq_ruling?}]`，`outcome` 为 `happened`、`not_happened` 或 `undetermined`。
-- `C-PREREG-TIMING` 检查截止时间落在发布日之前、`merged_at` 早于截止时间、截止时间早于 `acceptance_datetime`；`C-PREREG-IMMUTABLE` 检查截止时间过后条目文件旁有 `<文件>.ots`；装有 `ots` 客户端时，先在本地比对文件的 sha256 与证明记录的哈希（`ots info`，不联网），不一致或证明读不出来即为错误；一致之后再用 `ots verify` 核验时间证明，没有比特币节点、证明仍待确认或连不上日历服务器时只报警告。
+- The system's file has at least 1 and at most 8 items and MUST NOT have `overrides`. Items in the owner's file are written `added_by: owner`; the owner's file may contain only `overrides: [{id, probability, note?}]` (with `items: []`), but not both empty; its `deadline` is the same as the system file's.
+- Items files do not contain `merged_at`, `ots_proof`, `acceptance_datetime`, `accession` or settlement results: these are known only after the deadline and go in the settlement file, so an items file can be timestamped before the deadline and then stay unchanged.
+- The settlement file (`prereg-settlement.schema.json`): `company`, `period`, optionally `acceptance_datetime`, `accession`, `merged_at` (when the items file was merged into the default branch, taken from GitHub) and `ots_proof`, and `results: [{id, outcome, values?, calculation?, evidence?, source?, reasoning?, settled_at?, hq_ruling?}]`, where `outcome` is `happened`, `not_happened` or `undetermined`.
+- `C-PREREG-TIMING` checks that the deadline falls before the release date, that `merged_at` is earlier than the deadline, and that the deadline is earlier than `acceptance_datetime`. `C-PREREG-IMMUTABLE` checks that once the deadline has passed an items file has `<file>.ots` next to it; when the `ots` client is installed, it first compares the file's sha256 with the hash recorded in the proof, locally (`ots info`, no network), and a mismatch or an unreadable proof is an error; once they match, `ots verify` checks the time attestation, and a missing Bitcoin node, a proof still awaiting confirmation or unreachable calendar servers give only a warning.
 
-## 3. 来源标签
+## 3. Source tags
 
-### 3.1 语法
+### 3.1 Syntax
 
-Markdown 中，来源标签写成 `[src:TAG]` 或 `[src:TAG#LOCATOR]`：
+In Markdown, a source tag is written `[src:TAG]` or `[src:TAG#LOCATOR]`:
 
-- `TAG` 匹配 `^[A-Z0-9][A-Za-z0-9._-]*$`，必须在适用的 `sources.yml` 中登记。
-- `LOCATOR` 是标签内的位置，不含空白和 `]`，例如 `p3`、`Item7`、`MD&A`、`note-12`。
+- `TAG` matches `^[A-Z0-9][A-Za-z0-9._-]*$` and MUST be registered in the applicable `sources.yml`.
+- `LOCATOR` is a position within the source, containing no whitespace and no `]`, e.g. `p3`, `Item7`, `MD&A`, `note-12`.
 
-正则：`\[src:([A-Z0-9][A-Za-z0-9._-]*)(?:#([^\]\s]+))?\]`
+Regex: `\[src:([A-Z0-9][A-Za-z0-9._-]*)(?:#([^\]\s]+))?\]`
 
-YAML 中，事实写成对象，`source` 字段取同样的 `TAG` 或 `TAG#LOCATOR` 字符串：
+In YAML, a fact is written as an object whose `source` field takes the same `TAG` or `TAG#LOCATOR` string:
 
 ```yaml
 value: 52
@@ -140,82 +143,86 @@ as_of: 2026-06-30
 source: MSFT-10K-FY2026#Item8
 ```
 
-`settlement_source`、`acknowledged_source` 同样是来源字段。
+`settlement_source` and `acknowledged_source` are source fields as well.
 
-### 3.2 标签解析顺序
+### 3.2 Tag resolution order
 
-1. 同目录的 `sources.yml`（公司或行业）；
-2. 仓库根目录的 `sources.yml`。
+1. `sources.yml` in the same directory (company or industry);
+2. `sources.yml` at the repository root.
 
-找不到即为错误。
+A tag that is not found is an error.
 
-### 3.3 命名约定（应当，同 00 §E1）
+### 3.3 Naming convention (SHOULD, as in 00 §E1)
 
-| 类型 | 格式 | 例 |
+| Kind | Format | Example |
 | --- | --- | --- |
-| 自有报告 | `<TICKER>-RPT<n>-<YYYY-MM-DD>` | `MSFT-RPT1-2026-09-17`、`MSFT-RPT2-2026-09-30` |
-| 定期报告 | `<TICKER>-<FORM>-<PERIOD>` | `MSFT-10K-FY2026`、`AXP-10Q-FY2026Q2`、`PDD-20F-FY2025` |
-| 临时报告 | `<TICKER>-<FORM>-<YYYY-MM-DD>` | `MSFT-8K-2026-09-02` |
-| 电话会纪要 | `<TICKER>-CALL-<PERIOD>` | `AXP-CALL-FY2026Q2` |
-| 新闻 | `<TICKER>-NEWS-<YYYY-MM-DD>-<媒体>` | `APP-NEWS-2026-03-12-WSJ` |
-| 评价页面 | `<TICKER>-REV-<平台>-<YYYY-MM-DD>` | `PDD-REV-TRUSTPILOT-2026-09-01` |
-| 其他网页 | `<TICKER>-WEB-<YYYY-MM-DD>-<n>` | `SPGI-WEB-2026-08-30-1` |
-| 档案本身 | `<TICKER>-DOSSIER-<版本日期>`（位置写 `#s<部分>`） | `MSFT-DOSSIER-2026-09-24#s3` |
-| 股东信 | `<TICKER>-LTR-<YYYY>` | `BRK-LTR-2024` |
-| 行业报告 | `IND-<ID>-<YYYY-MM>` | `IND-PAYMENTS-2026-09` |
+| Own report | `<TICKER>-RPT<n>-<YYYY-MM-DD>` | `MSFT-RPT1-2026-09-17`, `MSFT-RPT2-2026-09-30` |
+| Periodic report | `<TICKER>-<FORM>-<PERIOD>` | `MSFT-10K-FY2026`, `AXP-10Q-FY2026Q2`, `PDD-20F-FY2025` |
+| Current report | `<TICKER>-<FORM>-<YYYY-MM-DD>` | `MSFT-8K-2026-09-02` |
+| Earnings call transcript | `<TICKER>-CALL-<PERIOD>` | `AXP-CALL-FY2026Q2` |
+| News | `<TICKER>-NEWS-<YYYY-MM-DD>-<outlet>` | `APP-NEWS-2026-03-12-WSJ` |
+| Review page | `<TICKER>-REV-<platform>-<YYYY-MM-DD>` | `PDD-REV-TRUSTPILOT-2026-09-01` |
+| Other web page | `<TICKER>-WEB-<YYYY-MM-DD>-<n>` | `SPGI-WEB-2026-08-30-1` |
+| The dossier itself | `<TICKER>-DOSSIER-<version date>` (locator `#s<part>`) | `MSFT-DOSSIER-2026-09-24#s3` |
+| Shareholder letter | `<TICKER>-LTR-<YYYY>` | `BRK-LTR-2024` |
+| Industry report | `IND-<ID>-<YYYY-MM>` | `IND-PAYMENTS-2026-09` |
 
-`FORM` 去掉连字符：`10K`、`10Q`、`8K`、`6K`、`20F`、`DEF14A`。定期报告的 `PERIOD` 按公司自己的财年写（`FY2026`、`FY2027Q1`），与预注册的期间写法一致；临时报告的日期取 EDGAR 的 filing date（美国东部时间 17:30 之后接收的顺延到下一个工作日），不取新闻稿落款日。同一天同一表格有两份都要登记时，按登记号先后给后者加 `-2`、`-3`（如 `PDD-6K-2025-12-19-2`），并在 `note` 里写明登记号。自有报告带编号和完整日期，同一个月的两份报告不会撞名；旧写法 `<TICKER>-RPT-<YYYY-MM>` 仍能解析，但应当在预注册打时间戳之前迁移，免得旧标签被冻结进时间戳。
+`FORM` drops the hyphen: `10K`, `10Q`, `8K`, `6K`, `20F`, `DEF14A`. The `PERIOD` of a periodic report follows the company's own fiscal year (`FY2026`, `FY2027Q1`), written as in the pre-registration periods; the date of a current report is EDGAR's filing date (a filing accepted after 17:30 US Eastern Time moves to the next business day), not the date on the press release. When two filings of the same form on the same day both need to be registered, the later one by accession number gets `-2`, `-3` (e.g. `PDD-6K-2025-12-19-2`), and its `note` gives the accession number. Own reports carry a number and a full date, so two reports in the same month do not collide; the old form `<TICKER>-RPT-<YYYY-MM>` still resolves, but SHOULD be migrated before a pre-registration is timestamped, so that the old tag is not frozen into the timestamp.
 
-### 3.4 什么是“需要出处的数字”
+### 3.4 What is a "number that needs a source"
 
-在 Markdown 正文中（不含 front matter、代码块、行内代码、链接 URL），下列任一匹配即视为事实数字：
+In the body of a Markdown file (not counting front matter, code blocks, inline code and link URLs), any of the following is a fact number:
 
-- 美元符号后接数字：`\$\s?\d`
-- 数字后接单位：`\d[\d,.]*\s?(%|％|亿|万|千万|百万|美元|元|倍|×|pp|个百分点|bp|bps|基点|美分|¢|bn|million|billion)`
+- a dollar sign followed by a digit: `\$\s?\d`
+- a digit followed by a unit: `\d[\d,.]*\s?(%|％|亿|万|千万|百万|美元|元|倍|×|pp|个百分点|bp|bps|基点|美分|¢|bn|million|billion)`
 
-纯年份、日期、季度（`2026`、`FY2027`、`2026-09-24`、`Q2`、`2026 年`）、章节号和列表序号不算。
-**规则：** 含事实数字的每个句子（以 `。！？；` 或换行分隔）必须至少含一个 `[src:...]` 标签。事先写下的门槛与预测（测试的 `fail_if`、`warn_if`、`rule`，预注册条目，账本中系统与所有者一侧的预测）不是事实，不需要标签；句中引用的基准数照常标。
+Bare years, dates and quarters (`2026`, `FY2027`, `2026-09-24`, `Q2`, `2026 年`), section numbers and list numbers are not.
+**Rule:** every sentence (separated by `。！？；` or a newline) that contains a fact number MUST contain at least one `[src:...]` tag. Thresholds and forecasts written down in advance (a test's `fail_if`, `warn_if` and `rule`, pre-registration items, the system's and the owner's predictions in the ledger) are not facts and need no tag; a baseline number quoted in the same sentence is tagged as usual.
 
-### 3.5 sources.yml 条目
+**English text (thesis-ci 0.3.0).** The rule applies to English text with English sentence boundaries: a sentence ends at `.`, `!`, `?` or `;` followed by whitespace (a closing quotation mark or parenthesis may come in between, and so may a source tag written right after the punctuation, which then belongs to that sentence). A period is not a sentence end inside a number (`3.5%`), after a common abbreviation (`U.S.`, `Inc.`, `Corp.`, `Ltd.`, `e.g.`, `i.e.`, `vs.`, `No. 1`, an initial or an abbreviated month) or inside a source tag. A line break inside an English paragraph does not end a sentence, because English prose is often hard-wrapped; a blank line, a heading, a list item, a table row and a block quote do. A line that contains Chinese, Japanese or Korean characters is split as described above, at `。！？；` and at every newline. The units of the regex also count in their other spellings, in any letter case: `percent`, `per cent`, `pct`, `percentage points`, `pp`, `ppt`, `basis points`, `bp`, `bps`, `cents`, `thousand`, `million`, `mn`, `mln`, `billion`, `bn`, `bln`, `trillion`, `tn`, a multiple such as `25x`, currency names (`dollars`, `euros`, `yuan` and so on), currency codes before or after the number (`USD 5`, `5 USD`, `RMB 5`) and other currency symbols (`€`, `£`, `¥`, `₹`). English dates (`September 30, 2026`, `30 June 2026`), periods (`FY26`, `3Q26`, `1H26`) and section numbers (`Item 7A`, `Section 3.4`, `Note 12`) are not facts.
 
-见 `sources.schema.json`。`kind` 取 `filing`、`report`、`industry_report`、`transcript`、`press_release`、`letter`、`presentation`、`proxy`、`news`、`review`、`web`、`other`。`kind: filing` 的条目应当有 `accession`（EDGAR 登记号）；缺失时为警告，不是错误。
+### 3.5 sources.yml entries
+
+See `sources.schema.json`. `kind` takes `filing`, `report`, `industry_report`, `transcript`, `press_release`, `letter`, `presentation`, `proxy`, `news`, `review`, `web` or `other`. An entry with `kind: filing` SHOULD have an `accession` (EDGAR accession number); a missing one is a warning, not an error.
+
+Titles are in English. A source in another language (such as the owner's reports in Chinese) gives its English translation followed by "(in Chinese)" in `title`, and may quote its original title verbatim in the optional `title_original`, the one field of an archive outside `zh-CN/` that may contain CJK text (8.5).
 
 ## 4. thesis.yml
 
-见 `thesis.schema.json`（`schema_version: "0.2"`）。要点：
+See `thesis.schema.json` (`schema_version: "0.2"`). Key points:
 
-- `status`：`holding`（持仓）、`candidate`（候选）、`archive`。
-- `category`：林奇六类之一：`slow_grower`、`stalwart`、`fast_grower`、`cyclical`、`turnaround`、`asset_play`。类别决定默认监控模板（`spec/templates/lynch/<category>.yml`），类别变化即换模板。
-- `domain`：校准分组，见 schema 枚举。
-- `depends_on`：行业模块路径列表，形如 `industries/payments-card-networks`；可以为空。
-- `trust_level`：公司经理的信任等级 0–3，由流水线维护（4.2）。
-- `reviewed`：档案各部分的最近复核日期，供时效测试使用。必填的十二个键对应档案的十二个部分：`business`、`economics`、`moat`、`capital_allocation`、`management`、`culture`、`runway`、`valuation`、`bear_case`、`monitoring`、`thesis`、`breakers`；两份附加清单 `munger`（芒格矩阵，档案的附加清单一）、`unknowns`（未知登记）可选。键与 00 §F5 的 `archive_patch.section` 相同（`ratings` 除外）。
-- `ratings`：只含 `business`、`management`（必填）与 `capital_allocation`、`culture`（可省略，省略即留空，不等于中性）；**价格评级、价值区间和任何价格数字不得出现在公开的 thesis.yml 中**，它们放在私有仓库的 `valuation.yml`。
-- `tests`：至少 5 条仍然有效的测试，且三类（`quantitative`、`qualitative`、`staleness`）各至少 1 条。
+- `status`: `holding`, `candidate`, `archive`.
+- `category`: one of Lynch's six categories: `slow_grower`, `stalwart`, `fast_grower`, `cyclical`, `turnaround`, `asset_play`. The category determines the default monitoring template (`spec/templates/lynch/<category>.yml`); a change of category means a change of template.
+- `domain`: the calibration group; see the schema enum.
+- `depends_on`: a list of industry module paths such as `industries/payments-card-networks`; may be empty.
+- `trust_level`: the company manager's trust level, 0–3, maintained by the pipeline (4.2).
+- `reviewed`: the date each part of the dossier was last reviewed, used by the staleness tests. The twelve required keys correspond to the twelve parts of the dossier: `business`, `economics`, `moat`, `capital_allocation`, `management`, `culture`, `runway`, `valuation`, `bear_case`, `monitoring`, `thesis`, `breakers`; the two supplementary lists `munger` (the Munger matrix, the dossier's first supplementary list) and `unknowns` (the unknowns register) are optional. The keys are the same as `archive_patch.section` in 00 §F5 (except `ratings`).
+- `ratings`: only `business` and `management` (required) and `capital_allocation` and `culture` (may be omitted; omitted means left blank, not neutral); **price grades, value ranges and any price numbers MUST NOT appear in the public thesis.yml**; they belong in the private repository's `valuation.yml`.
+- `tests`: at least 5 tests still in force, with at least 1 of each of the three types (`quantitative`, `qualitative`, `staleness`).
 
 ### 4.1 thesis tests
 
-每条测试的共同字段：`id`（`<TICKER>-<Q|L|S><n>`）、`type`、`claim`（这条测试守护的论点，一句话）、`origin`、`severity`、`covers`、`effective_from`，可选 `supersedes`、`retired_at`、`pillar`、`note`。
+Fields every test has: `id` (`<TICKER>-<Q|L|S><n>`), `type`, `claim` (the part of the thesis this test guards, in one sentence), `origin`, `severity`, `covers`, `effective_from`; optionally `supersedes`, `retired_at`, `pillar`, `note`.
 
-- `origin`：`template:<category>`（来自林奇模板）、`report:breaker` / `report:watch`（来自报告的论点破坏信号 / 前瞻指标）、`archive:breaker` / `archive:watch`（来自档案第 12 部分 / 第 10 部分）、`proposal:04B`、`proposal:04B-lite`、`proposal:07`、`proposal:08`、`proposal:11`（审计或研究环节提出、经公司经理采纳的测试建议）、`manual`（公司经理自写）。
-- `severity`：`breaker`（失败即该部分投资逻辑作废，7 天内按 00 §G3 处置）或 `watch`（失败即警告，进入下次更新）。
-- `covers`：这条测试检验的质量维度，见 schema 枚举。宪法第 2、3 条要求每家公司仍然有效的测试合起来覆盖 `moat`、`pricing_power`、`returns_on_capital`、`free_cash_flow`、`capital_allocation` 和 `management`。
-- **生命周期（00 §G7）。** `effective_from`（`FY<年>Q<季>`）：从这一期起按本条判定；新增或修改的测试只对以后的期间生效。改门槛不改旧条目：写一条新测试，`supersedes` 填旧测试的 id，旧测试写 `retired_at`（从这一期起不再判定，条目保留作记录）。写了 `retired_at` 的测试不计入最少 5 条和覆盖要求；给出 `--period` 时，只有 `retired_at` 不晚于当期的才算退役。
-- `note` 可以带论点措辞；判定员看不到它。交给判定员的规则写在定性测试的 `judge_notes` 里。
+- `origin`: `template:<category>` (from a Lynch template), `report:breaker` / `report:watch` (from the report's thesis breakers / watch signals), `archive:breaker` / `archive:watch` (from part 12 / part 10 of the dossier), `proposal:04B`, `proposal:04B-lite`, `proposal:07`, `proposal:08`, `proposal:11` (a test proposed by an audit or research step and adopted by the company manager), `manual` (written by the company manager).
+- `severity`: `breaker` (a failure voids that part of the investment case; it is handled within 7 days under 00 §G3) or `watch` (a failure is a warning and goes into the next update).
+- `covers`: the quality dimensions the test examines; see the schema enum. Constitution rules 2 and 3 require the tests still in force for each company to cover, together, `moat`, `pricing_power`, `returns_on_capital`, `free_cash_flow`, `capital_allocation` and `management`.
+- **Lifecycle (00 §G7).** `effective_from` (`FY<year>Q<quarter>`): the test is judged from this period on; new or changed tests apply only to later periods. A threshold is changed without editing the old entry: write a new test whose `supersedes` names the old test's id, and give the old test `retired_at` (from that period on it is no longer judged; the entry stays as a record). A test with `retired_at` does not count toward the minimum of 5 tests or the coverage requirements; when `--period` is given, only a test whose `retired_at` is not later than the current period counts as retired.
+- `note` may carry thesis wording; the judge does not see it. Rules for the judge go in a qualitative test's `judge_notes`.
 
-**定量测试**（`type: quantitative`）：
+**Quantitative tests** (`type: quantitative`):
 
 ```yaml
 - id: MSFT-Q1
   type: quantitative
-  claim: 微软云的毛利率守在资本开支周期能回本的水平之上
+  claim: Microsoft Cloud's gross margin holds above the level at which the capex cycle pays back
   origin: report:breaker
   severity: breaker
   covers: [returns_on_capital]
-  metric: microsoft_cloud_gross_margin      # spec/metrics.yml 中的 id，或用 metric_def 就地定义
-  fail_if: 连续两个季度低于 58%
+  metric: microsoft_cloud_gross_margin      # an id in spec/metrics.yml, or define it in place with metric_def
+  fail_if: below 58% for two consecutive quarters
   rule: {op: "<", threshold: 58, unit: "%", consecutive: 2, period: quarter}
-  warn_if: 低于 62%
+  warn_if: below 62%
   warn_rule: {op: "<", threshold: 62, unit: "%", consecutive: 1, period: quarter}
   data: filing_text                          # xbrl | filing_text | external | mixed
   effective_from: FY2027Q1
@@ -223,20 +230,20 @@ source: MSFT-10K-FY2026#Item8
   baseline: {value: 66, unit: "%", period: FY2026, source: MSFT-RPT1-2026-09-17#p10}
 ```
 
-- `data`：`xbrl`（EDGAR XBRL）、`filing_text`（申报文件正文，由模型抽取并标注出处）、`external`（非 SEC 文件的官方数据，如 FRED、NAIC、ETF 资产规模）、`mixed`（组成部分来源不同）。`data` 必须与指标定义一致。
-- `rule` 可以用 `all_of` / `any_of` 组合多个子规则。门槛是事先写下的判定标准，不需要出处；`baseline` 是事实，必须有出处。
-- **一条测试用到多个量**时，写 `metric_def.components`：组成名（`^[a-z][a-z0-9_]*$`）→ `{description, unit, where?, xbrl?}`；子规则的 `metric` 写组成名，或 `<指标>.<组成>`（点号前是本测试的 `metric` 或 `metric_def.id`）。`rule.metric` 必须能解析：登记表中的指标、本测试的指标或它的组成。0.1 的 `params.metric_defs` 在迁移期仍能解析，应当改写为 `components`；`params` 本身仍然允许（例如 `params.segment`）。
+- `data`: `xbrl` (EDGAR XBRL), `filing_text` (the text of a filing, extracted by a model with its source noted), `external` (official data from outside SEC filings, such as FRED, NAIC or ETF assets under management), `mixed` (components come from different sources). `data` MUST match the metric definition.
+- `rule` may combine several sub-rules with `all_of` / `any_of`. A threshold is a criterion written down in advance and needs no source; `baseline` is a fact and MUST have a source.
+- **A test that uses several quantities** writes `metric_def.components`: component name (`^[a-z][a-z0-9_]*$`) → `{description, unit, where?, xbrl?}`; a sub-rule's `metric` is a component name or `<metric>.<component>` (before the dot: this test's `metric` or `metric_def.id`). `rule.metric` MUST resolve: a metric in the registry, this test's metric, or one of its components. The `params.metric_defs` of 0.1 still resolves during the migration and SHOULD be rewritten as `components`; `params` itself is still allowed (e.g. `params.segment`).
 
 ```yaml
   metric_def:
     id: recurring_share
-    description: 经常性收入 ÷ 总收入
+    description: recurring revenue ÷ total revenue
     unit: "%"
     data: mixed
     formula: recurring / revenue
     components:
-      recurring: {description: 经常性收入, unit: USD, where: 10-K 收入分解附注}
-      revenue: {description: 总收入, unit: USD, xbrl: ["us-gaap:Revenues"]}
+      recurring: {description: recurring revenue, unit: USD, where: revenue disaggregation note of the 10-K}
+      revenue: {description: total revenue, unit: USD, xbrl: ["us-gaap:Revenues"]}
   rule:
     all_of:
       - {metric: recurring_share, op: "<", threshold: 50, unit: "%", consecutive: 2, period: year}
@@ -244,27 +251,27 @@ source: MSFT-10K-FY2026#Item8
     evaluate_from: FY2028Q4
 ```
 
-- **期间选择**：`rule`（及子规则）可以写 `evaluate_on`（只在这些期间求值）或 `evaluate_from`（从这一期起求值），取值为 `FY<年>` 或 `FY<年>Q<季>`。
+- **Choosing periods**: `rule` (and its sub-rules) may give `evaluate_on` (evaluate only in these periods) or `evaluate_from` (evaluate from this period on), with values `FY<year>` or `FY<year>Q<quarter>`.
 
-**定性测试**（`type: qualitative`）：必须有 `question`（独立模型要回答的是非题）、`fail_if`、`judge: independent_model`、`evidence: required`、`where`（判定时读哪些文件：字符串或字符串列表，流水线据此抓取）和 `lookback`（读几期文件，含本期，正整数；一期是一个财季，与 `effective_from` 同一计法，年度文件按财季折算，例如要读到上一份年报写 5）；可选 `judge_notes`（交给判定员的判定规则，字符串或列表）。判定时必须附出处和一句以内的原文摘录。
+**Qualitative tests** (`type: qualitative`): MUST have `question` (a yes/no question an independent model answers), `fail_if`, `judge: independent_model`, `evidence: required`, `where` (which documents are read for the judgment: a string or a list of strings, which the pipeline fetches) and `lookback` (how many periods of documents are read, the current one included; a positive integer; a period is a fiscal quarter, counted as for `effective_from`, with annual filings converted to fiscal quarters: to reach back to the previous annual report, for example, write 5); optionally `judge_notes` (rules for the judge, a string or a list). A judgment MUST give its source and a quotation of at most one sentence from the original text.
 
-**时效测试**（`type: staleness`）：`section` 取 `reviewed` 的十四个键之一，`max_age_quarters` 为整数；以 `reviewed.<section>` 为基准，超过 `max_age_quarters × 91` 天即失败。
+**Staleness tests** (`type: staleness`): `section` is one of the fourteen keys of `reviewed`, and `max_age_quarters` is an integer; measured from `reviewed.<section>`, the test fails once more than `max_age_quarters × 91` days have passed.
 
-测试结果只有四种：`pass`、`warn`、`fail`、`undetermined`。
+A test has only four possible results: `pass`, `warn`, `fail`, `undetermined`.
 
-### 4.2 流水线维护的字段（00 §G8）
+### 4.2 Fields maintained by the pipeline (00 §G8)
 
-公司经理不得修改 `trust_level`、`status`、`filer`、`schema_version`。流水线把各角色的信任等级记在公开仓库的 `trust/levels.yml`：
+A company manager MUST NOT change `trust_level`, `status`, `filer` or `schema_version`. The pipeline records each role's trust level in the public repository's `trust/levels.yml`:
 
 ```yaml
 as_of: 2026-10-30
-companies:                 # 公司经理，按公司代码
+companies:                 # company managers, by ticker
   MSFT: 1
-industries:                # 行业研究员，按行业模块 id（对应 industry.yml 的 trust_level）
+industries:                # industry researchers, by industry module id (matching trust_level in industry.yml)
   payments-card-networks: 1
 ```
 
-`C-TRUST-WRITE`（警告）核对 `thesis.yml` 的 `trust_level` 与这里一致（`industry.yml` 写了 `trust_level` 时同样核对）。`reviewed` 日期只为本次实际复核过的部分更新，并列进该次更新记录 front matter 的 `reviewed_sections`：
+`C-TRUST-WRITE` (warning) checks that `trust_level` in `thesis.yml` agrees with this file (and likewise `trust_level` in `industry.yml`, when written). A `reviewed` date is updated only for the parts actually reviewed this time, and those parts are listed in `reviewed_sections` in the front matter of that update's record:
 
 ```markdown
 ---
@@ -276,101 +283,118 @@ reviewed_sections: [economics, monitoring]
 ---
 ```
 
-`thesis.yml` 里等于某次更新 `as_of` 的每个 `reviewed` 日期，其部分都必须列在那次更新的 `reviewed_sections` 里（同一天的几次更新合起来算）。
+For every `reviewed` date in `thesis.yml` that equals the `as_of` of an update, the part MUST be listed in that update's `reviewed_sections` (several updates on the same day count together).
 
-### 4.3 结果出来后不改门槛（00 §G7）
+### 4.3 Thresholds do not change once the results are out (00 §G7)
 
-`thesis-ci lint --base-ref <git 引用> --period FY<年>Q<季>` 把 `thesis.yml` 的测试与该引用下的版本逐条比较（`C-TEST-FROZEN`）：对当期有效的测试（base 版本的 `effective_from` 不晚于当期、且未退役；没有 `effective_from` 的旧测试视为一直有效），`rule`、`fail_if`、`warn_rule`、`warn_if`、`max_age_quarters` 不得改动，也不得删除。只改格式（例如行内映射改成块映射）不算改动。业绩文件入库之后的 PR 应当带上这两个参数。
+`thesis-ci lint --base-ref <git ref> --period FY<year>Q<quarter>` compares the tests in `thesis.yml` one by one with the version at that ref (`C-TEST-FROZEN`): for tests in force for the current period (the base version's `effective_from` is not later than the current period and the test is not retired; an old test without `effective_from` counts as always in force), `rule`, `fail_if`, `warn_rule`, `warn_if` and `max_age_quarters` MUST NOT be changed, and the test MUST NOT be deleted. A change of formatting only (for example a flow mapping rewritten as a block mapping) is not a change. A PR made after results filings have arrived SHOULD pass both options.
 
-### 4.4 言行账本 ledger.yml
+### 4.4 The say-do ledger ledger.yml
 
-见 `ledger.schema.json`。`side`：`management`（管理层承诺，按四档结算：`kept`、`partially_kept`、`not_kept`、`silently_dropped`，或 `undetermined`）、`system` 与 `owner`（预测，必填 `probability`，0.05–0.95；状态只用 `pending`、`kept`、`not_kept`、`undetermined`，判定标准写在 `note`）。`last_mentioned`：管理层最近一次提到这条承诺的日期（判断“悄然消失”）；`acknowledged_source`：未兑现时主动承认的出处（来源标签或 null）。
+See `ledger.schema.json`. `side`: `management` (management's commitments, settled on four grades: `kept`, `partially_kept`, `not_kept`, `silently_dropped`, or `undetermined`), `system` and `owner` (predictions; `probability` required, 0.05–0.95; the statuses are only `pending`, `kept`, `not_kept`, `undetermined`, and the criterion is written in `note`). `last_mentioned`: the date management last mentioned the commitment (to judge "silently dropped"); `acknowledged_source`: where management acknowledged an unmet commitment on its own (a source tag, or null).
 
 ## 5. story.md
 
-两分钟持有理由。YAML front matter 见 `story.schema.json`，正文不超过 700 个字符（中文按字计，英文按字符计，不含来源标签）。正文不得出现价格、价值区间、隐含回报、仓位比例或买卖建议。事实数字按 3.4 标注出处。
+The two-minute reason for holding. The YAML front matter is described by `story.schema.json`. The body of a story written in Chinese (or Japanese or Korean) is at most 700 characters, each character counting as one; the body of a story written in English is at most 350 words. Neither count includes source tags, Markdown markup or link targets. A story is measured in characters when it has at least as many CJK characters as English words. 350 words is about two minutes read aloud at 150–175 words a minute, and about what 700 Chinese characters become in English (a Chinese character carries roughly half an English word). The body MUST NOT contain prices, value ranges, implied returns, position sizes or buy/sell advice. Fact numbers carry sources as described in 3.4.
 
-## 6. 行业模块
+## 6. Industry modules
 
-`industry.yml` 见 `industry.schema.json`。行业模块只描述行业本身：**不得**列出持仓、不得给建议、不得写“依赖本行业的公司”。依赖关系只写在公司一侧的 `depends_on`。每个模块至少 3 个可观测的路标（`signposts`），每个路标有可观测量、事先写下的门槛和检查频率。可选 `trust_level`（0–3）记行业研究员的信任等级，由流水线维护（4.2）。
+`industry.yml`: see `industry.schema.json`. An industry module describes only the industry itself: it MUST NOT list holdings, give advice, or name "companies that depend on this industry". Dependencies are written only on the company side, in `depends_on`. Every module has at least 3 observable signposts (`signposts`); each signpost has an observable quantity, a threshold written down in advance and a check frequency. The optional `trust_level` (0–3) records the industry researcher's trust level, maintained by the pipeline (4.2).
 
-## 7. 私有仓库的文件
+## 7. Files of the private repository
 
-### 7.1 价值区间 valuation.yml
+### 7.1 Value ranges valuation.yml
 
-见 `valuation.schema.json`。要点：
+See `valuation.schema.json`. Key points:
 
-- `doc_status`：`proposed`（重算后待 04C 审的版本）或 `effective`（生效版本）。任何时刻一家公司只有一个生效版本（00 §V20）。
-- `value_ranges`：`center`（中枢）、`fair`（核心区间）、`cheap`（买入区间）、`error_band`（误差带 `[低, 高]`：与 `center` 同单位的绝对区间，不是相对比例）。
-- `margin_of_safety`：安全边际区间 `[下限, 上限]`，小数，默认 `[0.25, 0.35]`（00 §V2）。
-- `discount_rate`：`risk_free`（10 年期美国国债收益率）、`risk_free_date`（取值日期）、`premium`、`total`（= `risk_free` + `premium`）、`source`、`note`。`total` 有数值时必须写 `note`：溢价的判断依据，即本公司现金流记录里哪些读数让它更可预测、哪些更不可预测（00 §V1）。溢价只从本公司自己的记录推出，不在公司之间比较或插值（00 §V10）；`C-DISCOUNT-RATE` 因此不检查跨公司的溢价次序。
-- `comparable_anchor`：第二参照锚 `{value, description, source}`，可比资产的市场隐含回报（00 §V6）。
-- `price_rating`：`A`–`E`，按 00 §V11 的机械尺给出，不加正负号；`quality_rating` 是生意评级，与 `thesis.yml` 的 `ratings.business` 同一把尺。
-- `method_note`：本次估值的方法说明，必须非空。
+- `doc_status`: `proposed` (a recalculated version awaiting review by 04C) or `effective` (the version in force). At any time a company has only one version in force (00 §V20).
+- `value_ranges`: `center` (central value), `fair` (fair range), `cheap` (buy range), `error_band` (error band `[low, high]`: an absolute range in the unit of `center`, not a relative proportion).
+- `margin_of_safety`: the margin-of-safety range `[lower bound, upper bound]`, as decimals, default `[0.25, 0.35]` (00 §V2).
+- `discount_rate`: `risk_free` (the 10-year US Treasury yield), `risk_free_date` (the date it was read), `premium`, `total` (= `risk_free` + `premium`), `source`, `note`. When `total` has a value, `note` MUST be written: the basis for the premium, that is, which readings in this company's cash-flow record make it more predictable and which less (00 §V1). The premium is derived only from the company's own record and is not compared or interpolated across companies (00 §V10); `C-DISCOUNT-RATE` therefore does not check an order of premiums across companies.
+- `comparable_anchor`: the second reference anchor `{value, description, source}`, the market-implied return of a comparable asset (00 §V6).
+- `price_rating`: `A`–`E`, given by the mechanical scale of 00 §V11, without a plus or minus sign; `quality_rating` is the business rating, on the same scale as `ratings.business` in `thesis.yml`.
+- `method_note`: a note on the method of this valuation; MUST NOT be empty.
 
-### 7.2 L3 备忘录 memos/*.yml
+### 7.2 L3 memos memos/*.yml
 
-见 `memo.schema.json`。备忘录只由总部起草（`drafted_by: hq_capital_allocator`）：`options` 至少两个选项，其中一个的 `key` 是 `maintain`（默认选项，`default_option: maintain`，14 天不回复按默认处理）；`evidence: [{claim, source}]`；`trigger: {tests: [测试 id], update?}`；`constitution_refs` 引用 `R<n>` 或 `H<n>`。修宪备忘录（`action: amend_constitution`）可以没有 `company`，其余备忘录必须有。
+See `memo.schema.json`. Memos are drafted only by HQ (`drafted_by: hq_capital_allocator`): `options` has at least two options, and the `key` of one of them is `maintain` (the default option, `default_option: maintain`; with no reply within 14 days the default applies); `evidence: [{claim, source}]`; `trigger: {tests: [test ids], update?}`; `constitution_refs` cite `R<n>` or `H<n>`. A memo amending the constitution (`action: amend_constitution`) may omit `company`; every other memo MUST have it.
 
-买入、加仓备忘录还要写 `target_weight`、`order: {type: single}`、`implied_return` 与 `hurdle`。`target_weight` 不得低于入选门槛下沿（10%）；10–20% 是门槛，不是目标，高于上沿允许，但要在 `weight_note` 里写明理由（宪法第 4 条）。`hurdle` 不得低于该公司 `valuation.yml` 里伯克希尔那道第一门槛，`implied_return` 必须高于它；只过第一道、没过 VOO 参照时报警（宪法第 7 条，00 §V6）。
+Buy and add memos also give `target_weight`, `order: {type: single}`, `implied_return` and `hurdle`. `target_weight` MUST NOT be below the bottom of the entry bar (10%); 10–20% is a bar, not a target: above the top is allowed, but `weight_note` must give the reason (constitution rule 4). `hurdle` MUST NOT be below the first hurdle, Berkshire's, in the company's `valuation.yml`, and `implied_return` MUST be above it; clearing only the first hurdle and not the VOO reference gives a warning (constitution rule 7, 00 §V6).
 
-### 7.3 升级请求 escalations/*.yml
+### 7.3 Escalation requests escalations/*.yml
 
-见 `escalation.schema.json`：`id`、`company`、`created_at`、`test_ids`、`facts: [{claim, source}]`（至少一条）、`reason`（R6 的四种企业内部原因之一：`moat_permanent_impairment`、`business_model_change`、`management_deterioration`、`capital_allocation_failure`）、`conclusion`、`drafted_by: company_manager`。“明显更好的机会”是跨公司判断，只由总部提出，不在升级请求里。
+See `escalation.schema.json`: `id`, `company`, `created_at`, `test_ids`, `facts: [{claim, source}]` (at least one), `reason` (one of R6's four reasons inside the company: `moat_permanent_impairment`, `business_model_change`, `management_deterioration`, `capital_allocation_failure`), `conclusion`, `drafted_by: company_manager`. "A clearly better opportunity" is a judgment across companies, raised only by HQ, and never in an escalation request.
 
-### 7.4 系列排名 hq/ranking.yml
+### 7.4 Series ranking hq/ranking.yml
 
-总部按 00 §V13 综合判断排序，不按任何单一字段机械排序。每一行必须写一句排序理由 `reason`：
+HQ ranks by an overall judgment under 00 §V13, never mechanically by any single field. Every row MUST give a one-sentence reason for its place, `reason`:
 
 ```yaml
 as_of: 2026-10-01
 rule: "§V13"
 rows:
-  - {rank: 1, company: ACME, reason: ……}   # 虚构公司，只作格式示例
+  - {rank: 1, company: ACME, reason: ...}   # a fictitious company, only as a format example
 ```
 
-`C-RATING-ORDER` 检查每一行都有 `reason`（行也可以写在 `ranking:` 下，或整个文件就是一个列表）。
+`C-RATING-ORDER` checks that every row has a `reason` (the rows may also be written under `ranking:`, or the whole file may be a list).
 
-### 7.5 公开仓库里不得出现的内容（00 §H4）
+### 7.5 What must not appear in the public repository (00 §H4)
 
-公开仓库中出现 `valuation.yml`、`memos/`、`escalations/`、`decision-log/`，`value_ranges`、`price_reference`、`implied_return`、`price_rating` 等键，或在公开内容（`companies/`（含 `updates/`）、`industries/`、`forecasts/`、`letters/`、`mistakes.md`）中出现 00 §H4 的用语，均为错误：估值用语（`买入区间`、`价值中枢`、`目标价`、`隐含回报`、`隐含年化回报`、`价格评级`、`price target`、`target price`、`buy range`、`fair value range`）由 `C-PUBLIC-NO-VALUATION` 检查，买卖建议用语（`建议买入`、`建议卖出`、`建议增持`、`建议减持`、`建议加仓`、`建议减仓`、`买入评级`、`卖出评级`、`强烈推荐`、`值得买入`、`应该买入`、`可以买入`、`逢低买入`、`建议建仓`、`建议清仓`、`strong buy`、`overweight`、`underweight`）由 `C-PUBLIC-NO-ADVICE` 检查。公开内容也不写以当前股价为输入的倍数或比率：同一句里出现 `市盈率`、`P/E`、`市值`、`自由现金流收益率`、`FCF yield`、`市净率`、`P/B`（或“价格低于 N 倍账面”一类写法；公司披露的回购均价与账面之比是公司的事实，不算）和数字（年份、日期、期间与一位数的编号不算）即为错误。
+In the public repository each of the following is an error: `valuation.yml`, `memos/`, `escalations/`, `decision-log/`; keys such as `value_ranges`, `price_reference`, `implied_return` and `price_rating`; and the wording of 00 §H4 in public content (`companies/` (including `updates/`), `industries/`, `forecasts/`, `letters/`, `mistakes.md`). The valuation wording (`买入区间` (buy range), `价值中枢` (value centre), `目标价` (target price), `隐含回报` (implied return), `隐含年化回报` (implied annualized return), `价格评级` (price grade), `price target`, `target price`, `buy range`, `fair value range`) is checked by `C-PUBLIC-NO-VALUATION`; the buy/sell advice wording (`建议买入` (recommend buying), `建议卖出` (recommend selling), `建议增持` (recommend adding), `建议减持` (recommend reducing), `建议加仓` (recommend adding to the position), `建议减仓` (recommend trimming the position), `买入评级` (buy rating), `卖出评级` (sell rating), `强烈推荐` (strongly recommend), `值得买入` (worth buying), `应该买入` (should buy), `可以买入` (can buy), `逢低买入` (buy on dips), `建议建仓` (recommend opening a position), `建议清仓` (recommend closing the position), `strong buy`, `overweight`, `underweight`) by `C-PUBLIC-NO-ADVICE`. Public content also does not state multiples or ratios that take the current share price as an input: `市盈率` (P/E), `P/E`, `市值` (market capitalization), `自由现金流收益率` (free cash flow yield), `FCF yield`, `市净率` (P/B), `P/B` (or wording such as "the price is below N times book"; the company's disclosed ratio of its average repurchase price to book is a fact about the company and does not count) together with a number in the same sentence (years, dates, periods and one-digit numbers do not count) is an error.
 
-## 8. 检查
+**English wording (thesis-ci 0.3.0).** The same checks match the English equivalents of these lists. Valuation: `implied return`, `implied annual` or `annualized return`, `price grade`, `price rating` and `value centre` (the banned term) wherever they appear; `central value` (the neutral name of the valuation midpoint in private files), `fair range`, `value range`, `buy range`, `cheap range`, `intrinsic value` and `margin of safety` when a number follows (a margin of safety also when a percentage precedes it); a price event on a range ("entered the buy range"). Advice: recommending a buy, a sell, adding, reducing, or opening or closing a position ("we recommend buying", "recommend investors sell", "we recommend ACME", "recommend opening a position"), a buy or sell rating ("rated a Buy", "upgraded to Buy", "Rating: Sell", "Buy-rated"), "should buy / sell" with the investor as subject ("investors should buy the stock", "the shares should be sold"), "is a buy", adding to, trimming or accumulating a position ("add to the position", "trim our stake"), buying on dips. As in Chinese, a negative sentence is no exception: "we do not recommend buying" is an error (00 §H4). A company buying back its own shares ("buyback", "the company should buy back stock") or a product name is not advice. Multiples: `price-to-earnings`, `price/earnings`, `price-to-book` and "trades at 25 times earnings" with a number in the same sentence.
 
-`spec/checks.yml` 是全部检查的登记表。每项检查有 `id`、`title`、`scope`（`public`、`private`、`both`、`workspace`）、`level`（`error` 或 `warning`）和 `description`。实现必须为每个登记的检查提供一个函数和至少一个单元测试；单元测试的名称或文档字符串必须包含检查 id。
+**Progress files and price grades (thesis-ci 0.3.0).** The valuation and advice wording checks also read `docs/STATUS.md` and `CLAUDE.md` (and their Chinese versions), which report on the archive's own work and once carried price-grade changes; the documents that define the rules and must name the banned terms (`docs/DESIGN.md`, `docs/decisions/`, `constitution/`) are not read. In every file these checks read, a price grade next to a ticker ("AXP B− → C", "AXP: C") is an error when its sentence is about prices or valuation (price, valuation, §V11) and does not speak of the business, management, quality, culture or capital-allocation ratings, which use the same letters.
 
-宪法的每条规则（`constitution/rules.yml`）必须引用至少一个登记的检查 id。
+## 8. Checks
 
-### 8.1 命令行
+`spec/checks.yml` is the registry of all checks. Each check has `id`, `title`, `scope` (`public`, `private`, `both`, `workspace`), `level` (`error` or `warning`) and `description`. An implementation MUST provide a function and at least one unit test for each registered check; the name or the docstring of the unit test MUST contain the check id.
+
+Every rule of the constitution (`constitution/rules.yml`) MUST reference at least one registered check id.
+
+### 8.1 Command line
 
 ```bash
-thesis-ci lint <path> [--counterpart <另一侧仓库>] [--today YYYY-MM-DD] [--expect-visibility public|private]
-                      [--base-ref <git 引用>] [--period FY<年>Q<季>] [--only <检查 id> ...] [--format text|json]
+thesis-ci lint <path> [--counterpart <other repository>] [--today YYYY-MM-DD] [--expect-visibility public|private]
+                      [--base-ref <git ref>] [--period FY<year>Q<quarter>] [--only <check id> ...] [--format text|json]
 ```
 
-`--today` 决定截止时间是否已过（`C-PREREG-TIMING`、`C-PREREG-IMMUTABLE`）与时效（`C-STALENESS`）；`--base-ref` 与 `--period` 只用于 `C-TEST-FROZEN`；`--counterpart` 让私有仓库读到公开仓库的决策权配置与角色定义（`C-PROMPT-ISOLATION`）。
+`--today` decides whether a deadline has passed (`C-PREREG-TIMING`, `C-PREREG-IMMUTABLE`) and the staleness (`C-STALENESS`); `--base-ref` and `--period` are used only by `C-TEST-FROZEN`; `--counterpart` lets the private repository read the public repository's decision rights and role definitions (`C-PROMPT-ISOLATION`).
 
-### 8.2 决策权与信任等级 decision-rights.yml
+### 8.2 Decision rights and trust levels decision-rights.yml
 
-见 `decision-rights.schema.json`。`levels` 为三级决策权，动作取 schema 枚举（0.2 新增 `valuation_update`、`prompt_change`）；资金事项与修宪只在 L3。`trust` 除 `levels`、`initial`、`window`、`downgrade`、`upgrade` 外，必须有 `routing`：按信任等级分流（00 §G9），键 `"3"`、`"2"`、`"1"`、`"0"` 各写一句（3 级自动合并并公开；2 级自动合并、公开前由总部复核；1 级先留私有仓库、由总部逐条复核后公开；0 级暂停自治）；可选 `scoring` 写计分方法（事实错误怎样降级、分歧裁定怎样计入、谁的哪类产出算一次更新）。可选 `gate` 写 17A 的放行规则。`ranking` 为 `{rule, candidates?, rotation?}`：`rule` 引用排名条款（例如 `"§V13"`），不再有机械的 `order`。
+See `decision-rights.schema.json`. `levels` holds the three decision levels, with actions from the schema enum (0.2 adds `valuation_update` and `prompt_change`); money matters and constitution amendments are L3 only. Besides `levels`, `initial`, `window`, `downgrade` and `upgrade`, `trust` MUST have `routing`: routing by trust level (00 §G9), one sentence for each of the keys `"3"`, `"2"`, `"1"` and `"0"` (level 3: auto-merge and publish; level 2: auto-merge, reviewed by HQ before publishing; level 1: kept in the private repository first and published after HQ reviews it item by item; level 0: autonomy paused); the optional `scoring` describes the scoring method (how a fact error downgrades, how a divergence ruling counts, which output of whom counts as one update). The optional `gate` gives the release rules of 17A. `ranking` is `{rule, candidates?, rotation?}`: `rule` cites the ranking clause (e.g. `"§V13"`); there is no mechanical `order` any more.
 
-### 8.3 角色与提示词的隔离
+### 8.3 Isolation of roles and prompts
 
-`agents/<role>.yml` 的 `role` 取 `company_manager`、`auditor`、`model_reviewer`、`red_team`、`synthesis_reviewer`、`design_reviewer`、`blind_reader`、`judge`、`settler`、`extractor`、`hq_capital_allocator`、`industry_researcher`、`typesetter`；`can_see`、`cannot_see` 用与提示词 front matter 相同的输入名。私有仓库的 `prompts/*.md` 在 front matter 里声明角色与输入：顶层的 `role` 与 `inputs`，或 `parts` 下各部分的 `role`（省略时取顶层）与 `inputs`（以及 `inputs_pass1`、`inputs_pass2` 等）；输入名末尾的 `?` 表示可选。`C-PROMPT-ISOLATION`（警告，私有仓库带 `--counterpart` 时运行）报告任何一部分的输入出现在该角色 `cannot_see` 里的情形；比较时去掉 `?` 和 00 §F0 的部分编号后缀（`findings_04A` 按 `findings` 比较）。
+`role` in `agents/<role>.yml` is one of `company_manager`, `auditor`, `model_reviewer`, `red_team`, `synthesis_reviewer`, `design_reviewer`, `blind_reader`, `judge`, `settler`, `extractor`, `hq_capital_allocator`, `industry_researcher`, `typesetter`; `can_see` and `cannot_see` use the same input names as the front matter of the prompts. The private repository's `prompts/*.md` declare the role and inputs in their front matter: a top-level `role` and `inputs`, or, under `parts`, a `role` for each part (the top-level one when omitted) and `inputs` (and `inputs_pass1`, `inputs_pass2` and so on); a `?` at the end of an input name marks it optional. `C-PROMPT-ISOLATION` (warning; runs in the private repository with `--counterpart`) reports every part whose inputs appear in that role's `cannot_see`; the comparison drops the `?` and the part-number suffix of 00 §F0 (`findings_04A` is compared as `findings`).
 
-### 8.4 0.2 新增的检查
+### 8.4 Checks added in 0.2
 
-| id | 范围 | 级别 | 检查 |
+| id | scope | level | check |
 | --- | --- | --- | --- |
-| `C-PREREG-IMMUTABLE` | public | error | 截止之后的条目文件有 `<文件>.ots`；装有 `ots` 时 `ots verify` 通过，无法核验时报警 |
-| `C-TRUST-WRITE` | public | warning | `trust_level` 等于 `trust/levels.yml`；改动的 `reviewed` 日期列在更新的 `reviewed_sections` 里 |
-| `C-TEST-FROZEN` | public | error | 给出 `--base-ref` 与 `--period` 时，当期有效的测试门槛未被改动或删除 |
-| `C-PROMPT-ISOLATION` | private | warning | 提示词各部分的输入与角色的 `cannot_see` 不相交 |
+| `C-PREREG-IMMUTABLE` | public | error | an items file past its deadline has `<file>.ots`; with `ots` installed, `ots verify` passes; a warning when it cannot be verified |
+| `C-TRUST-WRITE` | public | warning | `trust_level` equals `trust/levels.yml`; changed `reviewed` dates are listed in the update's `reviewed_sections` |
+| `C-TEST-FROZEN` | public | error | with `--base-ref` and `--period`, no threshold of a test in force for the period was changed or deleted |
+| `C-PROMPT-ISOLATION` | private | warning | the inputs of every part of a prompt do not intersect the role's `cannot_see` |
 
-## 9. 指标登记表
+### 8.5 English first: zh-CN/ and C-LANGUAGE (thesis-ci 0.3.0)
 
-`spec/metrics.yml` 列出定量测试可以引用的指标：`id`、`description`、`unit`、`frequency`、`data`（`xbrl` 或 `filing_text`）、`xbrl`（候选概念，按优先顺序）、`formula` 与 `where`。XBRL 概念跟着发行人采用的会计准则走，不跟表格走：按美国会计准则编报的外国私人发行人（例如 PDD 的 20-F）同样用 `us-gaap` 概念，只有按 IFRS 编报的发行人才用 `ifrs-full`。登记表中没有的指标，用测试里的 `metric_def` 就地定义（字段同登记表条目，另可写 `components`，`data` 可取 `external` 或 `mixed`）。
+The archives are English-first. The Chinese version of a key document lives at `zh-CN/<same path>` at the repository root; after any front matter, its first line links back to the English file, and the English file says near the top where the Chinese version is. Every other file is in English only.
 
-## 10. 版本
+- A Chinese version is published like the file it translates. The checks of public content (`C-PUBLIC-NO-VALUATION`, `C-PUBLIC-NO-ADVICE`, `C-PUBLIC-NO-AMOUNTS`, the share-price check of `C-NO-PRICE-FEED`, the neutrality check of `C-DEPENDS`) read `zh-CN/companies/`, `zh-CN/industries/`, `zh-CN/forecasts/`, `zh-CN/letters/` and `zh-CN/mistakes.md` as they read the English files, and `C-SRC-TAG` checks their fact numbers, resolving tags as for the English file (`zh-CN/companies/<TICKER>/story.md` reads `companies/<TICKER>/sources.yml`).
+- `C-LANGUAGE` (both, error): no text file outside `zh-CN/` contains CJK characters (Han ideographs, kana, hangul, CJK punctuation or full-width forms). Exempt are `zh-CN/` at the repository root; tests and fixtures (a `tests/`, `test/` or `fixtures/` directory, `test_*.py`, `*_test.py`, `conftest.py`), which may exercise Chinese text; and the value of `title_original` in a `sources.yml` (3.5). The check reports one error per file, at its first line with CJK text, with the number of such lines.
 
-本规范为 v0.2。跑完两个财报季后定 v1.0，之前的不兼容改动在 `CHANGELOG.md` 中逐条记录。
+| id | scope | level | check |
+| --- | --- | --- | --- |
+| `C-LANGUAGE` | both | error | an English file contains no CJK text; `zh-CN/`, tests, fixtures and `title_original` in `sources.yml` are exempt |
+
+## 9. Metric registry
+
+`spec/metrics.yml` lists the metrics that quantitative tests can reference: `id`, `description`, `unit`, `frequency`, `data` (`xbrl` or `filing_text`), `xbrl` (candidate concepts in order of preference), `formula` and `where`. XBRL concepts follow the accounting standards the issuer reports under, not the form: a foreign private issuer reporting under US GAAP (for example PDD's 20-F) uses `us-gaap` concepts as well; only issuers reporting under IFRS use `ifrs-full`. A metric not in the registry is defined in place with the test's `metric_def` (the same fields as a registry entry, plus `components`; `data` may also be `external` or `mixed`).
+
+## 10. Versions
+
+This specification is v0.2. v1.0 will be set after two earnings seasons have run; until then, incompatible changes are recorded one by one in `CHANGELOG.md`.
+
+thesis-ci 0.3.0 adds English-language support and `C-LANGUAGE` (3.4, 3.5, 5, 7.5, 8.5) and changes no file format apart from the optional `title_original`; archives keep `spec_version: "0.2"`.

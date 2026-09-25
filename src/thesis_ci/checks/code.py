@@ -24,7 +24,7 @@ MANIFESTS = {"pyproject.toml", "setup.cfg", "Pipfile", "package.json", "environm
 DEPENDENCY_FILES = {"pyproject.toml", "setup.cfg", "Pipfile", "package.json", "environment.yml"}
 
 # -- C-NO-PRICE-FEED ----------------------------------------------------------------------------------
-# spec/checks.yml names these "等" (and the like): the list below adds other quote sources and clients.
+# spec/checks.yml names these "and the like": the list below adds other quote sources and clients.
 PRICE_FEEDS = (
     "yfinance", "yahoo finance", "yahoo-finance", "yahoo_fin", "yahooquery", "finance.yahoo.com", "alphavantage",
     "alpha_vantage", "polygon.io", "polygon-api-client", "finnhub", "iexcloud", "iexfinance", "twelvedata", "stooq",
@@ -44,7 +44,7 @@ PRICE_KEY_ALIASES = frozenset({
 # Private repository only (00 §H2): the one-off alert when a price crosses a pre-written value range, and the
 # year-end unadjusted closes and price reference used by the private valuation and its five-year backtest.
 PRICE_FEED_EXCEPTIONS = ("pipeline/price_alert.py", "pipeline/price_history.py")
-# Hard rule 2 (价格静默): public prose does not display a share price either.
+# Hard rule 2 (price silence): public prose does not display a share price either.
 _PRICE_AMOUNT = r"(?:[$＄€£¥￥]\s*\d|\d[\d,.]*\s*(?:美元|港元|元|美金|dollars?|usd))"
 PRICE_DISPLAY_WORDING = compile_wording((), (
     ("share price", r"(?:股价|现价|收盘价|最新价|市价|股票价格)\s*(?:[:：]|为|是|在|约|报|收于|收在|达|达到|跌至|涨至|跌到|涨到|回落至|升至)?\s*"

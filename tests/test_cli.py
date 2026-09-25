@@ -36,14 +36,14 @@ def test_lint_private_runs_private_checks(ws, capsys):
 
 
 def test_lint_exit_one_on_error_with_finding_fields(ws, capsys):
-    selftest.apply(ws, (selftest.replace("public/companies/ACME/story.md", "最可能错在哪", "营收增长 16%。最可能错在哪"),))
+    selftest.apply(ws, (selftest.before_story_end("Revenue grew 16%."),))
     code, out = run_cli(capsys, "lint", str(ws / "public"), "--format", "json", "--today", "2026-09-24")
     data = json.loads(out)
     assert code == 1
     assert data["errors"] == [{
         "check": "C-SRC-TAG",
         "file": "companies/ACME/story.md",
-        "line": 13,
+        "line": 15,
         "message": data["errors"][0]["message"],
     }]
     assert "16%" in data["errors"][0]["message"]
@@ -76,14 +76,14 @@ def test_lint_usage_errors(ws, capsys):
 def test_checks_json(capsys):
     code, out = run_cli(capsys, "checks", "--format", "json")
     rows = json.loads(out)
-    assert code == 0 and len(rows) == 34
+    assert code == 0 and len(rows) == 35
     assert set(rows[0]) == {"id", "title", "scope", "level", "implemented", "selftest"}
     assert all(r["implemented"] and r["selftest"] == "pass" for r in rows)
 
 
 def test_selftest_command(capsys):
     code, out = run_cli(capsys, "selftest")
-    assert code == 0 and "34/34 checks pass" in out
+    assert code == 0 and "35/35 checks pass" in out
 
 
 def test_staleness_command(ws, capsys):
