@@ -1,0 +1,6 @@
+# Maintained by the pipeline (00 §G8): levels follow constitution/decision-rights.yml trust.scoring; no role edits them.
+as_of: 2026-09-22
+companies:
+  ACME: 1
+industries:
+  widgets: 1

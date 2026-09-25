@@ -1,0 +1,32 @@
+company: ACME
+event:
+  period: FY2027Q1
+  expected_release: 2026-10-28
+  form: 8-K
+  placeholder: false
+deadline: "2026-10-27T23:59:59-04:00"
+author: system
+horizon: mixed
+items:
+  - id: ACME-FY2027Q1-1
+    statement: 本季营收同比增速不低于上季
+    probability: 0.6
+    criterion: 以 10-Q 利润表的营收为准，同比增速保留一位小数；相等算作不低于；到 2026-11-30 仍无数据记为 undetermined
+    data_source: 10-Q 利润表
+    horizon: quarter
+    resolves_by: 2026-11-30
+    domain: other
+    added_by: system
+    pillar: P2
+  - id: ACME-FY2027Q1-2
+    statement: 登记日起 18 个月内没有第二家供应商通过主要产线认证
+    probability: 0.75
+    criterion: 以认证机构公告与 10-K 风险因素为准；出现第二家即为未发生
+    data_source: 认证机构公告、10-K 第 1A 项
+    horizon: 18m
+    resolves_by: 2028-03-31
+    domain: other
+    added_by: system
+    pillar: P1
+    falsifies_thesis: true
+    reference: 本公司历史上只出现过一家（判断；频率无法从材料核实）

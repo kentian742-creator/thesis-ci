@@ -1,0 +1,5 @@
+as_of: 2026-09-20
+rule: "§V13"
+rows:
+  - {rank: 1, company: ACME, reason: Clears the Berkshire hurdle with an A- business and a narrow error band (fictitious).}
+  - {rank: 2, company: BETA, reason: Management deterioration under review; below the hurdle (fictitious).}

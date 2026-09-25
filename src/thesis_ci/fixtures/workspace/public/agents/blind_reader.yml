@@ -1,0 +1,8 @@
+role: blind_reader
+name: Blind reader
+model: {id: example-strong-model}
+reports_to: null
+can_see: [new_filing, thesis_questions]
+cannot_see: [thesis, draft, conclusions]
+outputs: [blind_answers]
+prompts: ["04"]

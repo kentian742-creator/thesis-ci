@@ -1,0 +1,49 @@
+levels:
+  L1:
+    who: agents
+    actions: [fetch, parse, draft, test, audit, blind_read, routine_merge, fact_revision, signpost_check]
+    report: monthly letter summary
+  L2:
+    who: agents, reported afterwards
+    actions: [prereg_content, scenario_probability, test_warning_disposition, candidate_rotation, model_selection, publish, valuation_update, prompt_change]
+    report: one line in the monthly letter
+  L3:
+    who: owner
+    actions: [buy, add, trim, sell, amend_constitution]
+    report: one-page memo
+trust:
+  levels:
+    0: autonomy paused
+    1: updates stay private until reviewed
+    2: auto-merge, reviewed before publishing
+    3: auto-merge and publish
+  routing:
+    "0": pause autonomy; the monthly letter asks the owner to look
+    "1": updates stay in the private repository until HQ reviews them one by one
+    "2": auto-merge; HQ reviews before publishing
+    "3": auto-merge and publish once every check passes
+  initial: 1
+  window: 8
+  downgrade: {fact_error: 1}
+  upgrade: {clean_updates_in_a_row: 4}
+  scoring: {fact_error: -1, divergence_ruled_against: counted, unit: one quarterly update per company}
+memo:
+  default_option: maintain
+  timeout_days: 14
+  monthly_target_max: 2
+  sell_reasons: [moat_permanent_impairment, business_model_change, management_deterioration, capital_allocation_failure, better_opportunity]
+  forbidden_sell_reasons: [price_decline, recession, panic, single_quarter_miss]
+portfolio:
+  max_holdings: 5
+  entry_band: [0.10, 0.20]
+  benchmarks: [VOO, BRK.B]
+  single_order_entry: true
+ranking:
+  rule: "§V13"
+  candidates: 3
+  rotation: quarterly
+gate: {lint: no_errors, audit: must_fix_resolved, breakers: disposed}
+budget:
+  monthly_usd: 20
+  degrade_order: [pause_candidates, downgrade_drafting_model]
+phase_gate: {advance_on: acceptance_script}

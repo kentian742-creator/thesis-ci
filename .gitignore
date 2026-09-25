@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+# The wheel build copies spec/ into the package; never commit a second copy.
+src/thesis_ci/spec/
+.env

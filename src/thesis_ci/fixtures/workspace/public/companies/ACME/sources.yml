@@ -1,0 +1,21 @@
+sources:
+  - tag: ACME-RPT-2026-09
+    kind: report
+    title: ACME company report (fictitious)
+    location: private:reports/ACME.pdf
+    date: 2026-09-01
+    primary: false
+  - tag: ACME-10K-FY2026
+    kind: filing
+    title: ACME Corp. Form 10-K FY2026 (fictitious)
+    issuer_cik: "0000000001"
+    form: 10-K
+    period: FY2026
+    accession: 0000000001-26-000001
+    filed: 2026-08-01
+    primary: true
+  - tag: ACME-NEWS-2026-09-10-WIRE
+    kind: news
+    title: ACME wins a new plant (fictitious)
+    date: 2026-09-10
+    primary: false

@@ -1,0 +1,6 @@
+sources:
+  - tag: BETA-RPT-2026-09
+    kind: report
+    title: BETA company report (fictitious)
+    location: private:reports/BETA.pdf
+    date: 2026-09-01

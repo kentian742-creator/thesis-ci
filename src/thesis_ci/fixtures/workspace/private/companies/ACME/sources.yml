@@ -1,0 +1,6 @@
+sources:
+  - tag: ACME-RPT-2026-09
+    kind: report
+    title: ACME company report (fictitious)
+    location: private:reports/ACME.pdf
+    date: 2026-09-01

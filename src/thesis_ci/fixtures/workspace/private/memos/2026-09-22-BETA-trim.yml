@@ -1,0 +1,17 @@
+id: 2026-09-22-BETA-trim
+company: BETA
+action: trim
+default_option: maintain
+timeout_days: 14
+created_at: 2026-09-22
+summary: Management deterioration (fictitious).
+constitution_refs: [R6]
+drafted_by: hq_capital_allocator
+options:
+  - {key: maintain, description: Keep the position; the default after 14 days.}
+  - {key: trim, description: Trim because management quality declined.}
+evidence:
+  - {claim: The CEO left and no successor was named (fictitious)., source: BETA-RPT-2026-09#p12}
+trigger: {tests: [BETA-L1]}
+sell_reason: management_deterioration
+decision: pending

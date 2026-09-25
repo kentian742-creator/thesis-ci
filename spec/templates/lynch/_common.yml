@@ -1,0 +1,5 @@
+# 所有类别共用的时效测试（section 取 thesis.yml 的 reviewed 键）
+tests:
+  - {key: S-moat, type: staleness, claim: 护城河判断不超过四个季度未复核, covers: [moat], section: moat, max_age_quarters: 4, severity: watch}
+  - {key: S-management, type: staleness, claim: 管理层判断不超过四个季度未复核, covers: [management], section: management, max_age_quarters: 4, severity: watch}
+  - {key: S-bear_case, type: staleness, claim: 反方论证（最可能错在哪）每两个季度重新审视, covers: [other], section: bear_case, max_age_quarters: 2, severity: watch}

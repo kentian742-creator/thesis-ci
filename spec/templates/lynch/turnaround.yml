@@ -1,0 +1,32 @@
+category: turnaround
+name: 困境反转型
+lynch: 遭受重创、可能破产或正在修复的公司；关键在流动性能否撑到修复完成。
+watch: [流动性, 债务到期, 利润率修复进度, 修复计划的里程碑]
+tests:
+  - key: Q-liquidity
+    type: quantitative
+    claim: 流动性撑得到修复完成
+    covers: [balance_sheet]
+    metric: net_cash
+    fail_if: 现金低于未来 12 个月到期债务
+    rule: {op: "<", threshold: 0, unit: USD, consecutive: 1, period: quarter}
+    data: xbrl
+    severity: breaker
+  - key: Q-margin
+    type: quantitative
+    claim: 利润率在修复
+    covers: [unit_economics]
+    metric: operating_margin
+    fail_if: 连续 2 个季度同比下降
+    rule: {op: "decrease", threshold: 0, unit: pp, consecutive: 2, period: quarter}
+    data: xbrl
+    severity: watch
+  - key: L-milestones
+    type: qualitative
+    claim: 修复计划的里程碑按时兑现
+    covers: [management]
+    question: 管理层上期承诺的修复里程碑，本期是否按时兑现？
+    fail_if: 否，且未解释原因
+    where: [本期与上一期的 10-Q／10-K、业绩新闻稿与电话会]
+    lookback: 2
+    severity: watch

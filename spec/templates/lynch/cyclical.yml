@@ -1,0 +1,32 @@
+category: cyclical
+name: 周期型
+lynch: 收入和利润随经济或信贷周期起落；关键是知道周期走到哪一段，而不是看单季数字。
+watch: [周期指标, 拨备或库存, 杠杆, 周期底部的资本配置]
+tests:
+  - key: Q-cycle
+    type: quantitative
+    claim: 周期指标没有转向恶化段
+    covers: [balance_sheet]
+    metric: provision_for_credit_losses
+    fail_if: 拨备同比增速连续 2 个季度超过 50%
+    rule: {op: ">", threshold: 50, unit: "%", consecutive: 2, period: quarter}
+    data: xbrl
+    severity: watch
+  - key: Q-leverage
+    type: quantitative
+    claim: 杠杆在周期低点前没有上升
+    covers: [balance_sheet]
+    metric: net_debt_to_ebitda
+    fail_if: 高于 3 倍
+    rule: {op: ">", threshold: 3, unit: x, consecutive: 1, period: year}
+    data: xbrl
+    severity: watch
+  - key: L-cycle-capalloc
+    type: qualitative
+    claim: 周期高点没有追加昂贵的产能或回购
+    covers: [capital_allocation]
+    question: 本期是否在利润创新高的同时大幅提高资本开支或回购？
+    fail_if: 是，且管理层没有说明周期假设
+    where: [本期与此前三期的 10-Q／10-K（资本开支、回购与现金流量表）, 业绩电话会]
+    lookback: 4
+    severity: watch

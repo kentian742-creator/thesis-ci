@@ -1,0 +1,4 @@
+visibility: private
+owner: example-owner
+spec_version: "0.2"
+counterpart: example-owner/example-public-archive

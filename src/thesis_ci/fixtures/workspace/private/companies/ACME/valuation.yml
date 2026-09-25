@@ -1,0 +1,26 @@
+company: ACME
+as_of: 2026-09-20
+doc_status: effective
+currency: USD
+source: ACME-RPT-2026-09#p40
+price_reference: null
+value_ranges:
+  center: 120
+  fair: [110, 130]
+  cheap: [78, 90]
+  error_band: [100, 140]
+  source: ACME-RPT-2026-09#p40
+margin_of_safety: [0.25, 0.35]
+discount_rate:
+  risk_free: 0.045
+  risk_free_date: 2026-09-18
+  premium: 0.02
+  total: 0.065
+  source: ACME-RPT-2026-09#p41
+  note: Recurring revenue and a decade of steady margins make ACME's cash flows predictable (fictitious).
+implied_return: 0.11
+hurdles: {brk: 0.09, voo: 0.08, source: ACME-RPT-2026-09#p42}
+comparable_anchor: {value: 0.08, description: Market-implied return of a listed widget peer (fictitious)., source: ACME-RPT-2026-09#p43}
+price_rating: B
+quality_rating: A-
+method_note: One discount rate, the 10-year Treasury yield plus a premium from ACME's own record (fictitious numbers).

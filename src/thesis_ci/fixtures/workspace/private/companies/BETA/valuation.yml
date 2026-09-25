@@ -1,0 +1,21 @@
+company: BETA
+as_of: 2026-09-20
+doc_status: proposed
+currency: USD
+source: BETA-RPT-2026-09#p30
+price_reference: null
+value_ranges:
+  center: null
+  fair: [null, null]
+  cheap: [null, null]
+discount_rate:
+  risk_free: 0.045
+  risk_free_date: 2026-09-18
+  premium: 0.03
+  total: 0.075
+  note: Cyclical demand makes BETA's cash flows less predictable (fictitious).
+implied_return: 0.10
+hurdles: {brk: 0.09, voo: 0.08}
+price_rating: null
+quality_rating: B
+method_note: One discount rate from BETA's own cash-flow record (fictitious numbers).

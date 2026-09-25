@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/prereg.schema.json",
+  "title": "财报前预注册 prereg/<期间>.yml 与所有者改写 prereg/<期间>-owner.yml（截止之后不可变）",
+  "type": "object",
+  "required": [
+    "company",
+    "event",
+    "deadline",
+    "author",
+    "items"
+  ],
+  "properties": {
+    "company": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9.]{0,9}$"
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "period",
+        "expected_release",
+        "form",
+        "placeholder"
+      ],
+      "properties": {
+        "period": {
+          "type": "string",
+          "pattern": "^FY\\d{4}Q[1-4]$",
+          "description": "按公司财年写的期间 FY<年>Q<季>"
+        },
+        "expected_release": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "form": {
+          "enum": [
+            "8-K",
+            "6-K",
+            "10-Q",
+            "10-K",
+            "20-F"
+          ]
+        },
+        "placeholder": {
+          "type": "boolean",
+          "description": "发布日是否为占位（公司尚未公布日期）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "deadline": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})$",
+      "description": "发布日前一天 23:59:59 美国东部时间，带偏移的 ISO 8601（夏令时 -04:00，标准时 -05:00）"
+    },
+    "author": {
+      "enum": [
+        "system",
+        "owner"
+      ]
+    },
+    "horizon": {
+      "enum": [
+        "quarter",
+        "18m",
+        "mixed"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "overrides": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/override"
+      },
+      "description": "所有者对系统条目概率的改写（只在 author: owner 的文件里）"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "author": {
+            "const": "system"
+          }
+        },
+        "required": [
+          "author"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "overrides"
+          ]
+        },
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "items": {
+              "properties": {
+                "added_by": {
+                  "const": "system"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "author": {
+            "const": "owner"
+          }
+        },
+        "required": [
+          "author"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "properties": {
+              "items": {
+                "minItems": 1
+              }
+            }
+          },
+          {
+            "required": [
+              "overrides"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": [
+        "id",
+        "statement",
+        "probability",
+        "criterion",
+        "data_source",
+        "horizon",
+        "resolves_by",
+        "domain",
+        "added_by"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9.]*-FY\\d{4}Q[1-4]-\\d+$",
+          "description": "<代码>-<期间>-<序号>"
+        },
+        "statement": {
+          "type": "string"
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.95,
+          "description": "具体数字，0.05–0.95（§P3、§P4）"
+        },
+        "criterion": {
+          "type": "string"
+        },
+        "data_source": {
+          "type": "string"
+        },
+        "horizon": {
+          "enum": [
+            "quarter",
+            "18m"
+          ]
+        },
+        "resolves_by": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "结算所依据的文件预计入库那个月的月末"
+        },
+        "domain": {
+          "enum": [
+            "enterprise_software",
+            "payments_financial_data",
+            "consumer",
+            "semiconductors",
+            "ecommerce",
+            "digital_advertising",
+            "insurance_conglomerate",
+            "other"
+          ]
+        },
+        "added_by": {
+          "enum": [
+            "system",
+            "owner"
+          ]
+        },
+        "pillar": {
+          "type": "string",
+          "pattern": "^P\\d+$"
+        },
+        "falsifies_thesis": {
+          "type": "boolean"
+        },
+        "reference": {
+          "type": "string",
+          "description": "参照类别、大致频率与出处"
+        }
+      },
+      "additionalProperties": false
+    },
+    "override": {
+      "type": "object",
+      "required": [
+        "id",
+        "probability"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9.]*-FY\\d{4}Q[1-4]-\\d+$"
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.95
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

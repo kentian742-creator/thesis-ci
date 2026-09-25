@@ -1,0 +1,1021 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/thesis.schema.json",
+  "title": "公司论点文件 thesis.yml（公开）",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "company",
+    "name",
+    "status",
+    "filer",
+    "category",
+    "category_rationale",
+    "domain",
+    "depends_on",
+    "trust_level",
+    "as_of",
+    "reviewed",
+    "ratings",
+    "thesis",
+    "tests"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "company": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9.]{0,9}$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "exchange": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "holding",
+        "candidate",
+        "archive"
+      ]
+    },
+    "filer": {
+      "type": "object",
+      "required": [
+        "cik",
+        "type"
+      ],
+      "properties": {
+        "cik": {
+          "type": "string",
+          "pattern": "^\\d{10}$"
+        },
+        "type": {
+          "enum": [
+            "domestic",
+            "foreign_private_issuer"
+          ]
+        },
+        "fiscal_year_end": {
+          "type": "string",
+          "pattern": "^\\d{2}-\\d{2}$"
+        },
+        "earnings_form": {
+          "enum": [
+            "8-K",
+            "6-K"
+          ]
+        },
+        "annual_form": {
+          "enum": [
+            "10-K",
+            "20-F",
+            "40-F"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "category": {
+      "enum": [
+        "slow_grower",
+        "stalwart",
+        "fast_grower",
+        "cyclical",
+        "turnaround",
+        "asset_play"
+      ]
+    },
+    "category_rationale": {
+      "type": "string"
+    },
+    "category_secondary": {
+      "enum": [
+        "slow_grower",
+        "stalwart",
+        "fast_grower",
+        "cyclical",
+        "turnaround",
+        "asset_play"
+      ]
+    },
+    "domain": {
+      "enum": [
+        "enterprise_software",
+        "payments_financial_data",
+        "consumer",
+        "semiconductors",
+        "ecommerce",
+        "digital_advertising",
+        "insurance_conglomerate",
+        "other"
+      ]
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^industries/[a-z0-9-]+$"
+      },
+      "uniqueItems": true
+    },
+    "trust_level": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "reviewed": {
+      "type": "object",
+      "description": "档案十二个部分（必填）与两份附加清单 munger、unknowns（可选）的最近复核日期",
+      "properties": {
+        "business": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "economics": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "moat": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "capital_allocation": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "management": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "culture": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "runway": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "valuation": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "bear_case": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "monitoring": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "thesis": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "breakers": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "munger": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "unknowns": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      },
+      "required": [
+        "business",
+        "economics",
+        "moat",
+        "capital_allocation",
+        "management",
+        "culture",
+        "runway",
+        "valuation",
+        "bear_case",
+        "monitoring",
+        "thesis",
+        "breakers"
+      ],
+      "additionalProperties": false
+    },
+    "ratings": {
+      "type": "object",
+      "required": [
+        "business",
+        "management"
+      ],
+      "properties": {
+        "business": {
+          "type": "string",
+          "pattern": "^[A-E][+−-]?0?$"
+        },
+        "management": {
+          "type": "string",
+          "pattern": "^[A-E][+−-]?0?$"
+        },
+        "capital_allocation": {
+          "type": "string",
+          "pattern": "^[A-E][+−-]?0?$"
+        },
+        "culture": {
+          "type": "string",
+          "pattern": "^[A-E][+−-]?0?$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        }
+      },
+      "additionalProperties": false
+    },
+    "thesis": {
+      "type": "object",
+      "required": [
+        "summary",
+        "pillars"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "pillars": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "claim"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^P[0-9]+$"
+              },
+              "claim": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+                "description": "来源标签，TAG 或 TAG#LOCATOR"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "permanent_loss_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "芒格反向清单：怎样会永久亏损"
+        }
+      },
+      "additionalProperties": false
+    },
+    "baseline_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "value",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^F[0-9]+$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "number",
+              "string",
+              "array",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+            "description": "来源标签，TAG 或 TAG#LOCATOR"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "quantitative",
+              "qualitative",
+              "staleness"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "quantitative"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "required": [
+                "id",
+                "type",
+                "claim",
+                "origin",
+                "severity",
+                "covers",
+                "effective_from",
+                "fail_if",
+                "rule",
+                "data"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9.]*-[QLS][0-9]+$"
+                },
+                "claim": {
+                  "type": "string",
+                  "minLength": 4
+                },
+                "origin": {
+                  "type": "string",
+                  "pattern": "^(template:(slow_grower|stalwart|fast_grower|cyclical|turnaround|asset_play)|report:breaker|report:watch|archive:breaker|archive:watch|proposal:(04B|04B-lite|07|08|11)|manual)$"
+                },
+                "severity": {
+                  "enum": [
+                    "breaker",
+                    "watch"
+                  ]
+                },
+                "covers": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "enum": [
+                      "moat",
+                      "pricing_power",
+                      "returns_on_capital",
+                      "free_cash_flow",
+                      "capital_allocation",
+                      "management",
+                      "balance_sheet",
+                      "growth",
+                      "unit_economics",
+                      "competition",
+                      "regulation",
+                      "governance",
+                      "customer_concentration",
+                      "culture",
+                      "other"
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                "pillar": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string"
+                },
+                "effective_from": {
+                  "type": "string",
+                  "pattern": "^FY\\d{4}Q[1-4]$",
+                  "description": "从这一期起按本条判定（§G7：新增或修改的测试只对以后的期间生效）"
+                },
+                "supersedes": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9.]*-[QLS][0-9]+$",
+                  "description": "本条取代的旧测试 id（旧测试写 retired_at）"
+                },
+                "retired_at": {
+                  "type": "string",
+                  "pattern": "^FY\\d{4}Q[1-4]$",
+                  "description": "从这一期起不再判定；条目保留作记录"
+                },
+                "type": {
+                  "const": "quantitative"
+                },
+                "metric": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]*$"
+                },
+                "metric_def": {
+                  "$ref": "#/$defs/metric_def"
+                },
+                "params": {
+                  "type": "object"
+                },
+                "fail_if": {
+                  "type": "string"
+                },
+                "rule": {
+                  "$ref": "#/$defs/rule"
+                },
+                "warn_if": {
+                  "type": "string"
+                },
+                "warn_rule": {
+                  "$ref": "#/$defs/rule"
+                },
+                "data": {
+                  "enum": [
+                    "xbrl",
+                    "filing_text",
+                    "external",
+                    "mixed"
+                  ],
+                  "description": "xbrl：EDGAR XBRL；filing_text：申报文件正文；external：非 SEC 文件的官方数据（FRED、NAIC 等）；mixed：组成部分来源不同"
+                },
+                "first_readable": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$"
+                },
+                "baseline": {
+                  "$ref": "#/$defs/fact"
+                }
+              },
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "metric"
+                  ]
+                },
+                {
+                  "required": [
+                    "metric_def"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "qualitative"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "required": [
+                "id",
+                "type",
+                "claim",
+                "origin",
+                "severity",
+                "covers",
+                "effective_from",
+                "question",
+                "fail_if",
+                "judge",
+                "evidence",
+                "where",
+                "lookback"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9.]*-[QLS][0-9]+$"
+                },
+                "claim": {
+                  "type": "string",
+                  "minLength": 4
+                },
+                "origin": {
+                  "type": "string",
+                  "pattern": "^(template:(slow_grower|stalwart|fast_grower|cyclical|turnaround|asset_play)|report:breaker|report:watch|archive:breaker|archive:watch|proposal:(04B|04B-lite|07|08|11)|manual)$"
+                },
+                "severity": {
+                  "enum": [
+                    "breaker",
+                    "watch"
+                  ]
+                },
+                "covers": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "enum": [
+                      "moat",
+                      "pricing_power",
+                      "returns_on_capital",
+                      "free_cash_flow",
+                      "capital_allocation",
+                      "management",
+                      "balance_sheet",
+                      "growth",
+                      "unit_economics",
+                      "competition",
+                      "regulation",
+                      "governance",
+                      "customer_concentration",
+                      "culture",
+                      "other"
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                "pillar": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string"
+                },
+                "effective_from": {
+                  "type": "string",
+                  "pattern": "^FY\\d{4}Q[1-4]$",
+                  "description": "从这一期起按本条判定（§G7：新增或修改的测试只对以后的期间生效）"
+                },
+                "supersedes": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9.]*-[QLS][0-9]+$",
+                  "description": "本条取代的旧测试 id（旧测试写 retired_at）"
+                },
+                "retired_at": {
+                  "type": "string",
+                  "pattern": "^FY\\d{4}Q[1-4]$",
+                  "description": "从这一期起不再判定；条目保留作记录"
+                },
+                "type": {
+                  "const": "qualitative"
+                },
+                "question": {
+                  "type": "string"
+                },
+                "fail_if": {
+                  "type": "string"
+                },
+                "warn_if": {
+                  "type": "string"
+                },
+                "judge": {
+                  "const": "independent_model"
+                },
+                "evidence": {
+                  "const": "required"
+                },
+                "where": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "判定时读哪些文件（流水线据此抓取，交给判定员）"
+                },
+                "lookback": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "判定时读几期文件（含本期）"
+                },
+                "judge_notes": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "交给判定员的判定规则；与带论点措辞的 note 分开，判定员看不到 note"
+                },
+                "first_readable": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$"
+                },
+                "baseline": {
+                  "$ref": "#/$defs/fact"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "staleness"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "type": "object",
+              "required": [
+                "id",
+                "type",
+                "claim",
+                "origin",
+                "severity",
+                "covers",
+                "effective_from",
+                "section",
+                "max_age_quarters"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9.]*-[QLS][0-9]+$"
+                },
+                "claim": {
+                  "type": "string",
+                  "minLength": 4
+                },
+                "origin": {
+                  "type": "string",
+                  "pattern": "^(template:(slow_grower|stalwart|fast_grower|cyclical|turnaround|asset_play)|report:breaker|report:watch|archive:breaker|archive:watch|proposal:(04B|04B-lite|07|08|11)|manual)$"
+                },
+                "severity": {
+                  "enum": [
+                    "breaker",
+                    "watch"
+                  ]
+                },
+                "covers": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "enum": [
+                      "moat",
+                      "pricing_power",
+                      "returns_on_capital",
+                      "free_cash_flow",
+                      "capital_allocation",
+                      "management",
+                      "balance_sheet",
+                      "growth",
+                      "unit_economics",
+                      "competition",
+                      "regulation",
+                      "governance",
+                      "customer_concentration",
+                      "culture",
+                      "other"
+                    ]
+                  },
+                  "uniqueItems": true
+                },
+                "pillar": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string"
+                },
+                "effective_from": {
+                  "type": "string",
+                  "pattern": "^FY\\d{4}Q[1-4]$",
+                  "description": "从这一期起按本条判定（§G7：新增或修改的测试只对以后的期间生效）"
+                },
+                "supersedes": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9.]*-[QLS][0-9]+$",
+                  "description": "本条取代的旧测试 id（旧测试写 retired_at）"
+                },
+                "retired_at": {
+                  "type": "string",
+                  "pattern": "^FY\\d{4}Q[1-4]$",
+                  "description": "从这一期起不再判定；条目保留作记录"
+                },
+                "type": {
+                  "const": "staleness"
+                },
+                "section": {
+                  "enum": [
+                    "business",
+                    "economics",
+                    "moat",
+                    "capital_allocation",
+                    "management",
+                    "culture",
+                    "runway",
+                    "valuation",
+                    "bear_case",
+                    "monitoring",
+                    "thesis",
+                    "breakers",
+                    "munger",
+                    "unknowns"
+                  ]
+                },
+                "max_age_quarters": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    },
+    "todo": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "缺数据、待补的事项"
+    }
+  },
+  "additionalProperties": false,
+  "not": {
+    "required": [
+      "value_ranges"
+    ]
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "required": [
+        "value",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "array",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "enum": [
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "==",
+            "!=",
+            "between",
+            "outside",
+            "increase",
+            "decrease",
+            "event"
+          ]
+        },
+        "threshold": {
+          "type": [
+            "number",
+            "array",
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "consecutive": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "period": {
+          "enum": [
+            "quarter",
+            "half",
+            "year",
+            "event"
+          ]
+        },
+        "metric": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)?$",
+          "description": "指标 id，或 指标.组成（metric_def.components 的键）"
+        },
+        "evaluate_on": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^FY\\d{4}(Q[1-4])?$"
+          },
+          "description": "只在这些期间求值（FY<年> 或 FY<年>Q<季>）"
+        },
+        "evaluate_from": {
+          "type": "string",
+          "pattern": "^FY\\d{4}(Q[1-4])?$",
+          "description": "从这一期起求值（FY<年> 或 FY<年>Q<季>）"
+        },
+        "all_of": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rule"
+          }
+        },
+        "any_of": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rule"
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "op"
+          ]
+        },
+        {
+          "required": [
+            "all_of"
+          ]
+        },
+        {
+          "required": [
+            "any_of"
+          ]
+        }
+      ]
+    },
+    "metric_def": {
+      "type": "object",
+      "required": [
+        "description",
+        "unit",
+        "data"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "frequency": {
+          "enum": [
+            "quarter",
+            "half",
+            "year",
+            "event"
+          ]
+        },
+        "data": {
+          "enum": [
+            "xbrl",
+            "filing_text",
+            "external",
+            "mixed"
+          ]
+        },
+        "xbrl": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "formula": {
+          "type": "string"
+        },
+        "where": {
+          "type": "string",
+          "description": "filing_text 指标在哪份文件、哪一节读取"
+        },
+        "components": {
+          "type": "object",
+          "description": "一条测试用到的多个量：组成名 → 定义；rule 里用 <指标>.<组成> 引用",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "description",
+              "unit"
+            ],
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "where": {
+                "type": "string"
+              },
+              "xbrl": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

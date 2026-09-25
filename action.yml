@@ -1,0 +1,73 @@
+name: thesis-ci
+description: Lint a thesis archive ("thesis as code") against the thesis-ci format specification.
+author: kentian742-creator
+branding:
+  icon: check-square
+  color: blue
+
+inputs:
+  path:
+    description: Archive repository root to lint (the directory that contains repo.yml).
+    required: false
+    default: "."
+  counterpart:
+    description: Optional path to the counterpart archive (public <-> private) for cross-repository checks.
+    required: false
+    default: ""
+  format:
+    description: Output format, text or json.
+    required: false
+    default: text
+  expect-visibility:
+    description: >-
+      Optional: public or private. Lint as this visibility whatever repo.yml says and fail if repo.yml says otherwise,
+      so a public archive relabelled private cannot skip the public checks.
+    required: false
+    default: ""
+  base-ref:
+    description: >-
+      Optional git ref (e.g. origin/main) to compare the thesis tests with (C-TEST-FROZEN). Check out with enough
+      history (fetch-depth: 0) for the ref to resolve.
+    required: false
+    default: ""
+  period:
+    description: Optional current period FY<year>Q<quarter>; with base-ref, tests in force for it are frozen (C-TEST-FROZEN).
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+
+    - name: Install thesis-ci from this action
+      shell: bash
+      run: python -m pip install --disable-pip-version-check --quiet "$GITHUB_ACTION_PATH"
+
+    - name: thesis-ci lint
+      shell: bash
+      env:
+        TCI_PATH: ${{ inputs.path }}
+        TCI_COUNTERPART: ${{ inputs.counterpart }}
+        TCI_FORMAT: ${{ inputs.format }}
+        TCI_EXPECT_VISIBILITY: ${{ inputs.expect-visibility }}
+        TCI_BASE_REF: ${{ inputs.base-ref }}
+        TCI_PERIOD: ${{ inputs.period }}
+      run: |
+        args=(lint "$TCI_PATH" --format "$TCI_FORMAT")
+        if [ -n "$TCI_COUNTERPART" ]; then
+          args+=(--counterpart "$TCI_COUNTERPART")
+        fi
+        if [ -n "$TCI_EXPECT_VISIBILITY" ]; then
+          args+=(--expect-visibility "$TCI_EXPECT_VISIBILITY")
+        fi
+        if [ -n "$TCI_BASE_REF" ]; then
+          args+=(--base-ref "$TCI_BASE_REF")
+        fi
+        if [ -n "$TCI_PERIOD" ]; then
+          args+=(--period "$TCI_PERIOD")
+        fi
+        thesis-ci "${args[@]}"

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/agent.schema.json",
+  "title": "角色定义 agents/<role>.yml",
+  "type": "object",
+  "required": [
+    "role",
+    "name",
+    "model",
+    "can_see",
+    "cannot_see",
+    "outputs",
+    "prompts"
+  ],
+  "properties": {
+    "role": {
+      "enum": [
+        "company_manager",
+        "auditor",
+        "model_reviewer",
+        "red_team",
+        "synthesis_reviewer",
+        "design_reviewer",
+        "blind_reader",
+        "judge",
+        "settler",
+        "extractor",
+        "hq_capital_allocator",
+        "industry_researcher",
+        "typesetter"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        },
+        "fallbacks": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "reports_to": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "can_see": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cannot_see": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decision_rights": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "使用的提示词编号，如 03、04"
+    },
+    "trust_managed": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

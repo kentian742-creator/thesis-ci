@@ -1,0 +1,9 @@
+role: company_manager
+name: Company manager
+model: {id: example-drafting-model, effort: high}
+reports_to: hq_capital_allocator
+can_see: [run_date, dossier, thesis, filings, question_list, draft_outputs, findings_04A]
+cannot_see: [blind_answers]
+outputs: [update, question_answers, revision_notes]
+prompts: ["03"]
+trust_managed: true

@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/decision-rights.schema.json",
+  "title": "三级决策权与信任等级 decision-rights.yml",
+  "type": "object",
+  "required": [
+    "levels",
+    "trust",
+    "memo",
+    "portfolio",
+    "ranking",
+    "budget",
+    "phase_gate"
+  ],
+  "properties": {
+    "levels": {
+      "type": "object",
+      "required": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "properties": {
+        "L1": {
+          "type": "object",
+          "required": [
+            "who",
+            "actions",
+            "report"
+          ],
+          "properties": {
+            "who": {
+              "type": "string"
+            },
+            "actions": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "fetch",
+                  "parse",
+                  "draft",
+                  "test",
+                  "audit",
+                  "blind_read",
+                  "routine_merge",
+                  "fact_revision",
+                  "signpost_check",
+                  "prereg_content",
+                  "scenario_probability",
+                  "test_warning_disposition",
+                  "candidate_rotation",
+                  "model_selection",
+                  "publish",
+                  "valuation_update",
+                  "prompt_change",
+                  "buy",
+                  "add",
+                  "trim",
+                  "sell",
+                  "amend_constitution"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "report": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "L2": {
+          "type": "object",
+          "required": [
+            "who",
+            "actions",
+            "report"
+          ],
+          "properties": {
+            "who": {
+              "type": "string"
+            },
+            "actions": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "fetch",
+                  "parse",
+                  "draft",
+                  "test",
+                  "audit",
+                  "blind_read",
+                  "routine_merge",
+                  "fact_revision",
+                  "signpost_check",
+                  "prereg_content",
+                  "scenario_probability",
+                  "test_warning_disposition",
+                  "candidate_rotation",
+                  "model_selection",
+                  "publish",
+                  "valuation_update",
+                  "prompt_change",
+                  "buy",
+                  "add",
+                  "trim",
+                  "sell",
+                  "amend_constitution"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "report": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "L3": {
+          "type": "object",
+          "required": [
+            "who",
+            "actions",
+            "report"
+          ],
+          "properties": {
+            "who": {
+              "type": "string"
+            },
+            "actions": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "fetch",
+                  "parse",
+                  "draft",
+                  "test",
+                  "audit",
+                  "blind_read",
+                  "routine_merge",
+                  "fact_revision",
+                  "signpost_check",
+                  "prereg_content",
+                  "scenario_probability",
+                  "test_warning_disposition",
+                  "candidate_rotation",
+                  "model_selection",
+                  "publish",
+                  "valuation_update",
+                  "prompt_change",
+                  "buy",
+                  "add",
+                  "trim",
+                  "sell",
+                  "amend_constitution"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "report": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "trust": {
+      "type": "object",
+      "required": [
+        "levels",
+        "initial",
+        "window",
+        "downgrade",
+        "upgrade",
+        "routing"
+      ],
+      "properties": {
+        "levels": {
+          "type": "object",
+          "properties": {
+            "0": {
+              "type": "string"
+            },
+            "1": {
+              "type": "string"
+            },
+            "2": {
+              "type": "string"
+            },
+            "3": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ],
+          "additionalProperties": false
+        },
+        "initial": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "window": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "downgrade": {
+          "type": "object"
+        },
+        "upgrade": {
+          "type": "object"
+        },
+        "routing": {
+          "type": "object",
+          "description": "按信任等级分流（§G9）：3 自动合并并公开；2 自动合并、公开前由总部复核；1 先留私有仓库；0 暂停自治",
+          "properties": {
+            "0": {
+              "type": "string"
+            },
+            "1": {
+              "type": "string"
+            },
+            "2": {
+              "type": "string"
+            },
+            "3": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ],
+          "additionalProperties": false
+        },
+        "scoring": {
+          "type": "object",
+          "description": "信任等级怎样计分：事实错误、分歧裁定、谁的哪类产出算一次更新"
+        }
+      },
+      "additionalProperties": false
+    },
+    "memo": {
+      "type": "object",
+      "required": [
+        "default_option",
+        "timeout_days",
+        "monthly_target_max"
+      ],
+      "properties": {
+        "default_option": {
+          "const": "maintain"
+        },
+        "timeout_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "monthly_target_max": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sell_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbidden_sell_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "portfolio": {
+      "type": "object",
+      "required": [
+        "max_holdings",
+        "entry_band"
+      ],
+      "properties": {
+        "max_holdings": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "entry_band": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "benchmarks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "single_order_entry": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ranking": {
+      "type": "object",
+      "required": [
+        "rule"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "minLength": 1,
+          "description": "排名依据的条款，例如 §V13（不按单一指标机械排序）"
+        },
+        "candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rotation": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "gate": {
+      "type": "object",
+      "description": "放行关口（17A 的 gate_rules）"
+    },
+    "budget": {
+      "type": "object",
+      "required": [
+        "monthly_usd",
+        "degrade_order"
+      ],
+      "properties": {
+        "monthly_usd": {
+          "type": "number"
+        },
+        "degrade_order": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "phase_gate": {
+      "type": "object"
+    },
+    "escalation": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

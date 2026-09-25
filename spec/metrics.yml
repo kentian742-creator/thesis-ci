@@ -1,0 +1,257 @@
+# thesis-ci 指标登记表 v0.2
+# data: xbrl = 可以直接从 EDGAR companyfacts 计算；filing_text = 需要从财报正文、分部表或新闻稿中抽取（由模型抽取并标注出处）。
+#   测试另可写 external（非 SEC 文件的官方数据，如 FRED、NAIC）或 mixed（组成部分来源不同），这两种用 metric_def 就地定义。
+# xbrl 列出候选概念，按优先顺序取第一个有数据的。概念的分类体系跟着发行人采用的会计准则走，不跟表格走：
+#   按美国会计准则编报的外国私人发行人（例如 PDD 的 20-F）同样用 us-gaap 概念；只有按 IFRS 编报的发行人才用 ifrs-full。
+# 一条测试要用到多个量时，写 metric_def.components，rule 里用 <指标>.<组成> 引用（SPEC 4.1）。
+metrics:
+  - id: revenue_yoy
+    description: 总收入同比增速
+    unit: "%"
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax, us-gaap:Revenues, ifrs-full:Revenue]
+    formula: revenue_t / revenue_{t-4q} - 1
+
+  - id: revenue_growth_organic_cc
+    description: 有机、固定汇率收入增速（公司口径）
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 业绩新闻稿或 MD&A 的有机增速表
+
+  - id: segment_revenue_yoy
+    description: 某个分部或产品线的收入同比增速（params.segment 指定分部，params.basis 指定口径）
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 分部附注或业绩新闻稿
+
+  - id: segment_operating_margin
+    description: 某个分部的营业利润率（params.segment）
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 分部附注
+
+  - id: gross_margin
+    description: 毛利率
+    unit: "%"
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:GrossProfit, ifrs-full:GrossProfit]
+    formula: gross_profit / revenue
+
+  - id: operating_margin
+    description: 营业利润率
+    unit: "%"
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:OperatingIncomeLoss, ifrs-full:ProfitLossFromOperatingActivities]
+    formula: operating_income / revenue
+
+  - id: free_cash_flow
+    description: 自由现金流 = 经营现金流 − 资本开支（不含融资租赁）
+    unit: USD
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:NetCashProvidedByUsedInOperatingActivities, us-gaap:PaymentsToAcquirePropertyPlantAndEquipment, ifrs-full:CashFlowsFromUsedInOperatingActivities, ifrs-full:PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities]
+    formula: operating_cash_flow - capex
+
+  - id: free_cash_flow_yoy
+    description: 自由现金流同比变化（按财年）
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:NetCashProvidedByUsedInOperatingActivities, us-gaap:PaymentsToAcquirePropertyPlantAndEquipment]
+    formula: fcf_t / fcf_{t-1y} - 1
+
+  - id: fcf_conversion
+    description: 自由现金流 ÷ 净利润（GAAP）
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:NetIncomeLoss, ifrs-full:ProfitLoss]
+    formula: free_cash_flow / net_income
+
+  - id: fcf_to_non_gaap_net_income
+    description: 自由现金流 ÷ 非 GAAP 净利润（公司口径的调整后净利润）
+    unit: "%"
+    frequency: year
+    data: filing_text
+    where: 业绩新闻稿中的非 GAAP 调节表
+
+  - id: capex_to_revenue
+    description: 现金资本开支 ÷ 收入（不含融资租赁）
+    unit: "%"
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:PaymentsToAcquirePropertyPlantAndEquipment, ifrs-full:PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities]
+    formula: capex / revenue
+
+  - id: diluted_shares_yoy
+    description: 加权平均稀释股本同比变化（回购纪律）
+    unit: "%"
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding, ifrs-full:WeightedAverageNumberOfOrdinarySharesOutstandingDiluted]
+    formula: diluted_shares_t / diluted_shares_{t-4q} - 1
+
+  - id: buyback_amount
+    description: 回购金额
+    unit: USD
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:PaymentsForRepurchaseOfCommonStock, ifrs-full:PaymentsToAcquireOrRedeemEntitysShares]
+
+  - id: shareholder_return_to_fcf
+    description: （回购 + 分红）÷ 自由现金流
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:PaymentsForRepurchaseOfCommonStock, us-gaap:PaymentsOfDividends, us-gaap:PaymentsOfDividendsCommonStock]
+    formula: (buybacks + dividends) / free_cash_flow
+
+  - id: dividend_payout_ratio
+    description: 分红 ÷ 净利润
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:PaymentsOfDividends, us-gaap:NetIncomeLoss]
+    formula: dividends / net_income
+
+  - id: roic
+    description: 投入资本回报（税后营业利润 ÷ 平均投入资本；投入资本 = 权益 + 有息负债 − 现金）
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:OperatingIncomeLoss, us-gaap:IncomeTaxExpenseBenefit, us-gaap:StockholdersEquity, us-gaap:LongTermDebt, us-gaap:CashAndCashEquivalentsAtCarryingValue]
+    formula: nopat / avg(equity + debt - cash)
+
+  - id: incremental_roic_3y
+    description: 三年增量税后投入资本回报（Δ税后营业利润 ÷ Δ投入资本）
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:OperatingIncomeLoss, us-gaap:StockholdersEquity, us-gaap:LongTermDebt]
+    formula: (nopat_t - nopat_{t-3y}) / (ic_t - ic_{t-3y})
+
+  - id: roe
+    description: 净资产收益率
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:NetIncomeLoss, us-gaap:StockholdersEquity, ifrs-full:ProfitLoss, ifrs-full:Equity]
+    formula: net_income / avg(equity)
+
+  - id: book_value_per_share_yoy
+    description: 每股账面价值同比
+    unit: "%"
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:StockholdersEquity]
+    formula: (equity / shares_outstanding)_t / (…)_{t-1y} - 1
+
+  - id: net_cash
+    description: 净现金 = 现金、现金等价物与短期投资 − 有息负债
+    unit: USD
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:CashAndCashEquivalentsAtCarryingValue, us-gaap:ShortTermInvestments, us-gaap:LongTermDebt, ifrs-full:CashAndCashEquivalents]
+    formula: cash + short_term_investments - debt
+
+  - id: net_debt_to_ebitda
+    description: 净负债 ÷ EBITDA
+    unit: x
+    frequency: year
+    data: xbrl
+    xbrl: [us-gaap:LongTermDebt, us-gaap:CashAndCashEquivalentsAtCarryingValue, us-gaap:OperatingIncomeLoss, us-gaap:DepreciationDepletionAndAmortization]
+    formula: (debt - cash) / (operating_income + d_and_a)
+
+  - id: rpo_yoy
+    description: 剩余履约义务（积压订单）同比
+    unit: "%"
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:RevenueRemainingPerformanceObligation]
+    formula: rpo_t / rpo_{t-4q} - 1
+
+  - id: provision_for_credit_losses
+    description: 信用损失拨备（净计提为正）
+    unit: USD
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:ProvisionForLoanLeaseAndOtherLosses, us-gaap:ProvisionForLoanAndLeaseLosses]
+
+  - id: net_write_off_rate
+    description: 净核销率（公司口径，卡贷款）
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 10-Q/10-K 信贷质量表或业绩补充材料
+
+  # 发卡机构（例如 AXP）的经营读数：公司口径，从业绩新闻稿、补充材料或 10-Q/10-K 的 MD&A 读取。
+  - id: net_card_fees_yoy
+    description: 净卡费（Net card fees）同比增速
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 利润表的 Net card fees 行，或业绩新闻稿的收入表
+
+  - id: card_member_services_to_revenue
+    description: 会员服务成本（Card Member services expense）÷ 扣除利息支出后的总收入
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 利润表的 Card Member services 行与 Total revenues net of interest expense 行
+
+  - id: discount_revenue_to_billed_business
+    description: 折扣收入 ÷ 账单业务量（Discount revenue ÷ billed business，商户费率的近似）
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 利润表的 Discount revenue 行；billed business 取业绩补充材料的经营统计表
+
+  - id: reserve_build_release
+    description: 信用损失准备的计提（build，为正）或释放（release，为负）：拨备 − 净核销
+    unit: USD
+    frequency: quarter
+    data: filing_text
+    where: 10-Q/10-K MD&A 的信用损失准备变动表，或业绩补充材料
+
+  - id: interest_expense_minus_income_growth
+    description: 利息支出同比增速 − 利息收入同比增速（负债端压力）
+    unit: pp
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:InterestExpense, us-gaap:InterestAndDividendIncomeOperating]
+    formula: yoy(interest_expense) - yoy(interest_income)
+
+  - id: combined_ratio
+    description: 保险综合成本率（params.segment 指定业务）
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 保险分部表
+
+  - id: cash_and_tbills_to_total_assets
+    description: 现金与国库券 ÷ 总资产
+    unit: "%"
+    frequency: quarter
+    data: xbrl
+    xbrl: [us-gaap:CashAndCashEquivalentsAtCarryingValue, us-gaap:ShortTermInvestments, us-gaap:Assets]
+    formula: (cash + tbills) / total_assets
+
+  - id: customer_concentration
+    description: 单一客户占收入或积压订单的比例（params.basis）
+    unit: "%"
+    frequency: quarter
+    data: filing_text
+    where: 收入附注或风险因素
+
+  - id: headcount_yoy
+    description: 员工人数同比
+    unit: "%"
+    frequency: year
+    data: filing_text
+    where: 10-K Item 1 人力资本一节或 20-F Item 6

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/forecast.schema.json",
+  "title": "预测与覆盖记录 forecasts/<YYYY>.yml",
+  "type": "object",
+  "required": [
+    "year",
+    "forecasts"
+  ],
+  "properties": {
+    "year": {
+      "type": "integer"
+    },
+    "forecasts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "company",
+          "domain",
+          "statement",
+          "probability",
+          "made_at",
+          "resolves_by",
+          "source_file",
+          "book"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9.]{0,9}$"
+          },
+          "domain": {
+            "enum": [
+              "enterprise_software",
+              "payments_financial_data",
+              "consumer",
+              "semiconductors",
+              "ecommerce",
+              "digital_advertising",
+              "insurance_conglomerate",
+              "other"
+            ]
+          },
+          "statement": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "made_at": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "resolves_by": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "source_file": {
+            "type": "string",
+            "description": "prereg 或 ledger 文件路径"
+          },
+          "book": {
+            "enum": [
+              "system",
+              "owner_override"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "pending",
+              "happened",
+              "not_happened",
+              "undetermined"
+            ]
+          },
+          "brier": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

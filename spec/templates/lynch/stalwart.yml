@@ -1,0 +1,52 @@
+category: stalwart
+name: 稳定增长型
+lynch: 大而稳的公司，收入年增约 10–12%；赚钱靠持续性，风险在增长悄悄放慢和为增长而做的昂贵配置。
+watch: [增速是否在放慢, 资本回报是否守住, 回购是否真的缩减股本, 大额并购或资本开支的回报]
+tests:
+  - key: Q-growth
+    type: quantitative
+    claim: 增长没有滑出稳定增长型的区间
+    covers: [growth]
+    metric: revenue_yoy
+    fail_if: 连续 4 个季度低于 5%
+    rule: {op: "<", threshold: 5, unit: "%", consecutive: 4, period: quarter}
+    warn_if: 连续 2 个季度低于 8%
+    warn_rule: {op: "<", threshold: 8, unit: "%", consecutive: 2, period: quarter}
+    data: xbrl
+    severity: watch
+  - key: Q-returns
+    type: quantitative
+    claim: 投入资本回报守在优秀企业的水平
+    covers: [returns_on_capital, moat]
+    metric: roic
+    fail_if: 连续 2 年低于 12%
+    rule: {op: "<", threshold: 12, unit: "%", consecutive: 2, period: year}
+    data: xbrl
+    severity: watch
+  - key: Q-buyback
+    type: quantitative
+    claim: 回购在真正缩减股本，而不是抵消股权激励
+    covers: [capital_allocation]
+    metric: diluted_shares_yoy
+    fail_if: 连续 2 年大于 0
+    rule: {op: ">", threshold: 0, unit: "%", consecutive: 2, period: year}
+    data: xbrl
+    severity: watch
+  - key: Q-fcf
+    type: quantitative
+    claim: 利润能变成现金
+    covers: [free_cash_flow]
+    metric: fcf_conversion
+    fail_if: 连续 2 年低于 70%
+    rule: {op: "<", threshold: 70, unit: "%", consecutive: 2, period: year}
+    data: xbrl
+    severity: watch
+  - key: L-guidance
+    type: qualitative
+    claim: 管理层没有下调已公布的中期财务目标
+    covers: [management]
+    question: 本期文件中，管理层是否下调或撤回了此前公布的中期财务目标？
+    fail_if: 是，且没有同时给出可检验的新目标
+    where: [本期与此前三期（共四期）的业绩新闻稿、电话会与投资者日材料]
+    lookback: 4
+    severity: watch

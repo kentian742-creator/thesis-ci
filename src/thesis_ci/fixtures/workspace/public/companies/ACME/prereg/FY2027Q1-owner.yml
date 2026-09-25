@@ -1,0 +1,20 @@
+company: ACME
+event:
+  period: FY2027Q1
+  expected_release: 2026-10-28
+  form: 8-K
+  placeholder: false
+deadline: "2026-10-27T23:59:59-04:00"
+author: owner
+items:
+  - id: ACME-FY2027Q1-3
+    statement: 本季毛利率不低于上季
+    probability: 0.55
+    criterion: 以 10-Q 利润表的毛利 ÷ 营收为准，保留一位小数；相等算作不低于
+    data_source: 10-Q 利润表
+    horizon: quarter
+    resolves_by: 2026-11-30
+    domain: other
+    added_by: owner
+overrides:
+  - {id: ACME-FY2027Q1-1, probability: 0.7, note: 渠道调研显示订单改善（所有者的判断）}

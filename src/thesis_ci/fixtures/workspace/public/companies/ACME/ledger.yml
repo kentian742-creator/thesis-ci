@@ -1,0 +1,22 @@
+company: ACME
+entries:
+  - id: ACME-M1
+    side: management
+    kind: buyback
+    statement: 管理层承诺三年内回购不少于 30 亿美元[src:ACME-10K-FY2026#Item5]
+    made_at: 2026-08-01
+    due: "2029"
+    source: ACME-10K-FY2026#Item5
+    status: pending
+    last_mentioned: 2026-08-01
+    acknowledged_source: null
+  - id: ACME-SYS1
+    side: system
+    kind: prediction
+    statement: 三年内经常性收入占比不低于 55%
+    made_at: 2026-09-20
+    due: "2029"
+    source: ACME-RPT-2026-09#p4
+    status: pending
+    probability: 0.7
+    note: 以 10-K 收入分解附注为准，按新口径计算；低于 55% 记为未兑现

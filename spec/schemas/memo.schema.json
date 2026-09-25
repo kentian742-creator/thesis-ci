@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/memo.schema.json",
+  "title": "L3 备忘录（仅私有仓库）",
+  "type": "object",
+  "required": [
+    "id",
+    "action",
+    "default_option",
+    "timeout_days",
+    "created_at",
+    "summary",
+    "constitution_refs",
+    "options",
+    "drafted_by"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "company": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9.]{0,9}$",
+      "description": "修宪备忘录（amend_constitution）可省略"
+    },
+    "action": {
+      "enum": [
+        "buy",
+        "add",
+        "trim",
+        "sell",
+        "amend_constitution"
+      ]
+    },
+    "default_option": {
+      "const": "maintain"
+    },
+    "timeout_days": {
+      "const": 14
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "constitution_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^(R|H)[0-9]+$"
+      }
+    },
+    "sell_reason": {
+      "enum": [
+        "moat_permanent_impairment",
+        "business_model_change",
+        "management_deterioration",
+        "capital_allocation_failure",
+        "better_opportunity"
+      ]
+    },
+    "target_weight": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "weight_note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "目标仓位高于入选门槛上沿（20%）时，写明为什么这家公司值得更大的仓位（宪法第 4 条）"
+    },
+    "order": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "single"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "implied_return": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "hurdle": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "defaulted",
+        "executed"
+      ]
+    },
+    "decided_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "contains": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "const": "maintain"
+          }
+        }
+      },
+      "description": "至少两个选项，其中一个的 key 是 maintain（默认选项，§G2）"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim",
+          "source"
+        ],
+        "properties": {
+          "claim": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+            "description": "来源标签，TAG 或 TAG#LOCATOR"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "required": [
+        "tests"
+      ],
+      "properties": {
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9.]*-[QLS][0-9]+$"
+          }
+        },
+        "update": {
+          "type": "string",
+          "description": "触发这份备忘录的季度更新（路径或 PR）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "drafted_by": {
+      "const": "hq_capital_allocator",
+      "description": "备忘录只由总部起草（17B）"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "enum": [
+              "trim",
+              "sell"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "sell_reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "enum": [
+              "buy",
+              "add"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "order",
+          "target_weight",
+          "implied_return",
+          "hurdle"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "const": "amend_constitution"
+          }
+        }
+      },
+      "else": {
+        "required": [
+          "company"
+        ]
+      }
+    }
+  ]
+}

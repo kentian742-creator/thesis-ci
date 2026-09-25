@@ -1,0 +1,32 @@
+category: slow_grower
+name: 缓慢增长型
+lynch: 大而老的公司，增速接近 GDP；持有它主要为分红，风险在分红不可持续和为找增长而乱投资。
+watch: [分红覆盖, 分红增长, 多元化并购]
+tests:
+  - key: Q-payout
+    type: quantitative
+    claim: 分红由自由现金流覆盖
+    covers: [free_cash_flow, capital_allocation]
+    metric: shareholder_return_to_fcf
+    fail_if: 连续 2 年高于 110%
+    rule: {op: ">", threshold: 110, unit: "%", consecutive: 2, period: year}
+    data: xbrl
+    severity: watch
+  - key: Q-returns
+    type: quantitative
+    claim: 资本回报没有被稀释
+    covers: [returns_on_capital]
+    metric: roic
+    fail_if: 连续 2 年低于 10%
+    rule: {op: "<", threshold: 10, unit: "%", consecutive: 2, period: year}
+    data: xbrl
+    severity: watch
+  - key: L-diworsify
+    type: qualitative
+    claim: 没有为找增长而乱多元化
+    covers: [capital_allocation]
+    question: 本期是否宣布了与主业无关、金额超过市值 10% 的收购？
+    fail_if: 是
+    where: [本期 8-K（重大收购）, 10-Q／10-K 的收购附注]
+    lookback: 1
+    severity: watch

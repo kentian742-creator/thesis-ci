@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/sources.schema.json",
+  "title": "来源标签表 sources.yml",
+  "type": "object",
+  "required": [
+    "sources"
+  ],
+  "properties": {
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "tag",
+          "kind",
+          "title"
+        ],
+        "properties": {
+          "tag": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Za-z0-9._-]*$"
+          },
+          "kind": {
+            "enum": [
+              "filing",
+              "report",
+              "industry_report",
+              "transcript",
+              "press_release",
+              "letter",
+              "presentation",
+              "proxy",
+              "news",
+              "review",
+              "web",
+              "other"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "issuer_cik": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{10}$"
+          },
+          "form": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "period": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accession": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{10}-\\d{2}-\\d{6}$"
+          },
+          "filed": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "私有文件写 private:<path>"
+          },
+          "primary": {
+            "type": "boolean",
+            "description": "是否一手来源"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

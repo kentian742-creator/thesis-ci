@@ -1,0 +1,376 @@
+# thesis-ci 格式规范 v0.2
+
+本规范定义“论点即代码”的文件格式。规范文本以 CC BY 4.0 许可发布；实现代码以 MIT 许可发布。
+规范中的“必须 / 不得 / 应当”按 RFC 2119 理解。机器可读的定义以 `spec/schemas/*.schema.json`、`spec/checks.yml`、`spec/metrics.yml` 和 `spec/templates/lynch/*.yml` 为准；本文件与它们冲突时，以机器可读文件为准。
+
+文中的“00 §X”指档案所遵循的系列规则（提示词 00）的条款，例如 §H4（公私分离）、§G7（先写下，后验证）。
+
+## 1. 仓库角色
+
+| 角色 | 标记 | 说明 |
+| --- | --- | --- |
+| 公开档案仓库 | `repo.yml` 中 `visibility: public` | 宪法、方法、thesis.yml、两分钟故事、预注册、预测、账本、季度更新、股东信 |
+| 私有档案仓库 | `repo.yml` 中 `visibility: private` | 价值区间、L3 备忘录、升级请求、系列排名、带金额的决策日志、完整报告、提示词 |
+
+每个档案仓库根目录必须有 `repo.yml`：
+
+```yaml
+visibility: public          # public | private
+owner: kentian742-creator
+spec_version: "0.2"
+```
+
+`thesis-ci lint <path>` 读取 `repo.yml` 决定适用哪些检查（见 `spec/checks.yml` 的 `scope`）。迁移期内 `spec_version: "0.1"` 仍被接受，但 `C-SCHEMA` 报警告；档案按本规范迁移完成后改为 `"0.2"`。
+
+## 2. 目录约定
+
+```text
+companies/<TICKER>/thesis.yml     # 公开；论点与 thesis tests
+companies/<TICKER>/story.md       # 公开；两分钟持有理由
+companies/<TICKER>/sources.yml    # 公开；来源标签表
+companies/<TICKER>/prereg/        # 公开；预注册，每个业绩事件一组文件（2.1）
+companies/<TICKER>/ledger.yml     # 公开；言行账本（可为空列表）
+companies/<TICKER>/updates/       # 公开；每次更新的记录（Markdown，front matter 含 reviewed_sections）
+industries/<id>/industry.yml      # 公开；行业模块与路标
+industries/<id>/README.md         # 公开；行业模块摘要
+industries/<id>/sources.yml
+forecasts/<YYYY>.yml              # 公开；系统预测与你的覆盖
+letters/<YYYY-MM>.md              # 公开；月度股东信
+mistakes.md                       # 公开；错误清单（00 §G5）
+constitution/rules.yml            # 公开；宪法规则与对应检查
+constitution/decision-rights.yml  # 公开；三级决策权、信任等级与分流
+agents/<role>.yml                 # 公开；角色定义（可见范围）
+trust/levels.yml                  # 公开，可选；流水线算出的信任等级（4.2）
+sources.yml                       # 可选；仓库级来源标签表
+
+# 私有仓库
+companies/<TICKER>/valuation.yml  # 价值区间、折现率、隐含回报（第 7 节）
+companies/<TICKER>/sources.yml
+memos/<YYYY-MM-DD>-<TICKER>-<slug>.yml        # L3 备忘录（总部起草）
+escalations/<YYYY-MM-DD>-<TICKER>-<slug>.yml  # 升级请求（公司经理起草，交总部）
+hq/ranking.yml                    # 系列排名（00 §V13）
+decision-log/<YYYY>.yml
+prompts/<编号>-<名称>.md          # 提示词；front matter 声明各部分的角色与输入（8.3）
+```
+
+文件名到 schema 的映射（第一条匹配的生效）：
+
+| 文件 | schema |
+| --- | --- |
+| `repo.yml` | `repo.schema.json` |
+| `companies/*/thesis.yml` | `thesis.schema.json` |
+| `companies/*/sources.yml`、`industries/*/sources.yml`、`sources.yml` | `sources.schema.json` |
+| `companies/*/story.md` 的 front matter | `story.schema.json` |
+| `companies/*/prereg/*.settlement.yml` | `prereg-settlement.schema.json` |
+| `companies/*/prereg/*.yml`（`<期间>.yml` 与 `<期间>-owner.yml`） | `prereg.schema.json` |
+| `companies/*/ledger.yml` | `ledger.schema.json` |
+| `companies/*/valuation.yml` | `valuation.schema.json`（仅私有仓库） |
+| `industries/*/industry.yml` | `industry.schema.json` |
+| `forecasts/*.yml` | `forecast.schema.json` |
+| `constitution/decision-rights.yml` | `decision-rights.schema.json` |
+| `constitution/rules.yml` | `constitution-rules.schema.json` |
+| `agents/*.yml` | `agent.schema.json` |
+| `memos/*.yml` | `memo.schema.json`（仅私有仓库） |
+| `escalations/*.yml` | `escalation.schema.json`（仅私有仓库） |
+| `decision-log/*.yml` | `decision-log.schema.json`（仅私有仓库） |
+
+其余 YAML（`trust/levels.yml`、`hq/ranking.yml`、`updates/*.yml` 等）只检查语法和重复键，内容由对应的检查读取。
+
+### 2.1 预注册三件套
+
+每个业绩事件（期间 `FY<年>Q<季>`，按公司财年）在 `companies/<TICKER>/prereg/` 下最多有四个文件：
+
+| 文件 | 谁写 | 内容 | 何时不可变 |
+| --- | --- | --- | --- |
+| `<期间>.yml` | 系统（15A，`author: system`） | 文件头与 1–8 条预期 | 截止时间之后 |
+| `<期间>-owner.yml` | 所有者（`author: owner`） | 新加的条目（`added_by: owner`）与对系统条目概率的改写 `overrides` | 截止时间之后 |
+| `<期间>.yml.ots`（及 `<期间>-owner.yml.ots`） | 流水线 | OpenTimestamps 时间戳证明 | — |
+| `<期间>.settlement.yml` | 流水线（15B 与 GitHub） | 合并时间、接收时间、登记号、结算结果 | 随结算补写 |
+
+条目文件（`prereg.schema.json`）：
+
+```yaml
+company: MSFT
+event:
+  period: FY2027Q1             # 文件名里的期间，必须一致
+  expected_release: 2026-10-28
+  form: 8-K                    # 8-K | 6-K | 10-Q | 10-K | 20-F
+  placeholder: false           # 发布日是否为占位
+deadline: "2026-10-27T23:59:59-04:00"   # 带时区偏移的 ISO 8601；发布日前一天结束（美国东部时间）
+author: system                 # system | owner，与文件名一致
+horizon: mixed                 # 可选：quarter | 18m | mixed
+items:
+  - id: MSFT-FY2027Q1-1        # <TICKER>-<期间>-<序号>
+    statement: 本季营收同比增速不低于上季
+    probability: 0.6           # 0.05–0.95
+    criterion: 以 10-Q 利润表为准……
+    data_source: 10-Q 利润表
+    horizon: quarter           # quarter | 18m
+    resolves_by: 2026-11-30
+    domain: enterprise_software
+    added_by: system           # 系统文件里只能是 system
+    pillar: P1                 # 可选
+    falsifies_thesis: true     # 可选
+    reference: 参照类别、频率与出处   # 可选
+```
+
+- 系统文件至少 1 条、至多 8 条，不得有 `overrides`。所有者文件的条目写 `added_by: owner`，可以只有 `overrides: [{id, probability, note?}]`（此时 `items: []`），但不能两者都空；它的 `deadline` 与系统文件相同。
+- 条目文件里不写 `merged_at`、`ots_proof`、`acceptance_datetime`、`accession` 或结算结果：这些在截止时间之后才知道，写进结算文件，条目文件因此可以在截止前打上时间戳并保持不变。
+- 结算文件（`prereg-settlement.schema.json`）：`company`、`period`，可选 `acceptance_datetime`、`accession`、`merged_at`（条目文件合并进默认分支的时间，取自 GitHub）、`ots_proof`，以及 `results: [{id, outcome, values?, calculation?, evidence?, source?, reasoning?, settled_at?, hq_ruling?}]`，`outcome` 为 `happened`、`not_happened` 或 `undetermined`。
+- `C-PREREG-TIMING` 检查截止时间落在发布日之前、`merged_at` 早于截止时间、截止时间早于 `acceptance_datetime`；`C-PREREG-IMMUTABLE` 检查截止时间过后条目文件旁有 `<文件>.ots`，并在装有 `ots` 客户端时用 `ots verify` 核验。
+
+## 3. 来源标签
+
+### 3.1 语法
+
+Markdown 中，来源标签写成 `[src:TAG]` 或 `[src:TAG#LOCATOR]`：
+
+- `TAG` 匹配 `^[A-Z0-9][A-Za-z0-9._-]*$`，必须在适用的 `sources.yml` 中登记。
+- `LOCATOR` 是标签内的位置，不含空白和 `]`，例如 `p3`、`Item7`、`MD&A`、`note-12`。
+
+正则：`\[src:([A-Z0-9][A-Za-z0-9._-]*)(?:#([^\]\s]+))?\]`
+
+YAML 中，事实写成对象，`source` 字段取同样的 `TAG` 或 `TAG#LOCATOR` 字符串：
+
+```yaml
+value: 52
+unit: "%"
+period: FY2026
+as_of: 2026-06-30
+source: MSFT-10K-FY2026#Item8
+```
+
+`settlement_source`、`acknowledged_source` 同样是来源字段。
+
+### 3.2 标签解析顺序
+
+1. 同目录的 `sources.yml`（公司或行业）；
+2. 仓库根目录的 `sources.yml`。
+
+找不到即为错误。
+
+### 3.3 命名约定（应当，同 00 §E1）
+
+| 类型 | 格式 | 例 |
+| --- | --- | --- |
+| 自有报告 | `<TICKER>-RPT<n>-<YYYY-MM-DD>` | `MSFT-RPT1-2026-09-17`、`MSFT-RPT2-2026-09-30` |
+| 定期报告 | `<TICKER>-<FORM>-<PERIOD>` | `MSFT-10K-FY2026`、`AXP-10Q-FY2026Q2`、`PDD-20F-FY2025` |
+| 临时报告 | `<TICKER>-<FORM>-<YYYY-MM-DD>` | `MSFT-8K-2026-09-02` |
+| 电话会纪要 | `<TICKER>-CALL-<PERIOD>` | `AXP-CALL-FY2026Q2` |
+| 新闻 | `<TICKER>-NEWS-<YYYY-MM-DD>-<媒体>` | `APP-NEWS-2026-03-12-WSJ` |
+| 评价页面 | `<TICKER>-REV-<平台>-<YYYY-MM-DD>` | `PDD-REV-TRUSTPILOT-2026-09-01` |
+| 其他网页 | `<TICKER>-WEB-<YYYY-MM-DD>-<n>` | `SPGI-WEB-2026-08-30-1` |
+| 档案本身 | `<TICKER>-DOSSIER-<版本日期>`（位置写 `#s<部分>`） | `MSFT-DOSSIER-2026-09-24#s3` |
+| 股东信 | `<TICKER>-LTR-<YYYY>` | `BRK-LTR-2024` |
+| 行业报告 | `IND-<ID>-<YYYY-MM>` | `IND-PAYMENTS-2026-09` |
+
+`FORM` 去掉连字符：`10K`、`10Q`、`8K`、`6K`、`20F`、`DEF14A`。定期报告的 `PERIOD` 按公司自己的财年写（`FY2026`、`FY2027Q1`），与预注册的期间写法一致；临时报告的日期取 EDGAR 的 filing date（美国东部时间 17:30 之后接收的顺延到下一个工作日），不取新闻稿落款日。同一天同一表格有两份都要登记时，按登记号先后给后者加 `-2`、`-3`（如 `PDD-6K-2025-12-19-2`），并在 `note` 里写明登记号。自有报告带编号和完整日期，同一个月的两份报告不会撞名；旧写法 `<TICKER>-RPT-<YYYY-MM>` 仍能解析，但应当在预注册打时间戳之前迁移，免得旧标签被冻结进时间戳。
+
+### 3.4 什么是“需要出处的数字”
+
+在 Markdown 正文中（不含 front matter、代码块、行内代码、链接 URL），下列任一匹配即视为事实数字：
+
+- 美元符号后接数字：`\$\s?\d`
+- 数字后接单位：`\d[\d,.]*\s?(%|％|亿|万|千万|百万|美元|元|倍|×|pp|个百分点|bp|bps|基点|美分|¢|bn|million|billion)`
+
+纯年份、日期、季度（`2026`、`FY2027`、`2026-09-24`、`Q2`、`2026 年`）、章节号和列表序号不算。
+**规则：** 含事实数字的每个句子（以 `。！？；` 或换行分隔）必须至少含一个 `[src:...]` 标签。事先写下的门槛与预测（测试的 `fail_if`、`warn_if`、`rule`，预注册条目，账本中系统与所有者一侧的预测）不是事实，不需要标签；句中引用的基准数照常标。
+
+### 3.5 sources.yml 条目
+
+见 `sources.schema.json`。`kind` 取 `filing`、`report`、`industry_report`、`transcript`、`press_release`、`letter`、`presentation`、`proxy`、`news`、`review`、`web`、`other`。`kind: filing` 的条目应当有 `accession`（EDGAR 登记号）；缺失时为警告，不是错误。
+
+## 4. thesis.yml
+
+见 `thesis.schema.json`（`schema_version: "0.2"`）。要点：
+
+- `status`：`holding`（持仓）、`candidate`（候选）、`archive`。
+- `category`：林奇六类之一：`slow_grower`、`stalwart`、`fast_grower`、`cyclical`、`turnaround`、`asset_play`。类别决定默认监控模板（`spec/templates/lynch/<category>.yml`），类别变化即换模板。
+- `domain`：校准分组，见 schema 枚举。
+- `depends_on`：行业模块路径列表，形如 `industries/payments-card-networks`；可以为空。
+- `trust_level`：公司经理的信任等级 0–3，由流水线维护（4.2）。
+- `reviewed`：档案各部分的最近复核日期，供时效测试使用。必填的十二个键对应档案的十二个部分：`business`、`economics`、`moat`、`capital_allocation`、`management`、`culture`、`runway`、`valuation`、`bear_case`、`monitoring`、`thesis`、`breakers`；两份附加清单 `munger`（芒格矩阵，档案的附加清单一）、`unknowns`（未知登记）可选。键与 00 §F5 的 `archive_patch.section` 相同（`ratings` 除外）。
+- `ratings`：只含 `business`、`management`（必填）与 `capital_allocation`、`culture`（可省略，省略即留空，不等于中性）；**价格评级、价值区间和任何价格数字不得出现在公开的 thesis.yml 中**，它们放在私有仓库的 `valuation.yml`。
+- `tests`：至少 5 条仍然有效的测试，且三类（`quantitative`、`qualitative`、`staleness`）各至少 1 条。
+
+### 4.1 thesis tests
+
+每条测试的共同字段：`id`（`<TICKER>-<Q|L|S><n>`）、`type`、`claim`（这条测试守护的论点，一句话）、`origin`、`severity`、`covers`、`effective_from`，可选 `supersedes`、`retired_at`、`pillar`、`note`。
+
+- `origin`：`template:<category>`（来自林奇模板）、`report:breaker` / `report:watch`（来自报告的论点破坏信号 / 前瞻指标）、`archive:breaker` / `archive:watch`（来自档案第 12 部分 / 第 10 部分）、`proposal:04B`、`proposal:04B-lite`、`proposal:07`、`proposal:08`、`proposal:11`（审计或研究环节提出、经公司经理采纳的测试建议）、`manual`（公司经理自写）。
+- `severity`：`breaker`（失败即该部分投资逻辑作废，7 天内按 00 §G3 处置）或 `watch`（失败即警告，进入下次更新）。
+- `covers`：这条测试检验的质量维度，见 schema 枚举。宪法第 2、3 条要求每家公司仍然有效的测试合起来覆盖 `moat`、`pricing_power`、`returns_on_capital`、`free_cash_flow`、`capital_allocation` 和 `management`。
+- **生命周期（00 §G7）。** `effective_from`（`FY<年>Q<季>`）：从这一期起按本条判定；新增或修改的测试只对以后的期间生效。改门槛不改旧条目：写一条新测试，`supersedes` 填旧测试的 id，旧测试写 `retired_at`（从这一期起不再判定，条目保留作记录）。写了 `retired_at` 的测试不计入最少 5 条和覆盖要求；给出 `--period` 时，只有 `retired_at` 不晚于当期的才算退役。
+- `note` 可以带论点措辞；判定员看不到它。交给判定员的规则写在定性测试的 `judge_notes` 里。
+
+**定量测试**（`type: quantitative`）：
+
+```yaml
+- id: MSFT-Q1
+  type: quantitative
+  claim: 微软云的毛利率守在资本开支周期能回本的水平之上
+  origin: report:breaker
+  severity: breaker
+  covers: [returns_on_capital]
+  metric: microsoft_cloud_gross_margin      # spec/metrics.yml 中的 id，或用 metric_def 就地定义
+  fail_if: 连续两个季度低于 58%
+  rule: {op: "<", threshold: 58, unit: "%", consecutive: 2, period: quarter}
+  warn_if: 低于 62%
+  warn_rule: {op: "<", threshold: 62, unit: "%", consecutive: 1, period: quarter}
+  data: filing_text                          # xbrl | filing_text | external | mixed
+  effective_from: FY2027Q1
+  first_readable: 2026-10
+  baseline: {value: 66, unit: "%", period: FY2026, source: MSFT-RPT1-2026-09-17#p10}
+```
+
+- `data`：`xbrl`（EDGAR XBRL）、`filing_text`（申报文件正文，由模型抽取并标注出处）、`external`（非 SEC 文件的官方数据，如 FRED、NAIC、ETF 资产规模）、`mixed`（组成部分来源不同）。`data` 必须与指标定义一致。
+- `rule` 可以用 `all_of` / `any_of` 组合多个子规则。门槛是事先写下的判定标准，不需要出处；`baseline` 是事实，必须有出处。
+- **一条测试用到多个量**时，写 `metric_def.components`：组成名（`^[a-z][a-z0-9_]*$`）→ `{description, unit, where?, xbrl?}`；子规则的 `metric` 写组成名，或 `<指标>.<组成>`（点号前是本测试的 `metric` 或 `metric_def.id`）。`rule.metric` 必须能解析：登记表中的指标、本测试的指标或它的组成。0.1 的 `params.metric_defs` 在迁移期仍能解析，应当改写为 `components`；`params` 本身仍然允许（例如 `params.segment`）。
+
+```yaml
+  metric_def:
+    id: recurring_share
+    description: 经常性收入 ÷ 总收入
+    unit: "%"
+    data: mixed
+    formula: recurring / revenue
+    components:
+      recurring: {description: 经常性收入, unit: USD, where: 10-K 收入分解附注}
+      revenue: {description: 总收入, unit: USD, xbrl: ["us-gaap:Revenues"]}
+  rule:
+    all_of:
+      - {metric: recurring_share, op: "<", threshold: 50, unit: "%", consecutive: 2, period: year}
+      - {metric: recurring_share.recurring, op: decrease, threshold: 0, unit: "%", period: year}
+    evaluate_from: FY2028Q4
+```
+
+- **期间选择**：`rule`（及子规则）可以写 `evaluate_on`（只在这些期间求值）或 `evaluate_from`（从这一期起求值），取值为 `FY<年>` 或 `FY<年>Q<季>`。
+
+**定性测试**（`type: qualitative`）：必须有 `question`（独立模型要回答的是非题）、`fail_if`、`judge: independent_model`、`evidence: required`、`where`（判定时读哪些文件：字符串或字符串列表，流水线据此抓取）和 `lookback`（读几期文件，含本期，正整数；一期是一个财季，与 `effective_from` 同一计法，年度文件按财季折算，例如要读到上一份年报写 5）；可选 `judge_notes`（交给判定员的判定规则，字符串或列表）。判定时必须附出处和一句以内的原文摘录。
+
+**时效测试**（`type: staleness`）：`section` 取 `reviewed` 的十四个键之一，`max_age_quarters` 为整数；以 `reviewed.<section>` 为基准，超过 `max_age_quarters × 91` 天即失败。
+
+测试结果只有四种：`pass`、`warn`、`fail`、`undetermined`。
+
+### 4.2 流水线维护的字段（00 §G8）
+
+公司经理不得修改 `trust_level`、`status`、`filer`、`schema_version`。流水线把各角色的信任等级记在公开仓库的 `trust/levels.yml`：
+
+```yaml
+as_of: 2026-10-30
+companies:                 # 公司经理，按公司代码
+  MSFT: 1
+industries:                # 行业研究员，按行业模块 id（对应 industry.yml 的 trust_level）
+  payments-card-networks: 1
+```
+
+`C-TRUST-WRITE`（警告）核对 `thesis.yml` 的 `trust_level` 与这里一致（`industry.yml` 写了 `trust_level` 时同样核对）。`reviewed` 日期只为本次实际复核过的部分更新，并列进该次更新记录 front matter 的 `reviewed_sections`：
+
+```markdown
+---
+company: MSFT
+doc: update
+as_of: 2026-10-30
+doc_status: final
+reviewed_sections: [economics, monitoring]
+---
+```
+
+`thesis.yml` 里等于某次更新 `as_of` 的每个 `reviewed` 日期，其部分都必须列在那次更新的 `reviewed_sections` 里（同一天的几次更新合起来算）。
+
+### 4.3 结果出来后不改门槛（00 §G7）
+
+`thesis-ci lint --base-ref <git 引用> --period FY<年>Q<季>` 把 `thesis.yml` 的测试与该引用下的版本逐条比较（`C-TEST-FROZEN`）：对当期有效的测试（base 版本的 `effective_from` 不晚于当期、且未退役；没有 `effective_from` 的旧测试视为一直有效），`rule`、`fail_if`、`warn_rule`、`warn_if`、`max_age_quarters` 不得改动，也不得删除。只改格式（例如行内映射改成块映射）不算改动。业绩文件入库之后的 PR 应当带上这两个参数。
+
+### 4.4 言行账本 ledger.yml
+
+见 `ledger.schema.json`。`side`：`management`（管理层承诺，按四档结算：`kept`、`partially_kept`、`not_kept`、`silently_dropped`，或 `undetermined`）、`system` 与 `owner`（预测，必填 `probability`，0.05–0.95；状态只用 `pending`、`kept`、`not_kept`、`undetermined`，判定标准写在 `note`）。`last_mentioned`：管理层最近一次提到这条承诺的日期（判断“悄然消失”）；`acknowledged_source`：未兑现时主动承认的出处（来源标签或 null）。
+
+## 5. story.md
+
+两分钟持有理由。YAML front matter 见 `story.schema.json`，正文不超过 700 个字符（中文按字计，英文按字符计，不含来源标签）。正文不得出现价格、价值区间、隐含回报、仓位比例或买卖建议。事实数字按 3.4 标注出处。
+
+## 6. 行业模块
+
+`industry.yml` 见 `industry.schema.json`。行业模块只描述行业本身：**不得**列出持仓、不得给建议、不得写“依赖本行业的公司”。依赖关系只写在公司一侧的 `depends_on`。每个模块至少 3 个可观测的路标（`signposts`），每个路标有可观测量、事先写下的门槛和检查频率。可选 `trust_level`（0–3）记行业研究员的信任等级，由流水线维护（4.2）。
+
+## 7. 私有仓库的文件
+
+### 7.1 价值区间 valuation.yml
+
+见 `valuation.schema.json`。要点：
+
+- `doc_status`：`proposed`（重算后待 04C 审的版本）或 `effective`（生效版本）。任何时刻一家公司只有一个生效版本（00 §V20）。
+- `value_ranges`：`center`（中枢）、`fair`（核心区间）、`cheap`（买入区间）、`error_band`（误差带 `[低, 高]`：与 `center` 同单位的绝对区间，不是相对比例）。
+- `margin_of_safety`：安全边际区间 `[下限, 上限]`，小数，默认 `[0.25, 0.35]`（00 §V2）。
+- `discount_rate`：`risk_free`（10 年期美国国债收益率）、`risk_free_date`（取值日期）、`premium`、`total`（= `risk_free` + `premium`）、`source`、`note`。`total` 有数值时必须写 `note`：溢价的判断依据，即本公司现金流记录里哪些读数让它更可预测、哪些更不可预测（00 §V1）。溢价只从本公司自己的记录推出，不在公司之间比较或插值（00 §V10）；`C-DISCOUNT-RATE` 因此不检查跨公司的溢价次序。
+- `comparable_anchor`：第二参照锚 `{value, description, source}`，可比资产的市场隐含回报（00 §V6）。
+- `price_rating`：`A`–`E`，按 00 §V11 的机械尺给出，不加正负号；`quality_rating` 是生意评级，与 `thesis.yml` 的 `ratings.business` 同一把尺。
+- `method_note`：本次估值的方法说明，必须非空。
+
+### 7.2 L3 备忘录 memos/*.yml
+
+见 `memo.schema.json`。备忘录只由总部起草（`drafted_by: hq_capital_allocator`）：`options` 至少两个选项，其中一个的 `key` 是 `maintain`（默认选项，`default_option: maintain`，14 天不回复按默认处理）；`evidence: [{claim, source}]`；`trigger: {tests: [测试 id], update?}`；`constitution_refs` 引用 `R<n>` 或 `H<n>`。修宪备忘录（`action: amend_constitution`）可以没有 `company`，其余备忘录必须有。
+
+买入、加仓备忘录还要写 `target_weight`、`order: {type: single}`、`implied_return` 与 `hurdle`。`target_weight` 不得低于入选门槛下沿（10%）；10–20% 是门槛，不是目标，高于上沿允许，但要在 `weight_note` 里写明理由（宪法第 4 条）。`hurdle` 不得低于该公司 `valuation.yml` 里伯克希尔那道第一门槛，`implied_return` 必须高于它；只过第一道、没过 VOO 参照时报警（宪法第 7 条，00 §V6）。
+
+### 7.3 升级请求 escalations/*.yml
+
+见 `escalation.schema.json`：`id`、`company`、`created_at`、`test_ids`、`facts: [{claim, source}]`（至少一条）、`reason`（R6 的四种企业内部原因之一：`moat_permanent_impairment`、`business_model_change`、`management_deterioration`、`capital_allocation_failure`）、`conclusion`、`drafted_by: company_manager`。“明显更好的机会”是跨公司判断，只由总部提出，不在升级请求里。
+
+### 7.4 系列排名 hq/ranking.yml
+
+总部按 00 §V13 综合判断排序，不按任何单一字段机械排序。每一行必须写一句排序理由 `reason`：
+
+```yaml
+as_of: 2026-10-01
+rule: "§V13"
+rows:
+  - {rank: 1, company: ACME, reason: ……}   # 虚构公司，只作格式示例
+```
+
+`C-RATING-ORDER` 检查每一行都有 `reason`（行也可以写在 `ranking:` 下，或整个文件就是一个列表）。
+
+### 7.5 公开仓库里不得出现的内容（00 §H4）
+
+公开仓库中出现 `valuation.yml`、`memos/`、`escalations/`、`decision-log/`，`value_ranges`、`price_reference`、`implied_return`、`price_rating` 等键，或在公开内容（`companies/`（含 `updates/`）、`industries/`、`forecasts/`、`letters/`、`mistakes.md`）中出现 00 §H4 的用语，均为错误：估值用语（`买入区间`、`价值中枢`、`目标价`、`隐含回报`、`隐含年化回报`、`价格评级`、`price target`、`target price`、`buy range`、`fair value range`）由 `C-PUBLIC-NO-VALUATION` 检查，买卖建议用语（`建议买入`、`建议卖出`、`建议增持`、`建议减持`、`建议加仓`、`建议减仓`、`买入评级`、`卖出评级`、`强烈推荐`、`值得买入`、`应该买入`、`可以买入`、`逢低买入`、`建议建仓`、`建议清仓`、`strong buy`、`overweight`、`underweight`）由 `C-PUBLIC-NO-ADVICE` 检查。公开内容也不写以当前股价为输入的倍数或比率：同一句里出现 `市盈率`、`P/E`、`市值`、`自由现金流收益率`、`FCF yield`、`市净率`、`P/B`（或“价格低于 N 倍账面”一类写法；公司披露的回购均价与账面之比是公司的事实，不算）和数字（年份、日期、期间与一位数的编号不算）即为错误。
+
+## 8. 检查
+
+`spec/checks.yml` 是全部检查的登记表。每项检查有 `id`、`title`、`scope`（`public`、`private`、`both`、`workspace`）、`level`（`error` 或 `warning`）和 `description`。实现必须为每个登记的检查提供一个函数和至少一个单元测试；单元测试的名称或文档字符串必须包含检查 id。
+
+宪法的每条规则（`constitution/rules.yml`）必须引用至少一个登记的检查 id。
+
+### 8.1 命令行
+
+```bash
+thesis-ci lint <path> [--counterpart <另一侧仓库>] [--today YYYY-MM-DD] [--expect-visibility public|private]
+                      [--base-ref <git 引用>] [--period FY<年>Q<季>] [--only <检查 id> ...] [--format text|json]
+```
+
+`--today` 决定截止时间是否已过（`C-PREREG-TIMING`、`C-PREREG-IMMUTABLE`）与时效（`C-STALENESS`）；`--base-ref` 与 `--period` 只用于 `C-TEST-FROZEN`；`--counterpart` 让私有仓库读到公开仓库的决策权配置与角色定义（`C-PROMPT-ISOLATION`）。
+
+### 8.2 决策权与信任等级 decision-rights.yml
+
+见 `decision-rights.schema.json`。`levels` 为三级决策权，动作取 schema 枚举（0.2 新增 `valuation_update`、`prompt_change`）；资金事项与修宪只在 L3。`trust` 除 `levels`、`initial`、`window`、`downgrade`、`upgrade` 外，必须有 `routing`：按信任等级分流（00 §G9），键 `"3"`、`"2"`、`"1"`、`"0"` 各写一句（3 级自动合并并公开；2 级自动合并、公开前由总部复核；1 级先留私有仓库、由总部逐条复核后公开；0 级暂停自治）；可选 `scoring` 写计分方法（事实错误怎样降级、分歧裁定怎样计入、谁的哪类产出算一次更新）。可选 `gate` 写 17A 的放行规则。`ranking` 为 `{rule, candidates?, rotation?}`：`rule` 引用排名条款（例如 `"§V13"`），不再有机械的 `order`。
+
+### 8.3 角色与提示词的隔离
+
+`agents/<role>.yml` 的 `role` 取 `company_manager`、`auditor`、`model_reviewer`、`red_team`、`synthesis_reviewer`、`design_reviewer`、`blind_reader`、`judge`、`settler`、`extractor`、`hq_capital_allocator`、`industry_researcher`、`typesetter`；`can_see`、`cannot_see` 用与提示词 front matter 相同的输入名。私有仓库的 `prompts/*.md` 在 front matter 里声明角色与输入：顶层的 `role` 与 `inputs`，或 `parts` 下各部分的 `role`（省略时取顶层）与 `inputs`（以及 `inputs_pass1`、`inputs_pass2` 等）；输入名末尾的 `?` 表示可选。`C-PROMPT-ISOLATION`（警告，私有仓库带 `--counterpart` 时运行）报告任何一部分的输入出现在该角色 `cannot_see` 里的情形；比较时去掉 `?` 和 00 §F0 的部分编号后缀（`findings_04A` 按 `findings` 比较）。
+
+### 8.4 0.2 新增的检查
+
+| id | 范围 | 级别 | 检查 |
+| --- | --- | --- | --- |
+| `C-PREREG-IMMUTABLE` | public | error | 截止之后的条目文件有 `<文件>.ots`；装有 `ots` 时 `ots verify` 通过，无法核验时报警 |
+| `C-TRUST-WRITE` | public | warning | `trust_level` 等于 `trust/levels.yml`；改动的 `reviewed` 日期列在更新的 `reviewed_sections` 里 |
+| `C-TEST-FROZEN` | public | error | 给出 `--base-ref` 与 `--period` 时，当期有效的测试门槛未被改动或删除 |
+| `C-PROMPT-ISOLATION` | private | warning | 提示词各部分的输入与角色的 `cannot_see` 不相交 |
+
+## 9. 指标登记表
+
+`spec/metrics.yml` 列出定量测试可以引用的指标：`id`、`description`、`unit`、`frequency`、`data`（`xbrl` 或 `filing_text`）、`xbrl`（候选概念，按优先顺序）、`formula` 与 `where`。XBRL 概念跟着发行人采用的会计准则走，不跟表格走：按美国会计准则编报的外国私人发行人（例如 PDD 的 20-F）同样用 `us-gaap` 概念，只有按 IFRS 编报的发行人才用 `ifrs-full`。登记表中没有的指标，用测试里的 `metric_def` 就地定义（字段同登记表条目，另可写 `components`，`data` 可取 `external` 或 `mixed`）。
+
+## 10. 版本
+
+本规范为 v0.2。跑完两个财报季后定 v1.0，之前的不兼容改动在 `CHANGELOG.md` 中逐条记录。

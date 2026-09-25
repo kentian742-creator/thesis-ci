@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/valuation.schema.json",
+  "title": "价值区间 valuation.yml（仅私有仓库）",
+  "type": "object",
+  "required": [
+    "company",
+    "as_of",
+    "doc_status",
+    "currency",
+    "value_ranges",
+    "discount_rate",
+    "implied_return",
+    "hurdles",
+    "source",
+    "method_note"
+  ],
+  "properties": {
+    "company": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9.]{0,9}$"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "doc_status": {
+      "enum": [
+        "proposed",
+        "effective"
+      ],
+      "description": "proposed：待 04C 审的重算版本；effective：生效版本（§V20：任何时刻只有一个生效版本）"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+      "description": "来源标签，TAG 或 TAG#LOCATOR"
+    },
+    "price_reference": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/fact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "value_ranges": {
+      "type": "object",
+      "required": [
+        "center",
+        "fair",
+        "cheap"
+      ],
+      "properties": {
+        "center": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fair": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "cheap": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "error_band": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "description": "误差带 [低, 高]：与 center 同单位的绝对区间（不是相对比例）"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "margin_of_safety": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "description": "安全边际区间 [下限, 上限]，小数；默认 [0.25, 0.35]（§V2）"
+    },
+    "discount_rate": {
+      "type": "object",
+      "required": [
+        "risk_free",
+        "premium",
+        "total"
+      ],
+      "properties": {
+        "risk_free": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "risk_free_date": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "10 年期美国国债收益率的取值日期"
+        },
+        "premium": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "total": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        },
+        "note": {
+          "type": "string",
+          "description": "溢价的判断依据：本公司现金流记录里哪些读数让它更可预测、哪些更不可预测（§V1、§V10）"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total"
+            ]
+          },
+          "then": {
+            "required": [
+              "note"
+            ]
+          }
+        }
+      ]
+    },
+    "implied_return": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "hurdles": {
+      "type": "object",
+      "properties": {
+        "brk": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "voo": {
+          "type": [
+            "number",
+            "array",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        }
+      },
+      "additionalProperties": false
+    },
+    "comparable_anchor": {
+      "type": "object",
+      "required": [
+        "value",
+        "description",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "array",
+            "null"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        }
+      },
+      "additionalProperties": false,
+      "description": "第二参照锚：可比资产的市场隐含回报（§V6）"
+    },
+    "price_rating": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-E]$"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "价格评级按 §V11 的机械尺给出，不加正负号"
+    },
+    "quality_rating": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-E][+−-]?0?$"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "生意评级（与 thesis.yml 的 ratings.business 同一把尺）"
+    },
+    "method_note": {
+      "type": "string"
+    },
+    "todo": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "required": [
+        "value",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "array",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

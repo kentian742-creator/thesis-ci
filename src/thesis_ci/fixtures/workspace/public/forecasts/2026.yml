@@ -1,0 +1,13 @@
+year: 2026
+forecasts:
+  - id: F-2026-001
+    company: ACME
+    domain: other
+    statement: 本季营收同比增速不低于上季
+    probability: 0.6
+    made_at: 2026-09-20
+    resolves_by: 2026-10-28
+    source_file: companies/ACME/prereg/FY2027Q1.yml
+    book: system
+    outcome: pending
+    brier: null

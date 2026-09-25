@@ -1,0 +1,9 @@
+id: 2026-09-21-BETA-management
+company: BETA
+created_at: 2026-09-21
+test_ids: [BETA-L1]
+facts:
+  - {claim: The CEO left and no successor was named (fictitious)., source: BETA-RPT-2026-09#p12}
+reason: management_deterioration
+conclusion: Management quality has declined; HQ decides whether a memo is warranted (fictitious).
+drafted_by: company_manager

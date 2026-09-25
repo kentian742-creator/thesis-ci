@@ -1,0 +1,56 @@
+rules:
+  - id: R1
+    title: Quality first, management second, valuation third
+    text: Business quality first, management second, valuation third.
+    kind: constitution
+    checks: [C-RATING-ORDER]
+  - id: R2
+    title: Touchstones of quality
+    text: Moat, pricing power, returns on capital and growing free cash flow.
+    kind: constitution
+    checks: [C-TESTS-COVERAGE]
+  - id: R3
+    title: Management is judged by capital allocation
+    text: Buybacks, dividends and reinvestment must be rational.
+    kind: constitution
+    checks: [C-TESTS-CAPALLOC]
+  - id: R4
+    title: Concentration
+    text: Hold four to five companies; the entry band is a bar, not a target.
+    kind: constitution
+    checks: [C-CONCENTRATION]
+  - id: R5
+    title: Discount rate
+    text: The 10-year Treasury yield plus a premium drawn from the company's own cash-flow record.
+    kind: constitution
+    checks: [C-DISCOUNT-RATE]
+  - id: R6
+    title: Sell only for permanent deterioration or a clearly better opportunity
+    text: Never for price declines, recessions, panics or a single missed quarter.
+    kind: constitution
+    checks: [C-SELL-REASONS]
+  - id: R7
+    title: Beat VOO or Berkshire
+    text: Every holding must be expected to beat the alternatives.
+    kind: constitution
+    checks: [C-HURDLE]
+  - id: R8
+    title: Trade rarely, enter in one order
+    text: One order to build a position.
+    kind: constitution
+    checks: [C-SINGLE-ORDER, C-DEFAULT-HOLD]
+  - id: H1
+    title: Every number carries a source
+    text: Facts carry source tags.
+    kind: hard_rule
+    checks: [C-SRC-TAG, C-SRC-FACT]
+  - id: H2
+    title: No daily prices, no trades, no advice
+    text: Prices only as private reference data; nothing executes trades.
+    kind: hard_rule
+    checks: [C-NO-PRICE-FEED, C-NO-TRADING, C-PUBLIC-NO-ADVICE, C-PUBLIC-NO-VALUATION]
+  - id: H3
+    title: One model entry point
+    text: Model calls only in pipeline/llm.py.
+    kind: hard_rule
+    checks: [C-LLM-ENTRY]

@@ -1,0 +1,8 @@
+role: auditor
+name: Auditor
+model: {id: example-strong-model, effort: high}
+reports_to: hq_capital_allocator
+can_see: [draft_facts, source_excerpts]
+cannot_see: [reasoning, conclusions]
+outputs: [fact_audit]
+prompts: ["04"]

@@ -1,0 +1,10 @@
+entries:
+  - date: 2026-09-20
+    decision: maintain
+    company: ACME
+    original_thesis: Switching costs protect margins (fictitious).
+    assumptions: Customers keep re-certifying lines slowly.
+    expected_outcome: Margins hold through the next cycle.
+    risks: An open interface standard.
+    review_date: 2027-03-20
+    result: null

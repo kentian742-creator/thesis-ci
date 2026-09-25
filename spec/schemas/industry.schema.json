@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/industry.schema.json",
+  "title": "行业模块 industry.yml",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "as_of",
+    "source",
+    "summary",
+    "signposts",
+    "reviewed"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "name_en": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "reviewed": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "trust_level": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "行业研究员的信任等级（流水线维护，§G8）"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+      "description": "来源标签，TAG 或 TAG#LOCATOR"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "structure": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "signposts": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "observable",
+          "threshold",
+          "check_frequency",
+          "data_source",
+          "implication"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z]+-SP[0-9]+$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "observable": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/$defs/rule"
+          },
+          "check_frequency": {
+            "enum": [
+              "monthly",
+              "quarterly",
+              "semiannual",
+              "annual",
+              "event"
+            ]
+          },
+          "data_source": {
+            "type": "string"
+          },
+          "current_reading": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/fact"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "implication": {
+            "type": "string"
+          },
+          "tests_to_rerun": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "moat",
+                "pricing_power",
+                "returns_on_capital",
+                "free_cash_flow",
+                "capital_allocation",
+                "management",
+                "balance_sheet",
+                "growth",
+                "unit_economics",
+                "competition",
+                "regulation",
+                "governance",
+                "customer_concentration",
+                "culture",
+                "other"
+              ]
+            },
+            "description": "触发时，依赖公司中覆盖这些维度的测试要重跑"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "todo": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "required": [
+        "value",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "array",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "来源标签，TAG 或 TAG#LOCATOR"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "enum": [
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "==",
+            "!=",
+            "between",
+            "outside",
+            "increase",
+            "decrease",
+            "event"
+          ]
+        },
+        "threshold": {
+          "type": [
+            "number",
+            "array",
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "consecutive": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "period": {
+          "enum": [
+            "quarter",
+            "half",
+            "year",
+            "event"
+          ]
+        },
+        "metric": {
+          "type": "string"
+        },
+        "all_of": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rule"
+          }
+        },
+        "any_of": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rule"
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "op"
+          ]
+        },
+        {
+          "required": [
+            "all_of"
+          ]
+        },
+        {
+          "required": [
+            "any_of"
+          ]
+        }
+      ]
+    }
+  }
+}

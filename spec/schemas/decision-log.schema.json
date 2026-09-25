@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/decision-log.schema.json",
+  "title": "决策日志（仅私有仓库；沿用九个字段）",
+  "type": "object",
+  "required": [
+    "entries"
+  ],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "date",
+          "decision",
+          "company",
+          "original_thesis",
+          "assumptions",
+          "expected_outcome",
+          "risks",
+          "review_date",
+          "result"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "original_thesis": {
+            "type": "string"
+          },
+          "assumptions": {
+            "type": "string"
+          },
+          "expected_outcome": {
+            "type": "string"
+          },
+          "risks": {
+            "type": "string"
+          },
+          "review_date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "memo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pr": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "executed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

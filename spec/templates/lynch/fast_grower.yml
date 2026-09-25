@@ -1,0 +1,41 @@
+category: fast_grower
+name: 快速增长型
+lynch: 年增 20–25% 的小而进取的公司；风险在增长失速、扩张失去单位经济、资产负债表跟不上。
+watch: [增速, 单位经济是否随扩张变差, 再投资回报, 现金与负债]
+tests:
+  - key: Q-growth
+    type: quantitative
+    claim: 增长仍在快速增长型的区间
+    covers: [growth]
+    metric: revenue_yoy
+    fail_if: 连续 2 个季度低于 15%
+    rule: {op: "<", threshold: 15, unit: "%", consecutive: 2, period: quarter}
+    data: xbrl
+    severity: watch
+  - key: Q-margin
+    type: quantitative
+    claim: 扩张没有吃掉单位经济
+    covers: [unit_economics, pricing_power]
+    metric: operating_margin
+    fail_if: 同比下降超过 5 个百分点，连续 2 个季度
+    rule: {op: "decrease", threshold: 5, unit: pp, consecutive: 2, period: quarter}
+    data: xbrl
+    severity: watch
+  - key: Q-cash
+    type: quantitative
+    claim: 资产负债表撑得住扩张
+    covers: [balance_sheet]
+    metric: net_cash
+    fail_if: 由净现金转为净负债
+    rule: {op: "<", threshold: 0, unit: USD, consecutive: 1, period: quarter}
+    data: xbrl
+    severity: watch
+  - key: L-reinvest
+    type: qualitative
+    claim: 新的扩张方向仍在公司的能力范围内
+    covers: [capital_allocation]
+    question: 本期文件是否披露了进入与现有业务无关的新领域的重大投资或收购？
+    fail_if: 是，且金额超过上一财年自由现金流的 25%
+    where: [本期 10-Q／10-K 的收购与投资附注, 8-K（重大收购）, 业绩新闻稿]
+    lookback: 1
+    severity: watch

@@ -1,0 +1,208 @@
+# thesis-ci 检查登记表 v0.2
+# scope: public = 只在公开档案仓库运行；private = 只在私有档案仓库运行；
+#        both = 两边都运行；workspace = 需要同时看到公开与私有仓库（本地或验收脚本）。
+# level: error 阻止合并；warning 只报告。
+checks:
+  - id: C-SCHEMA
+    title: 文件符合 schema
+    scope: both
+    level: error
+    description: 按 SPEC 第 2 节的文件名映射，所有 YAML 文件和 story.md front matter 通过对应 JSON Schema 校验。YAML 中的日期先转成 ISO 字符串再校验。另查 schema 表达不了的一致性：重复的键；companies/<TICKER>/ 下文件的 company 等于目录名，industry.yml 的 id 等于目录名；同一个 sources.yml 里标签不重复；预注册三件套按 SPEC 2.1 命名，文件名里的期间与 event.period（结算文件为 period）一致，<期间>.yml 的 author 为 system、<期间>-owner.yml 的为 owner，条目与改写的 id 以 <TICKER>-<期间>- 开头；repo.yml 的 spec_version 不是当前版本时报警。
+
+  - id: C-SRC-TAG
+    title: Markdown 事实数字带来源标签
+    scope: both
+    level: error
+    description: 按 SPEC 3.4，含事实数字的每个句子至少有一个 [src:...]；每个标签都能在适用的 sources.yml 中解析。
+
+  - id: C-SRC-FACT
+    title: YAML 事实带可解析的来源
+    scope: both
+    level: error
+    description: companies/ 与 industries/ 下任何 YAML 中的 source、settlement_source、acknowledged_source 字段都能解析到 sources.yml；thesis.yml、ledger.yml、valuation.yml、industry.yml 的自由文本字段（claim、summary、category_rationale、pillars.claim、implication、note 等）里出现的事实数字，同样要求同一句内有 [src:...]。事先写下的判定标准（fail_if、warn_if、rule、question 等）和预测（预注册条目、账本中 side 为 system 或 owner 的 statement 与 note）不是事实，不要求标签。
+
+  - id: C-SRC-ACCESSION
+    title: 定期报告来源带 EDGAR 登记号
+    scope: both
+    level: warning
+    description: sources.yml 中 kind 为 filing 的条目缺少 accession 时报警。
+
+  - id: C-PUBLIC-NO-VALUATION
+    title: 公开仓库不含价值区间与价格区间
+    scope: public
+    level: error
+    description: 公开仓库中不得有 valuation.yml、memos/、escalations/、decision-log/；任何 YAML 不得有 value_ranges、price_reference、implied_return、price_rating 键；公开内容（companies/，含 companies/*/updates/；industries/、forecasts/、letters/ 和根目录的 mistakes.md）不得出现 00 §H4 的估值用语（买入区间、价值中枢、目标价、隐含回报、隐含年化回报、价格评级、price target、target price、buy range、fair value range）；同一句里出现以股价为输入的倍数或比率（市盈率、P/E、市值、自由现金流收益率、FCF yield、市净率、P/B，以及“价格低于 N 倍账面”一类写法；公司披露的回购均价与账面之比不算）和数字（年份与日期不算）时报错。
+
+  - id: C-PUBLIC-NO-ADVICE
+    title: 公开内容不含买卖建议
+    scope: public
+    level: error
+    description: 公开内容（companies/，含 companies/*/updates/；industries/、forecasts/、letters/、根目录的 mistakes.md）和任何 README 中不得出现 00 §H4 的买卖建议用语（建议买入、建议卖出、建议增持、建议减持、建议加仓、建议减仓、买入评级、卖出评级、强烈推荐、值得买入、应该买入、可以买入、逢低买入、建议建仓、建议清仓、strong buy、overweight、underweight），也不得用别的写法给出同样的建议（推荐买入、应该卖出、评级上调至买入、buy rating、I recommend buying 等）。overweight、underweight 作为评级或立场时才算建议。
+
+  - id: C-PUBLIC-NO-AMOUNTS
+    title: 公开仓库不含持仓金额
+    scope: public
+    level: error
+    description: 公开 YAML 中不得有 position、position_size、shares_held、cost_basis、amount_usd、account、weight、target_weight 键；不得出现券商账户号样式的字符串（如 U 后接 7 位以上数字）。
+
+  - id: C-NO-PRICE-FEED
+    title: 不抓取日常股价
+    scope: both
+    level: error
+    description: 代码与 workflow 中不得引用行情源（yfinance、yahoo finance、alphavantage、polygon.io、finnhub、iexcloud、twelvedata、stooq、marketstack、/v7/finance/quote 等）。例外只有私有仓库的 pipeline/price_alert.py（跨越价值区间的一次性提醒）和 pipeline/price_history.py（私有估值用的价格参照与历年年末未复权收盘价，00 §H2）。公开数据文件不得有 price、last_price、close 键，公开内容不得展示股价。
+
+  - id: C-NO-TRADING
+    title: 不执行任何交易
+    scope: both
+    level: error
+    description: 任何代码不得引用券商或交易接口（ib_insync、ib_async、ibapi、alpaca、robin_stocks、tda-api、schwab、place_order、submit_order、placeOrder）。
+
+  - id: C-LLM-ENTRY
+    title: 模型调用只在 pipeline/llm.py
+    scope: both
+    level: error
+    description: 除 pipeline/llm.py 外，任何 .py 文件不得导入模型 SDK（anthropic、openai、google.generativeai、google.genai、litellm、langchain、mistralai、cohere）。
+
+  - id: C-NO-SECRETS
+    title: 不提交密钥
+    scope: both
+    level: error
+    description: 文件中不得出现 API 密钥样式的字符串（sk-ant-、sk-、ghp_、gho_、github_pat_、AKIA 开头的长串）或把密钥直接赋值给 *_API_KEY / *_TOKEN 变量。
+
+  - id: C-TESTS-MIN
+    title: 每家公司至少 5 条测试，三类齐全
+    scope: public
+    level: error
+    description: 每个 companies/*/thesis.yml 至少 5 条仍然有效的 tests（写了 retired_at 的测试只作记录，不计入），quantitative、qualitative、staleness 各至少 1 条；测试 id 在文件内唯一且以本公司代码开头；supersedes 指向本文件的另一条测试；retired_at 不早于 effective_from。
+
+  - id: C-TESTS-COVERAGE
+    title: 测试覆盖企业质量的试金石
+    scope: public
+    level: error
+    description: 宪法第 2 条。每家公司仍然有效的测试 covers 合起来必须包含 moat、pricing_power、returns_on_capital、free_cash_flow。
+
+  - id: C-TESTS-CAPALLOC
+    title: 测试覆盖资本配置
+    scope: public
+    level: error
+    description: 宪法第 3 条。每家公司至少 1 条仍然有效的测试 covers 包含 capital_allocation，至少 1 条 covers 包含 management。
+
+  - id: C-TEST-METRIC
+    title: 定量测试可执行
+    scope: public
+    level: error
+    description: 每条 quantitative 测试的 metric 在 spec/metrics.yml 中登记，或给出 metric_def；rule 可被解析为机器判定（op/threshold 或 all_of/any_of）；data 与指标定义一致；rule 与 warn_rule 里的 metric 必须能解析——登记表中的指标、本测试的 metric 或 metric_def、metric_def.components 的组成，或 <指标>.<组成>（组成须在 components 中定义）。
+
+  - id: C-TEST-QUAL-EVIDENCE
+    title: 定性测试要求独立判定与出处
+    scope: public
+    level: error
+    description: 每条 qualitative 测试有 question、fail_if，judge 为 independent_model，evidence 为 required，where 写明判定时读哪些文件，lookback 为正整数（读几期，含本期）。
+
+  - id: C-STALENESS
+    title: 时效测试可计算且当前不过期
+    scope: public
+    level: warning
+    description: 仍然有效的 staleness 测试的 section 在 reviewed 中有日期；按 max_age_quarters × 91 天计算，已过期的报警。
+
+  - id: C-DEPENDS
+    title: 行业依赖可解析、行业模块中立
+    scope: public
+    level: error
+    description: thesis.yml 的 depends_on 都指向存在的 industries/<id>/industry.yml；行业模块（industry.yml 与 README.md）不得出现 holding、持仓、depends、依赖本行业的公司 等字样，也不得有买卖建议。
+
+  - id: C-STORY
+    title: 两分钟故事存在且够短
+    scope: public
+    level: error
+    description: 每个 companies/<TICKER>/ 有 story.md，front matter 合规且 company 与目录一致，正文（去掉来源标签和 Markdown 标记）不超过 700 字符。
+
+  - id: C-RATING-ORDER
+    title: 质量第一，管理层第二，估值第三
+    scope: both
+    level: error
+    description: 宪法第 1 条。每家公司 thesis.yml 的 ratings 含 business 与 management；私有仓库有 hq/ranking.yml（系列排名，00 §V13）时，每一行都写了排序理由 reason。排名按 §V13 综合判断，不按任何字段机械排序，所以不检查排序本身。
+
+  - id: C-CONCENTRATION
+    title: 集中持有与入选门槛
+    scope: both
+    level: error
+    description: 宪法第 4 条。decision-rights.yml 的 portfolio.max_holdings 是正整数（大于 5 时报警：条文是“约 4–5 家”）、entry_band 等于 [0.10, 0.20]；公开仓库 status 为 holding 的公司多于 max_holdings 时报警；私有仓库 memos 中 buy/add 的 target_weight 低于入选门槛下沿（10%）为错误。10–20% 是入选门槛，不是目标：高于上沿（20%）允许（确信度更高的企业可以更大），但 weight_note 为空时报警。
+
+  - id: C-DISCOUNT-RATE
+    title: 折现率 = 10 年期国债收益率 + 本公司溢价，写明依据
+    scope: private
+    level: error
+    description: 宪法第 5 条（细则 00 §V1、§V10）。每个 valuation.yml 的 discount_rate.total 等于 risk_free + premium（误差 0.0005 以内；三者都为 null 时报警不报错）；填了折现率时 discount_rate.note（溢价的判断依据）非空；method_note 非空；缺 risk_free_date（国债收益率的取值日期）时报警。溢价只从本公司自己的现金流记录推出，不在公司之间比较。
+
+  - id: C-SELL-REASONS
+    title: 只因永久性恶化或明显更好的机会卖出
+    scope: both
+    level: error
+    description: 宪法第 6 条。decision-rights.yml 的 memo.sell_reasons 与 memo.schema.json 的 sell_reason 枚举一致，forbidden_sell_reasons 包含价格下跌、衰退、恐慌、单季不及预期；私有仓库中 trim/sell 备忘录必须引用允许的理由。
+
+  - id: C-HURDLE
+    title: 长期预期过得了伯克希尔或 VOO 这条比较线
+    scope: private
+    level: error
+    description: 宪法第 7 条（门槛次序为 00 §V6 的工程默认，不取两者中较高者）。每个 valuation.yml 有 hurdles；伯克希尔的隐含回报（hurdles.brk）是第一道门槛，VOO 的前瞻回报（hurdles.voo）是第二道参照，没有 brk 时以 voo 为门槛。buy/add 备忘录的 hurdle 不低于第一道门槛，implied_return 高于它，否则为错误；只过第一道、没过 VOO 参照时报警。持仓低于任一条线时报警，由总部在季度排名（17C）里判断。
+
+  - id: C-SINGLE-ORDER
+    title: 一次下单建仓
+    scope: both
+    level: error
+    description: 宪法第 8 条。decision-rights.yml 的 portfolio.single_order_entry 为 true；buy/add 备忘录 order.type 为 single；每月备忘录数超过 memo.monthly_target_max 时报警。
+
+  - id: C-DEFAULT-HOLD
+    title: 资金事项默认不动
+    scope: both
+    level: error
+    description: decision-rights.yml 的 memo.default_option 为 maintain、timeout_days 为 14；每份备忘录 default_option 为 maintain。
+
+  - id: C-DECISION-RIGHTS
+    title: 三级决策权配置自洽
+    scope: public
+    level: error
+    description: buy、add、trim、sell、amend_constitution 只出现在 L3；L1、L2 不含任何资金事项；三级之间没有重复动作；trust.levels 有 0–3 四级，initial 为 1。
+
+  - id: C-CONSTITUTION-MAP
+    title: 宪法每条规则都有可执行检查
+    scope: public
+    level: error
+    description: constitution/rules.yml 的每条规则至少引用一个检查 id，且每个 id 都在本登记表中、在实现中注册、并有单元测试。
+
+  - id: C-AGENT-ISOLATION
+    title: 审计与盲推的可见范围隔离
+    scope: public
+    level: error
+    description: agents/auditor.yml 的 cannot_see 含 reasoning 与 conclusions；agents/blind_reader.yml 的 cannot_see 含 thesis、draft、conclusions；两者都不向 company_manager 汇报。
+
+  - id: C-PREREG-TIMING
+    title: 预注册在业绩首次公开之前合并
+    scope: public
+    level: error
+    description: 条目文件（prereg/<期间>.yml 与 <期间>-owner.yml）的 deadline 落在发布日之前（UTC 时间按 EDGAR 的美国东部时间读日期）；所有者文件的 deadline 与系统文件相同；结算文件 prereg/<期间>.settlement.yml 有 merged_at 时，merged_at 必须早于 deadline，有 acceptance_datetime 时，deadline 必须早于它；截止时间已过而没有记录 merged_at 时报警。
+
+  - id: C-PREREG-IMMUTABLE
+    title: 截止之后预注册不可改
+    scope: public
+    level: error
+    description: 截止时间（按 --today）已过的每个条目文件（prereg/<期间>.yml 与 <期间>-owner.yml）旁边必须有时间戳证明 <文件>.ots；PATH 上有 OpenTimestamps 客户端 ots 时，ots verify 必须通过（文件与证明不符即报错），没有 ots 或无法核验（没有比特币节点、证明尚待确认）时报警。没有预注册文件时空过。
+
+  - id: C-TRUST-WRITE
+    title: 信任等级与复核日期由流水线维护
+    scope: public
+    level: warning
+    description: 00 §G8。有 trust/levels.yml 时，每个 thesis.yml 的 trust_level 等于其中记录的公司经理等级（industry.yml 写了 trust_level 时同样与其中的行业研究员等级比对）；季度更新（companies/*/updates/ 的 front matter）写了 reviewed_sections 时，thesis.yml 里等于该更新 as_of 的每个 reviewed 日期，其部分都必须列在 reviewed_sections 里。
+
+  - id: C-TEST-FROZEN
+    title: 业绩出来之后不改当期门槛
+    scope: public
+    level: error
+    description: 00 §G7。给出 --base-ref（git 引用）和 --period（当期，FY<年>Q<季>）且仓库是 git 工作区时，把 thesis.yml 的测试与 base 版本逐条比较：base 版本里对当期有效（effective_from 不晚于当期、未退役）的测试，其 rule、fail_if、warn_rule、warn_if、max_age_quarters 不得改动，也不得删除（改门槛写新测试，effective_from 取以后的期间）。--base-ref 无法解析时报错，不是 git 工作区时报警；没有 --base-ref 或 --period 时空过。
+
+  - id: C-PROMPT-ISOLATION
+    title: 提示词的输入不越过角色的可见范围
+    scope: private
+    level: warning
+    description: 00 §G6。带 --counterpart 时，读私有仓库 prompts/*.md 的 front matter（顶层的 role 与 inputs，或 parts 下各部分的 role 与 inputs、inputs_pass1 等），与公开仓库 agents/*.yml 中同一角色的 cannot_see 比较：任何一部分的输入出现在该角色的 cannot_see 里就报警（可选输入的 ? 与 00 §F0 的部分编号后缀如 _04A 不影响比较）。任一侧缺失时空过。
