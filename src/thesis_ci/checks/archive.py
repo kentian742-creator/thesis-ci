@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import re
 import shutil
 import subprocess
@@ -152,14 +153,12 @@ PREREG_FILES = "companies/*/prereg/*.yml"
 SETTLEMENT_SUFFIX = ".settlement.yml"
 OWNER_SUFFIX = "-owner.yml"
 OTS_TIMEOUT = 120
-# `ots verify` output: a proof for other bytes is a failure; no Bitcoin node to ask, an attestation that is still
-# pending or an unreachable server only means the proof could not be checked here.
-OTS_MISMATCH_RE = re.compile(r"does not match|mismatch", re.I)
-OTS_CANNOT_VERIFY_RE = re.compile(
-    r"bitcoin (?:core )?node|could not connect|connection (?:refused|error|reset)|pending|not (?:yet )?complete|"
-    r"incomplete|timed? ?out",
-    re.I,
-)
+# The file is compared with the proof locally first: `ots info` prints the sha256 digest the proof commits to, with no
+# network. A different digest, or a proof that cannot be read, is a failure. Only then is `ots verify` asked about the
+# attestation; once the digest matches, a verify failure means the proof could not be checked here (no Bitcoin node,
+# an attestation still pending, calendars unreachable) unless the client says the proof itself is bad.
+OTS_INFO_DIGEST_RE = re.compile(r"File sha256 hash:\s*([0-9a-f]{64})", re.I)
+OTS_BAD_PROOF_RE = re.compile(r"does not match|mismatch|bad timestamp|invalid|corrupt|not a timestamp", re.I)
 
 
 def prereg_kind(path: Path) -> str:
@@ -229,23 +228,39 @@ def ots_executable() -> str | None:
     return shutil.which("ots")
 
 
-def ots_verify(ots: str, target: Path, proof: Path) -> tuple[bool | None, str]:
-    """(True, detail) when `ots verify` passes, (False, detail) when it fails, (None, detail) when it cannot check."""
+def _run_ots(ots: str, args: list[str]) -> tuple[subprocess.CompletedProcess[str] | None, str]:
+    """Run the client; (None, reason) when it could not run or timed out."""
     try:
-        proc = subprocess.run([ots, "verify", "-f", str(target), str(proof)], capture_output=True, text=True,
-                              timeout=OTS_TIMEOUT)
+        return subprocess.run([ots, *args], capture_output=True, text=True, timeout=OTS_TIMEOUT), ""
     except subprocess.TimeoutExpired:
-        return None, f"ots verify timed out after {OTS_TIMEOUT} s"
+        return None, f"ots {args[0]} timed out after {OTS_TIMEOUT} s"
     except OSError as exc:
         return None, f"ots could not run: {exc}"
-    output = "\n".join(s for s in (proc.stdout, proc.stderr) if s).strip()
-    lines = [ln.strip() for ln in output.splitlines() if ln.strip()]
-    detail = lines[-1] if lines else f"exit status {proc.returncode}"
+
+
+def _last_line(proc: subprocess.CompletedProcess[str]) -> str:
+    lines = [ln.strip() for ln in "\n".join(s for s in (proc.stdout, proc.stderr) if s).splitlines() if ln.strip()]
+    return lines[-1] if lines else f"exit status {proc.returncode}"
+
+
+def ots_verify(ots: str, target: Path, proof: Path) -> tuple[bool | None, str]:
+    """(True, detail) when `ots verify` passes, (False, detail) when it fails, (None, detail) when it cannot check."""
+    info, reason = _run_ots(ots, ["info", str(proof)])
+    if info is None:
+        return None, reason
+    found = OTS_INFO_DIGEST_RE.search(f"{info.stdout}\n{info.stderr}")
+    if not found:
+        return False, f"the proof cannot be read ({_last_line(info)})"
+    committed, actual = found.group(1).lower(), hashlib.sha256(target.read_bytes()).hexdigest()
+    if committed != actual:
+        return False, f"the file's sha256 {actual[:12]}… does not match the proof's {committed[:12]}…"
+    proc, reason = _run_ots(ots, ["verify", "-f", str(target), str(proof)])
+    if proc is None:
+        return None, reason
+    output = f"{proc.stdout}\n{proc.stderr}"
     if proc.returncode == 0:
-        return True, detail
-    if OTS_MISMATCH_RE.search(output):
-        return False, detail
-    return (None if OTS_CANNOT_VERIFY_RE.search(output) else False), detail
+        return True, _last_line(proc)
+    return (False if OTS_BAD_PROOF_RE.search(output) else None), _last_line(proc)
 
 
 @check("C-PREREG-IMMUTABLE")

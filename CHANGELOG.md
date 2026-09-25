@@ -4,6 +4,14 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.2.1 — bug fix (2026-09-25)
+
+- `C-PREREG-IMMUTABLE`: a pending proof checked while the OpenTimestamps calendars were unreachable was reported as
+  an error ("the file changed after it was timestamped"), which was false. The check now compares the file's sha256
+  with the digest the proof commits to locally first (`ots info`, no network): a different digest or an unreadable
+  proof is an error; once the digest matches, `ots verify` failing for lack of a Bitcoin node, a pending attestation or
+  unreachable calendars is a warning, and only a client message that the proof itself is bad is an error.
+
 ## v0.2.0 — specification 0.2 (2026-09-24)
 
 Specification 0.2 aligns the format with the owner's rulebook (series rules 00 v3: §H4, §V1/§V7/§V10/§V11/§V13/§V20,

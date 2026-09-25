@@ -117,7 +117,7 @@ items:
 - 系统文件至少 1 条、至多 8 条，不得有 `overrides`。所有者文件的条目写 `added_by: owner`，可以只有 `overrides: [{id, probability, note?}]`（此时 `items: []`），但不能两者都空；它的 `deadline` 与系统文件相同。
 - 条目文件里不写 `merged_at`、`ots_proof`、`acceptance_datetime`、`accession` 或结算结果：这些在截止时间之后才知道，写进结算文件，条目文件因此可以在截止前打上时间戳并保持不变。
 - 结算文件（`prereg-settlement.schema.json`）：`company`、`period`，可选 `acceptance_datetime`、`accession`、`merged_at`（条目文件合并进默认分支的时间，取自 GitHub）、`ots_proof`，以及 `results: [{id, outcome, values?, calculation?, evidence?, source?, reasoning?, settled_at?, hq_ruling?}]`，`outcome` 为 `happened`、`not_happened` 或 `undetermined`。
-- `C-PREREG-TIMING` 检查截止时间落在发布日之前、`merged_at` 早于截止时间、截止时间早于 `acceptance_datetime`；`C-PREREG-IMMUTABLE` 检查截止时间过后条目文件旁有 `<文件>.ots`，并在装有 `ots` 客户端时用 `ots verify` 核验。
+- `C-PREREG-TIMING` 检查截止时间落在发布日之前、`merged_at` 早于截止时间、截止时间早于 `acceptance_datetime`；`C-PREREG-IMMUTABLE` 检查截止时间过后条目文件旁有 `<文件>.ots`；装有 `ots` 客户端时，先在本地比对文件的 sha256 与证明记录的哈希（`ots info`，不联网），不一致或证明读不出来即为错误；一致之后再用 `ots verify` 核验时间证明，没有比特币节点、证明仍待确认或连不上日历服务器时只报警告。
 
 ## 3. 来源标签
 

@@ -187,7 +187,7 @@ checks:
     title: 截止之后预注册不可改
     scope: public
     level: error
-    description: 截止时间（按 --today）已过的每个条目文件（prereg/<期间>.yml 与 <期间>-owner.yml）旁边必须有时间戳证明 <文件>.ots；PATH 上有 OpenTimestamps 客户端 ots 时，ots verify 必须通过（文件与证明不符即报错），没有 ots 或无法核验（没有比特币节点、证明尚待确认）时报警。没有预注册文件时空过。
+    description: 截止时间（按 --today）已过的每个条目文件（prereg/<期间>.yml 与 <期间>-owner.yml）旁边必须有时间戳证明 <文件>.ots；PATH 上有 OpenTimestamps 客户端 ots 时，先在本地比对文件的 sha256 与证明记录的哈希（ots info，不联网），不一致或证明读不出来即报错；一致之后 ots verify 通过即通过，客户端说证明本身有问题时报错，没有比特币节点、证明尚待确认或连不上日历服务器时报警。没有 ots 时报警。没有预注册文件时空过。
 
   - id: C-TRUST-WRITE
     title: 信任等级与复核日期由流水线维护

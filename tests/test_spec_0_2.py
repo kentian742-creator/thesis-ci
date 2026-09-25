@@ -5,6 +5,8 @@ Each test's docstring names the check it covers.
 
 from __future__ import annotations
 
+import hashlib
+
 import datetime as dt
 import os
 import shutil
@@ -56,12 +58,15 @@ def story_line(ws: Path, text: str) -> None:
     edit(ws, STORY, "最可能错在哪", text + "\n最可能错在哪")
 
 
-def fake_ots(tmp_path: Path, monkeypatch, output: str, status: int) -> None:
-    """Put an `ots` executable that prints ``output`` and exits with ``status`` first on PATH."""
+def fake_ots(tmp_path: Path, monkeypatch, output: str, status: int, digest: str | None = None) -> None:
+    """Put an `ots` executable first on PATH: `ots info` prints ``digest`` as the proof's file hash (no line when
+    None), `ots verify` prints ``output`` and exits with ``status``."""
     bindir = tmp_path / "bin"
     bindir.mkdir(exist_ok=True)
     script = bindir / "ots"
-    script.write_text(f"#!/bin/sh\necho '{output}'\nexit {status}\n", encoding="utf-8")
+    info = f"echo 'File sha256 hash: {digest}'; echo 'Timestamp:'" if digest else "echo 'Error! not a timestamp file'"
+    script.write_text(f"#!/bin/sh\nif [ \"$1\" = info ]; then {info}; exit 0; fi\necho '{output}'\nexit {status}\n",
+                      encoding="utf-8")
     script.chmod(0o755)
     monkeypatch.setenv("PATH", f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}")
 
@@ -432,21 +437,39 @@ def test_c_prereg_immutable_cannot_verify_without_ots(ws, lint, monkeypatch):
 
 
 @pytest.mark.skipif(not POSIX, reason="the fake ots client is a shell script")
-@pytest.mark.parametrize("output, status, expected", [
-    ("Success! Bitcoin block 123456 attests existence as of 2026-10-20 EDT", 0, []),
-    ("File does not match original!", 1, ["error"]),
-    ("Could not connect to local Bitcoin node", 1, ["warning"]),
-    ("Pending confirmation in Bitcoin blockchain", 1, ["warning"]),
-    ("Bad timestamp", 1, ["error"]),
+@pytest.mark.parametrize("output, status, matches, expected", [
+    ("Success! Bitcoin block 123456 attests existence as of 2026-10-20 EDT", 0, True, []),
+    ("File does not match original!", 1, True, ["error"]),
+    ("Could not connect to local Bitcoin node", 1, True, ["warning"]),
+    ("Pending confirmation in Bitcoin blockchain", 1, True, ["warning"]),
+    # calendars unreachable while the proof is still pending: the file matches, so this is not a failure
+    ("Calendar https://alice.btc.calendar.opentimestamps.org: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED]>", 1, True,
+     ["warning"]),
+    ("Bad timestamp", 1, True, ["error"]),
+    # the file changed after it was stamped: caught locally, whatever verify would say
+    ("Could not connect to local Bitcoin node", 1, False, ["error"]),
+    ("Success! Bitcoin block 123456 attests existence as of 2026-10-20 EDT", 0, False, ["error"]),
 ])
-def test_c_prereg_immutable_ots_verify(ws, lint, tmp_path, monkeypatch, output, status, expected):
-    """C-PREREG-IMMUTABLE: `ots verify` must pass; a mismatch fails, an unreachable node or a pending proof warns."""
-    fake_ots(tmp_path, monkeypatch, output, status)
+def test_c_prereg_immutable_ots_verify(ws, lint, tmp_path, monkeypatch, output, status, matches, expected):
+    """C-PREREG-IMMUTABLE: the file is compared with the proof locally first; a different digest fails whatever the
+    network says, and once the digest matches an unreachable node, calendar or a pending proof only warns."""
     (ws / OWNER_PREREG).unlink()
+    digest = hashlib.sha256((ws / PREREG).read_bytes()).hexdigest() if matches else "0" * 64
+    fake_ots(tmp_path, monkeypatch, output, status, digest)
     (ws / f"{PREREG}.ots").write_bytes(b"\x00OpenTimestamps\x00\x00Proof\x00")
     found = lint(ws, "C-PREREG-IMMUTABLE", today=AFTER_DEADLINE)
     assert [f.level for f in found] == expected
     assert all(f.file == "companies/ACME/prereg/FY2027Q1.yml.ots" for f in found)
+
+
+@pytest.mark.skipif(not POSIX, reason="the fake ots client is a shell script")
+def test_c_prereg_immutable_unreadable_proof_fails(ws, lint, tmp_path, monkeypatch):
+    """C-PREREG-IMMUTABLE: a proof `ots info` cannot read is a failure, not a network problem."""
+    (ws / OWNER_PREREG).unlink()
+    fake_ots(tmp_path, monkeypatch, "Success!", 0, digest=None)
+    (ws / f"{PREREG}.ots").write_bytes(b"garbage")
+    found = lint(ws, "C-PREREG-IMMUTABLE", today=AFTER_DEADLINE)
+    assert [f.level for f in found] == ["error"] and "cannot be read" in found[0].message
 
 
 # --------------------------------------------------------------------------- C-TRUST-WRITE

@@ -52,7 +52,7 @@ thesis-ci brier path/to/archive/forecasts/2026.yml       # Brier 分与校准分
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.2.0
+- uses: kentian742-creator/thesis-ci@v0.2.1
   with:
     path: .                      # 档案仓库根目录
     # counterpart: ../private    # 可选：另一侧仓库
@@ -193,7 +193,7 @@ As a GitHub Action:
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.2.0
+- uses: kentian742-creator/thesis-ci@v0.2.1
   with:
     path: .                      # archive repository root
     # counterpart: ../private    # optional: the other side
