@@ -113,7 +113,7 @@
             "string",
             "null"
           ],
-          "description": "Written step by step, following criterion only"
+          "description": "How the criterion applies to this item: each of its conditions, the value used for it and the result, written so that another reader holding the same filings reaches the same outcome; nothing but the criterion is used"
         },
         "settled_at": {
           "oneOf": [

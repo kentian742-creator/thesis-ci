@@ -64,7 +64,7 @@ checks:
       to a ticker ("AXP B− → C") in a sentence about prices or valuation is an error (SPEC 7.5).
 
   - id: C-PUBLIC-NO-ADVICE
-    title: Public content contains no buy/sell advice
+    title: Public files are scanned for buy or sell wording
     scope: public
     level: error
     description: >-
@@ -86,7 +86,7 @@ checks:
       target_weight; no string may look like a brokerage account number (such as U followed by 7 or more digits).
 
   - id: C-NO-PRICE-FEED
-    title: No daily share prices are fetched
+    title: Code contains no daily share price feed (static scan)
     scope: both
     level: error
     description: >-
@@ -98,7 +98,7 @@ checks:
       display a share price.
 
   - id: C-NO-TRADING
-    title: No trades are executed
+    title: Code contains no broker or order interface (static scan)
     scope: both
     level: error
     description: >-
@@ -106,7 +106,7 @@ checks:
       schwab, place_order, submit_order, placeOrder).
 
   - id: C-LLM-ENTRY
-    title: Model calls only in pipeline/llm.py
+    title: All model calls go through one module, pipeline/llm.py
     scope: both
     level: error
     description: >-
@@ -132,7 +132,7 @@ checks:
       earlier than effective_from.
 
   - id: C-TESTS-COVERAGE
-    title: Tests cover the touchstones of business quality
+    title: Tests cover moat, pricing power, returns on capital and free cash flow
     scope: public
     level: error
     description: >-
@@ -185,7 +185,7 @@ checks:
       and README.md) must not contain words such as holding, 持仓, depends or 依赖本行业的公司, nor buy/sell advice.
 
   - id: C-STORY
-    title: The two-minute story exists and is short enough
+    title: Each company has a two-minute story (at most 350 English words or 700 CJK characters)
     scope: public
     level: error
     description: >-
@@ -203,7 +203,7 @@ checks:
       overall judgment under §V13, never a mechanical sort by any field, so the order itself is not checked.
 
   - id: C-CONCENTRATION
-    title: Concentrated holdings and the entry bar
+    title: Holdings stay concentrated, and a new position clears the entry bar
     scope: both
     level: error
     description: >-
@@ -225,7 +225,7 @@ checks:
       cash-flow record and is not compared across companies.
 
   - id: C-SELL-REASONS
-    title: Sell only for permanent deterioration or a clearly better opportunity
+    title: "A sale gives an allowed reason: permanent deterioration or a clearly better opportunity"
     scope: both
     level: error
     description: >-
@@ -234,7 +234,7 @@ checks:
       repository, a trim or sell memo must cite an allowed reason.
 
   - id: C-HURDLE
-    title: The long-term expectation clears the Berkshire or VOO hurdle
+    title: "A purchase clears the benchmark: Berkshire Hathaway first, an S&P 500 fund second"
     scope: private
     level: error
     description: >-
@@ -246,7 +246,7 @@ checks:
       ranking (17C).
 
   - id: C-SINGLE-ORDER
-    title: A position is built with one order
+    title: A position is opened with a single order
     scope: both
     level: error
     description: >-
@@ -254,7 +254,7 @@ checks:
       single; more memos in a month than memo.monthly_target_max gives a warning.
 
   - id: C-DEFAULT-HOLD
-    title: Money matters default to no action
+    title: Decisions involving money default to doing nothing
     scope: both
     level: error
     description: >-
@@ -262,7 +262,7 @@ checks:
       maintain.
 
   - id: C-DECISION-RIGHTS
-    title: The three decision levels are consistent
+    title: The three decision levels (act, act and report, the owner decides) are consistent
     scope: public
     level: error
     description: >-
@@ -278,7 +278,7 @@ checks:
       in the implementation and covered by a unit test.
 
   - id: C-AGENT-ISOLATION
-    title: What the auditor and the blind reader see is isolated
+    title: The auditor and the blind reader never see what they must judge independently of
     scope: public
     level: error
     description: >-
@@ -310,7 +310,7 @@ checks:
       pre-registration files.
 
   - id: C-TRUST-WRITE
-    title: Trust levels and review dates are maintained by the pipeline
+    title: Only the pipeline edits trust levels and review dates
     scope: public
     level: warning
     description: >-
