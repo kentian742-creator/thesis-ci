@@ -1,35 +1,68 @@
 # thesis-ci
 
-**Thesis as code.** Maintain an investment thesis like a software project, and check it with CI.
+**Continuous integration for investment theses.** Write down what would prove you wrong as tests a machine can run,
+register your forecasts before the results and timestamp them, then score them against the criteria you fixed in
+advance.
 
-A Chinese version is in [zh-CN/README.md](zh-CN/README.md).
+> **Not investment advice.** thesis-ci fetches no prices, gives no buy or sell signals and executes no trades.
 
-> Not investment advice. thesis-ci never fetches prices, produces no buy or sell signals and executes no trades.
+A Chinese version of this page is in [zh-CN/README.md](zh-CN/README.md).
 
-## What it is
+## Why
 
-thesis-ci is an open format specification and linter for owner-style investment thesis archives:
+Most investment theses are prose: easy to write, hard to check, and quietly revised when the facts change. thesis-ci
+makes a thesis behave like code:
 
-| Software engineering | In thesis-ci |
+| Software | Investing, with thesis-ci |
 | --- | --- |
-| Source code | `thesis.yml`: a company's thesis, ratings, industry dependencies and thesis tests |
-| Unit tests | Thesis tests: quantitative, qualitative and staleness tests with thresholds written down in advance ("what would prove me wrong") |
-| CI | Every new 10-Q, 10-K or 8-K triggers all tests |
-| Lint | `thesis-ci lint`: every number carries a source, public content has no valuation or advice, every constitution rule maps to an executable check |
+| Source code | `thesis.yml`: the thesis, its ratings, its industry dependencies and its tests |
+| Unit tests | Thesis tests, each written before the data: a number that must hold (computed from XBRL or a named line in a filing), a yes-or-no question an independent model answers with quoted evidence, or a staleness limit that fails when part of the thesis goes unreviewed for too long |
+| CI | Every new 10-Q, 10-K or 8-K runs the tests; once a period's results are out, its thresholds are frozen against git history |
+| Lint | `thesis-ci lint`: every number cites a primary source, public files carry no valuation or advice, every rule of the investor's constitution maps to an executable check |
+| Test reports | Forecasts are pre-registered with probabilities, timestamped, settled, and scored (Brier score, calibration by domain) |
+
+It is built for individual investors and small teams who keep written theses and want them checkable, and for anyone
+running an LLM research pipeline that needs guardrails: sourced facts, no advice in public output, isolation between
+the model that drafts and the models that audit.
+
+## What a test looks like
+
+```yaml
+# From the bundled example archive (fictitious company), lightly trimmed
+- id: ACME-Q2
+  type: quantitative
+  claim: Gross margin shows that pricing power holds
+  origin: report:breaker       # where the test came from: the research report's list of thesis breakers
+  severity: breaker            # failing it breaks the thesis; "watch" only raises a flag
+  covers: [pricing_power, moat]
+  metric: gross_margin         # defined in spec/metrics.yml, computed from XBRL
+  fail_if: below 55% for two consecutive quarters
+  rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}
+  warn_if: below 58%
+  effective_from: FY2027Q1     # judged from this period on; never edited once results are out
+  baseline: {value: 62, unit: "%", period: FY2026, source: ACME-10K-FY2026#Item8}
+```
+
+Qualitative tests replace the rule with a `question`, the documents to read and a `lookback`; staleness tests fail
+when a part of the thesis has not been reviewed within a set number of quarters. The bundled example archive
+([`fixtures/workspace`](src/thesis_ci/fixtures/workspace), fictitious data) shows every file type. A real archive run
+on thesis-ci is public at [owners-office](https://github.com/kentian742-creator/owners-office).
+
+## The specification
 
 The specification (v0.2) lives in [`spec/`](spec/): [`SPEC.md`](spec/SPEC.md) (a Chinese version is in
 [`zh-CN/spec/SPEC.md`](zh-CN/spec/SPEC.md)), 16 JSON Schemas, the check registry [`checks.yml`](spec/checks.yml)
-(35 checks), the metric registry [`metrics.yml`](spec/metrics.yml) and the six Lynch monitoring templates in
-[`templates/lynch/`](spec/templates/lynch/). Where `SPEC.md` and the machine-readable files disagree, the
-machine-readable files win.
+(35 checks), the metric registry [`metrics.yml`](spec/metrics.yml) and six monitoring templates, one for each of
+Peter Lynch's company categories, in [`templates/lynch/`](spec/templates/lynch/). Where `SPEC.md` and the
+machine-readable files disagree, the machine-readable files win.
 
-An archive is a pair of repositories: a public one (`visibility: public` in `repo.yml`) with theses,
-pre-registrations, forecasts and letters, and a private one (`visibility: private`) with value ranges, L3 memos,
-escalation requests, the series ranking and the decision log with amounts. `thesis-ci lint` reads `repo.yml` to
-decide which checks apply. A pre-registration is three files per event: the immutable items file
-`prereg/<period>.yml` (the owner's overrides in `<period>-owner.yml`), the timestamp proof `<period>.yml.ots`, and the
-settlement file `<period>.settlement.yml` kept by the pipeline (SPEC 2.1). Archives are English-first: the Chinese
-version of a key document lives at `zh-CN/<same path>`, and every other file is in English (SPEC 8.5).
+An archive is a pair of repositories. The public one (`visibility: public` in `repo.yml`) holds theses,
+pre-registrations, forecasts and letters; the private one (`visibility: private`) holds value ranges, decision memos
+and the decision log with amounts. `thesis-ci lint` reads `repo.yml` to decide which checks apply. A pre-registration
+is three files per event: the frozen items `prereg/<period>.yml` (the owner's overrides in `<period>-owner.yml`), the
+timestamp proof `<period>.yml.ots`, and the settlement `<period>.settlement.yml` (SPEC 2.1). Archives are English
+first: the Chinese version of a key document lives at `zh-CN/<same path>`, and every other file is in English
+(SPEC 8.5).
 
 ## Quickstart
 
@@ -110,7 +143,9 @@ As a GitHub Action:
 | `C-LANGUAGE` | both | error | English files contain no CJK text |
 
 The scope is `public`, `private`, `both`, or `workspace` (runs only with `--counterpart`). Full definitions are in
-[`spec/checks.yml`](spec/checks.yml). Implementation notes:
+[`spec/checks.yml`](spec/checks.yml).
+
+## Reference: how the checks read an archive
 
 - **Sources (SPEC 3.1, 3.4).** Chinese, Japanese and Korean text is split into sentences at the Chinese full stop,
   exclamation mark, question mark and semicolon and at every newline. English text is split at `.`, `!`, `?` and `;`

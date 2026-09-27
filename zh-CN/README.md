@@ -2,30 +2,49 @@
 
 # thesis-ci
 
-**论点即代码（thesis as code）。** 把投资论点当作软件项目来维护，并用 CI 检查它。
+**投资论点的持续集成。** 把"什么会证明我错了"写成机器能执行的测试；在业绩公布之前登记预测并加时间戳；事后按事先定好的标准打分。
 
-> 本项目不构成投资建议。thesis-ci 不抓取股价、不产生买卖信号、不执行任何交易。
+> **不构成投资建议。** thesis-ci 不抓取股价，不给买卖信号，也不执行任何交易。
 
-## 这是什么
+## 为什么
 
-thesis-ci 是一个开源的格式规范和检查工具，用来维护“所有者视角”的企业论点档案：
+大多数投资论点是一段文字：写起来容易，检查起来难，事实一变就被悄悄改写。thesis-ci 让论点像代码一样运转：
 
-| 软件工程 | 在 thesis-ci 里 |
+| 软件工程 | 投资（用 thesis-ci） |
 | --- | --- |
-| 源代码 | `thesis.yml`：一家公司的论点、评级、依赖的行业和论点测试 |
-| 单元测试 | thesis tests：事先写好门槛的定量、定性和时效测试（“什么会证明我错”） |
-| CI | 每份新的 10-Q、10-K、8-K 都触发一次全部测试 |
-| lint | `thesis-ci lint`：档案里每个数字都有出处、公开内容不含估值和建议、宪法的每条规则都有可执行检查 |
+| 源代码 | `thesis.yml`：论点、评级、行业依赖和测试 |
+| 单元测试 | 论点测试，每一条都在数据出来之前写好：必须守住的数字（从 XBRL 或申报文件的指定行计算）、由独立模型引用证据作答的是非题，或者一条过期上限，论点的某一部分太久没有重新审视就判为不通过 |
+| CI | 每份新的 10-Q、10-K 或 8-K 都会运行测试；某一期的业绩一旦公开，这一期的门槛就对照 git 历史冻结 |
+| Lint | `thesis-ci lint`：每个数字都引用一手来源，公开文件不含估值和建议，投资者宪法的每条规则都对应一项可执行的检查 |
+| 测试报告 | 预测带概率预先登记、加时间戳、结算并打分（Brier 分数、分领域校准） |
 
-格式规范（v0.2）在 [`spec/`](../spec/)：[`SPEC.md`](../spec/SPEC.md)（中文版见 [`zh-CN/spec/SPEC.md`](spec/SPEC.md)）、16 个 JSON Schema、检查登记表
-[`checks.yml`](../spec/checks.yml)（35 项检查）、指标登记表 [`metrics.yml`](../spec/metrics.yml)
-和林奇六类监控模板 [`templates/lynch/`](../spec/templates/lynch/)。机器可读文件与 `SPEC.md` 冲突时，以机器可读文件为准。
+它面向写成文字的论点、并希望这些论点能被检验的个人投资者和小团队；也面向需要护栏的大模型研究流水线：事实必须有出处，公开输出不含建议，起草的模型和审计的模型彼此隔离。
 
-一个档案由两个仓库组成：公开仓库（`repo.yml` 中 `visibility: public`）放论点、预注册、预测和股东信；
-私有仓库（`visibility: private`）放价值区间、L3 备忘录、升级请求、系列排名和带金额的决策日志。`thesis-ci lint` 读 `repo.yml`
-决定运行哪些检查。预注册按事件分成三件：不可变的条目文件 `prereg/<期间>.yml`（所有者的改写在 `<期间>-owner.yml`）、
-时间戳证明 `<期间>.yml.ots` 和流水线维护的结算文件 `<期间>.settlement.yml`（SPEC 2.1）。档案以英文为主：
-关键文档的中文版放在 `zh-CN/<相同路径>`，其余文件都用英文（SPEC 8.5）。
+## 一个测试长什么样
+
+```yaml
+# 取自包内的示例档案（虚构公司），略有删减
+- id: ACME-Q2
+  type: quantitative
+  claim: Gross margin shows that pricing power holds
+  origin: report:breaker       # 测试的来历：研究报告列出的论点破坏条件
+  severity: breaker            # 不通过就意味着论点被打破；watch 只是亮一个提醒
+  covers: [pricing_power, moat]
+  metric: gross_margin         # 在 spec/metrics.yml 中定义，从 XBRL 计算
+  fail_if: below 55% for two consecutive quarters
+  rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}
+  warn_if: below 58%
+  effective_from: FY2027Q1     # 从这一期开始判定；业绩公开之后不再修改
+  baseline: {value: 62, unit: "%", period: FY2026, source: ACME-10K-FY2026#Item8}
+```
+
+定性测试把规则换成一个 `question`、要读的文件和 `lookback`；过期测试在论点的某一部分超过规定的季度数没有重新审视时判为不通过。包内的示例档案（[`fixtures/workspace`](../src/thesis_ci/fixtures/workspace)，全部为虚构数据）展示了每一种文件。一个用 thesis-ci 运转的真实档案公开在 [owners-office](https://github.com/kentian742-creator/owners-office)。
+
+## 规范
+
+规范（v0.2）在 [`spec/`](../spec/)：[`SPEC.md`](../spec/SPEC.md)（中文版在 [`zh-CN/spec/SPEC.md`](spec/SPEC.md)）、16 个 JSON Schema、检查登记表 [`checks.yml`](../spec/checks.yml)（35 项检查）、指标登记表 [`metrics.yml`](../spec/metrics.yml)，以及 [`templates/lynch/`](../spec/templates/lynch/) 下的六个监控模板，对应彼得·林奇的六类公司。`SPEC.md` 与机器可读文件不一致时，以机器可读文件为准。
+
+一个档案是一对仓库。公开仓库（`repo.yml` 中 `visibility: public`）存放论点、预注册、预测和信件；私有仓库（`visibility: private`）存放价值区间、决策备忘录和带金额的决策日志。`thesis-ci lint` 读取 `repo.yml` 决定运行哪些检查。每次预注册是三个文件：冻结的条目 `prereg/<period>.yml`（主人的覆盖写在 `<period>-owner.yml`）、时间戳证明 `<period>.yml.ots` 和结算文件 `<period>.settlement.yml`（SPEC 2.1）。档案以英文为主：关键文档的中文版放在 `zh-CN/<同一路径>`，其余文件都用英文（SPEC 8.5）。
 
 ## 快速开始
 
@@ -101,7 +120,9 @@ thesis-ci brier path/to/archive/forecasts/2026.yml       # Brier 分与校准分
 | `C-PROMPT-ISOLATION` | private | warning | 提示词的输入不越过角色的可见范围 |
 | `C-LANGUAGE` | both | error | 英文文件不含中日韩文字 |
 
-每项检查的完整定义见 [`spec/checks.yml`](../spec/checks.yml)。实现上的几个约定：
+每项检查的完整定义见 [`spec/checks.yml`](../spec/checks.yml)。
+
+## 参考：检查如何读取档案
 
 - **出处（SPEC 3.1、3.4）。** 中文、日文、韩文按 `。！？；` 和换行切分句子；英文按后接空白的 `.`、`!`、`?`、`;` 切分，小数点（`3.5%`）、缩写（`U.S.`、`Inc.`、`e.g.`、`vs.`、`No. 1`）后的句点和来源标签内的句点不算句末，英文段落内的换行不结束句子（英文常折行），空行、标题、列表项、表格行和引用块则结束句子；紧跟在句点后的标签（`16%.[src:TAG]`）属于前一句。含事实数字（`$495`、`16%`、`1,020 亿美元`、`1.04×`、`45 个百分点` 等）的句子必须带 `[src:TAG#LOCATOR]`。SPEC 3.4 所列单位的其他写法同样算事实数字：英文（`16 percent`、`30 basis points`、`40 cents`、`1.2 trillion`、`25x`）、其他货币（`€500`、`RMB 5`、`5 港元`、`1.50 比索`）和数量级（`5 千美元`、`3 百亿`）；数字和单位之间可以有任意空白，零宽字符不能把它们隔开。年份、日期、季度、`FY2026`、章节号不算事实数字（`2019-06 百亿补贴` 这类“日期 + 名称”也不算）；front matter、代码块、行内代码和链接 URL 不参与判断。英文单位不分大小写（`3 bn`、`16 PERCENT`），`5 USD`、`5 dollars` 也算；英文日期（`September 30, 2026`）、`3Q26` 这样的期间和章节号不算。Markdown 检查覆盖 `companies/`、`industries/`、`letters/` 和根目录的 `mistakes.md`，以及它们在 `zh-CN/` 下的中文版。标签先在文件所在目录及上级目录的 `sources.yml` 中查找，最后是仓库根目录（`zh-CN/` 下的文件从它所翻译的文件的目录查起）。
 - **YAML 自由文本。** `claim`、`summary`、`category_rationale`、`pillars[].claim`、`permanent_loss_paths`、`structure`、`implication`、`observable`、`title`、`note`、`statement`、`label` 中的事实数字同样要带标签；`fail_if`、`warn_if`、`threshold`、`question`、`rule` 是事先写下的判定标准，不需要出处。`companies/` 和 `industries/` 下任何 YAML（包括 `updates/` 和多文档流的每个文档）中的 `source` 字段都必须能解析。
