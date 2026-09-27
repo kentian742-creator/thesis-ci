@@ -3,7 +3,7 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
-## v0.4.0 — The evaluation engine (unreleased)
+## v0.4.0 — The evaluation engine (2026-09-27)
 
 thesis-ci now judges quantitative thesis tests: given a company's `thesis.yml` and a document of metric readings, it
 writes the `ci_results` the quarterly update reads, with each test's result, the readings it rests on and the reason
@@ -58,6 +58,15 @@ unchanged; archives keep `spec_version: "0.2"`.
 - `metrics.yml`: `interest_expense_minus_income_growth` also accepts `us-gaap:InterestExpenseOperating`, which filers
   such as American Express use instead of `us-gaap:InterestExpense` since 2024. A header note says how formulas over
   several quantities map to concepts.
+
+### Documentation and wording
+
+- The README opens with what thesis-ci is for, a sample test and who it serves; it says which parts ship and which are
+  planned, and that several checks encode one investor's rules (a switch to turn them off is planned). The reference
+  on how checks read an archive moves to `docs/reference.md`.
+- Clearer titles for 14 checks in `spec/checks.yml` (the checks themselves are unchanged).
+- `prereg-settlement.schema.json`: `reasoning` is described as an audit record of how the criterion applies, not as
+  step-by-step reasoning.
 
 ## v0.3.0 — English first (2026-09-25)
 
