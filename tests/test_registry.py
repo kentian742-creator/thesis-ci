@@ -10,6 +10,7 @@ import pytest
 
 from thesis_ci import contract, engine, selftest
 from thesis_ci.checks.thesis_tests import rule_problems
+from thesis_ci.evaluate import shape_problems
 
 TESTS_DIR = Path(__file__).parent
 
@@ -76,6 +77,7 @@ def test_lynch_templates_are_executable(category):
             assert rule_problems(test["rule"]) == [], test["key"]
             if "warn_rule" in test:
                 assert rule_problems(test["warn_rule"]) == [], test["key"]
+            assert shape_problems({**test, "id": "X-Q1"}) == [], test["key"]  # the evaluation engine can judge it
         elif test["type"] == "qualitative":
             assert test["question"] and test["fail_if"], test["key"]
             assert test["where"] and isinstance(test["lookback"], int) and test["lookback"] >= 1, test["key"]

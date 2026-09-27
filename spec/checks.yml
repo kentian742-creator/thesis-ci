@@ -155,7 +155,9 @@ checks:
       The metric of every quantitative test is registered in spec/metrics.yml, or a metric_def is given; rule can be
       parsed as a machine decision (op/threshold or all_of/any_of); data agrees with the metric definition; the metric in
       rule and warn_rule must resolve: a metric in the registry, this test's metric or metric_def, a component of
-      metric_def.components, or <metric>.<component> (the component must be defined in components).
+      metric_def.components, or <metric>.<component> (the component must be defined in components); and the evaluation
+      engine (SPEC 4.5) must be able to judge the rule: units that fit the metric, an unambiguous increase/decrease
+      unit, all_of/any_of with a shared consecutive count only over sub-rules of the same period.
 
   - id: C-TEST-QUAL-EVIDENCE
     title: Qualitative tests require an independent judgment and sources

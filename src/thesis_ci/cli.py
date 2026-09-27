@@ -1,4 +1,4 @@
-"""Command line: thesis-ci lint | checks | selftest | staleness | brier."""
+"""Command line: thesis-ci lint | checks | selftest | staleness | brier | evaluate."""
 
 from __future__ import annotations
 
@@ -8,7 +8,9 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, brier, contract, engine, periods, selftest, staleness
+import yaml
+
+from . import __version__, brier, contract, engine, evaluate, periods, readings, selftest, staleness
 
 
 def _date(value: str) -> dt.date:
@@ -121,6 +123,36 @@ def cmd_brier(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_evaluate(args: argparse.Namespace) -> int:
+    """Judge one company's quantitative tests; the results are data, so the exit code is 0 whenever it ran."""
+    if not Path(args.path).is_dir():
+        print(f"thesis-ci: {args.path} is not a directory", file=sys.stderr)
+        return 2
+    try:
+        thesis = evaluate.load_thesis(args.path, args.company)
+        doc = readings.load(args.readings)
+    except ValueError as exc:
+        print(f"thesis-ci: {exc}", file=sys.stderr)
+        return 2
+    problems = readings.problems(doc)
+    if problems:
+        print(f"thesis-ci: {args.readings} is not a valid readings document:", file=sys.stderr)
+        for problem in problems:
+            print(f"  {problem}", file=sys.stderr)
+        return 2
+    if doc["company"] != args.company or thesis.get("company") != args.company:
+        print(f"thesis-ci: --company {args.company}, thesis.yml company {thesis.get('company')!r}, "
+              f"readings company {doc['company']!r}: they must agree", file=sys.stderr)
+        return 2
+    today = args.today or dt.date.today()
+    result = evaluate.evaluate_company(thesis, doc["readings"], args.period, today)
+    if args.format == "json":
+        _print_json(result)
+    else:
+        print(yaml.safe_dump(result, sort_keys=False, allow_unicode=True, width=120), end="")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="thesis-ci", description="Thesis as code: lint thesis archives.")
     parser.add_argument("--version", action="version", version=f"thesis-ci {__version__}")
@@ -159,6 +191,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("files", nargs="+", metavar="FILE", help="forecasts/<YYYY>.yml file(s)")
     p.add_argument("--format", choices=["text", "json"], default="text")
     p.set_defaults(func=cmd_brier)
+
+    p = sub.add_parser("evaluate", help="judge one company's quantitative tests against metric readings (ci_results)")
+    p.add_argument("path", help="archive repository root (contains companies/<TICKER>/thesis.yml)")
+    p.add_argument("--company", required=True, metavar="TICKER")
+    p.add_argument("--period", required=True, type=_period, metavar="FY<YEAR>Q<N>", help="the fiscal quarter to judge")
+    p.add_argument("--readings", required=True, metavar="FILE", help="readings document (YAML or JSON)")
+    p.add_argument("--today", type=_date, help="evaluation date, YYYY-MM-DD (default: today)")
+    p.add_argument("--format", choices=["yaml", "json"], default="yaml")
+    p.set_defaults(func=cmd_evaluate)
     return parser
 
 

@@ -3,6 +3,62 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.4.0 — The evaluation engine (unreleased)
+
+thesis-ci now judges quantitative thesis tests: given a company's `thesis.yml` and a document of metric readings, it
+writes the `ci_results` the quarterly update reads, with each test's result, the readings it rests on and the reason
+(SPEC 4.5). It can also compute the `data: xbrl` metrics from an SEC companyfacts document. Archive file formats are
+unchanged; archives keep `spec_version: "0.2"`.
+
+### New
+
+- `thesis-ci evaluate <archive> --company <TICKER> --period FY<year>Q<quarter> --readings <file> [--today YYYY-MM-DD]
+  [--format yaml|json]` prints the `ci_results` document. It exits 0 whenever it ran (a failing test is a result, not
+  an error) and 2 on a usage error: an unreadable thesis, an invalid readings file, or companies that disagree.
+- `thesis_ci.evaluate`: `evaluate_company(thesis, readings, period, today)` returns the `ci_results` document;
+  `needed_readings(thesis, period)` lists what the tests in force need (metric, segment, periods including the
+  earlier periods of `consecutive` and the year-earlier bases of `increase`/`decrease`, unit, data kind, tests);
+  `shape_problems(test)` says why the engine cannot judge a rule. Results are `pass`, `warn`, `fail`,
+  `undetermined` or `not_due` (the test was not judged this period: an annual rule outside Q4, `evaluate_on`,
+  `evaluate_from`). Tests not in force (`effective_from`, `retired_at`) are listed apart, with the superseding test.
+- Rule semantics (SPEC 4.5): `period` is inherited by sub-rules; `consecutive` on a comparison asks for N periods in a
+  row, on `all_of`/`any_of` for the combination to hold in the same period N periods in a row; periods before
+  `evaluate_from` never count toward a run; three-valued logic, so a known "not triggered" in `all_of` (or a known
+  "triggered" in `any_of`) decides whatever else is missing, but a run whose latest period has no reading stays
+  undetermined; `warn_rule` is judged only when the fail rule is not triggered; missing data is never guessed.
+- `increase` / `decrease` compare with the same period one fiscal year earlier (the same quarter a year earlier for a
+  quarter rule, the previous year for a year rule), as the Lynch templates and every archive rule that uses them say
+  ("down year on year"). `pp` is a difference of percentages, `%` a relative change of an amount, the metric's own
+  unit a difference.
+- Readings documents (`spec/schemas/readings.schema.json`, `thesis_ci.readings`): `{company, as_of, readings: [{metric,
+  period, value, unit, source, basis?, note?, segment?, series?}]}`. Periods may be `FY<year>H<half>` for half-year
+  rules; `value: null` (with a `note`) means checked, nothing to measure; `segment` matches a test's `params.segment`;
+  `series` carries parallel readings such as one per holder group; an `op: event` sub-rule without a metric is keyed
+  by the test id. Units of one kind are converted (`USD` and `USD 100 million`, `RMB` and `CNY`).
+- `thesis_ci.metrics.readings_from_companyfacts(companyfacts, metric_ids, periods, fiscal_year_end, *, ticker=None,
+  definitions=None, currency=None)`: a pure function over a downloaded companyfacts JSON. Only 10-K, 10-Q, 20-F and
+  40-F facts count, each placed in the fiscal calendar by its dates; the most recently filed value of a span wins;
+  Q2, Q3, Q4 and H2 are derived from year-to-date figures when no filing reports them (Q4 = FY − 9M), except share
+  counts and per-share amounts; monetary facts are read in the reporting currency (PDD in CNY, not its USD
+  translation). It computes 20 of the 21 registered `xbrl` metrics (`book_value_per_share_yoy` has no registered
+  share-count concept) and `metric_def`s whose formula is the growth of one quantity (AXP-Q1, AXP-Q15). Sources read
+  `<TICKER>-XBRL#<concept>:<accession>`; `basis` spells out the formula and the values used.
+- `spec/schemas/ci-results.schema.json` describes the output. `thesis_ci.periods` gains fiscal halves and years and the
+  fiscal calendar (`Fiscal`, `parse_fiscal`, `period_dates`).
+
+### Changes
+
+- `C-TEST-METRIC` also reports a rule the engine cannot judge: a threshold unit that does not fit the metric, a `%`
+  threshold on `increase`/`decrease` of a percentage (ambiguous: write `pp`), `consecutive` on `all_of`/`any_of` over
+  sub-rules of another period, an `evaluate_on` quarter in which a year or half rule can never be judged, or several
+  metric-less events in one test. Two new selftest cases. All 92 quantitative tests of the six archives pass.
+- Lynch template `cyclical`, test `Q-cycle`: the rule compared the provision's level in USD with 50%; it is now
+  `{op: increase, threshold: 50, unit: "%", consecutive: 2, period: quarter}`, which is what its `fail_if` says
+  (provision growth above 50% year on year). An archive that copied the old rule should supersede it.
+- `metrics.yml`: `interest_expense_minus_income_growth` also accepts `us-gaap:InterestExpenseOperating`, which filers
+  such as American Express use instead of `us-gaap:InterestExpense` since 2024. A header note says how formulas over
+  several quantities map to concepts.
+
 ## v0.3.0 — English first (2026-09-25)
 
 The archives are English-first from now on: the Chinese version of a key document lives at `zh-CN/<same path>`, and

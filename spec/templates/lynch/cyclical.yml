@@ -9,7 +9,7 @@ tests:
     covers: [balance_sheet]
     metric: provision_for_credit_losses
     fail_if: provision growth above 50% year on year for 2 consecutive quarters
-    rule: {op: ">", threshold: 50, unit: "%", consecutive: 2, period: quarter}
+    rule: {op: increase, threshold: 50, unit: "%", consecutive: 2, period: quarter}
     data: xbrl
     severity: watch
   - key: Q-leverage

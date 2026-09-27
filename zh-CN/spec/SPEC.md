@@ -257,7 +257,7 @@ source: MSFT-10K-FY2026#Item8
 
 **时效测试**（`type: staleness`）：`section` 取 `reviewed` 的十四个键之一，`max_age_quarters` 为整数；以 `reviewed.<section>` 为基准，超过 `max_age_quarters × 91` 天即失败。
 
-测试结果只有四种：`pass`、`warn`、`fail`、`undetermined`。
+测试结果只有四种：`pass`、`warn`、`fail`、`undetermined`。定量测试如何判定见 4.5。
 
 ### 4.2 流水线维护的字段（00 §G8）
 
@@ -288,6 +288,31 @@ reviewed_sections: [economics, monitoring]
 ### 4.3 结果出来后不改门槛（00 §G7）
 
 `thesis-ci lint --base-ref <git 引用> --period FY<年>Q<季>` 把 `thesis.yml` 的测试与该引用下的版本逐条比较（`C-TEST-FROZEN`）：对当期有效的测试（base 版本的 `effective_from` 不晚于当期、且未退役；没有 `effective_from` 的旧测试视为一直有效），`rule`、`fail_if`、`warn_rule`、`warn_if`、`max_age_quarters` 不得改动，也不得删除。只改格式（例如行内映射改成块映射）不算改动。业绩文件入库之后的 PR 应当带上这两个参数。
+
+### 4.5 求值（thesis-ci 0.4.0）
+
+`thesis-ci evaluate <档案> --company <代码> --period FY<年>Q<季> --readings <文件> [--today YYYY-MM-DD] [--format yaml|json]` 用一份读数文件判定一家公司的定量测试，输出 `ci_results` 文件（`ci-results.schema.json`）。只要运行完成就以 0 退出，因为测试失败是结果而不是错误；用法错误（文件读不出或不合规、几处公司代码不一致）以 2 退出。
+
+**读数**（`readings.schema.json`）：`{company, as_of, readings: [{metric, period, value, unit, source, basis?, note?, segment?, series?}]}`。
+
+- `metric` 是登记表中的 id、测试的 `metric` 或 `metric_def.id`，或 `<指标>.<组成项>`；没有写指标的 `op: event` 子规则，其读数以测试 id 为键（`MSFT-Q9`）。`period` 取 `FY<年>`、`FY<年>H<半年>` 或 `FY<年>Q<季>`，按公司自己的财年。`source` 是来源标签（3.1）。
+- `value` 是数字；事件为 `true` 或 `false`；指标查过、但没有可量的东西（没有符合条件的事件，或按定义不计算）时为 `null`，此时必须写 `note`。找不到的读数不写，绝不写成 `null`。
+- 带 `params.segment` 的测试只用 `segment` 与之相同的读数，不带的测试只用不带 `segment` 的读数。同一指标的读数带 `series` 时（例如 `params.holders` 中每个持有人集团一组），逐组判定，任何一组成立即子规则成立。
+- `data: xbrl` 的指标可以从 EDGAR companyfacts 计算（`thesis_ci.metrics`）：只用 10-K、10-Q、20-F 和 40-F 的事实，按起止日期放进财年日历，同一区间取最晚申报的数值；没有单独披露的季度用年初至今的数字推出（第四季度 = 全年 − 前九个月），股数和每股数据除外；来源写作 `<代码>-XBRL#<概念>:<登记号>`。算不出的指标不出现。
+
+**判定哪些测试、哪些期间。** 只判定本期生效的测试（`effective_from` ≤ 本期 < `retired_at`），其余列在 `not_in_force`。`quarter` 或 `event` 规则读本季；`half` 规则读以本季结束的半年（`FY<年>H<n>`，在第二、第四季判定）；`year` 规则读以本季结束的财年（在第四季判定）。规则的期间不在本季结束、`evaluate_on` 没有列出本季（`evaluate_on` 中的年份代表该年的每个季度）或 `evaluate_from` 更晚时，该规则不到期。`all_of` 要所有子规则都到期才到期；`any_of` 只要有一个到期就到期，且只判定到期的子规则。没有任何规则到期的测试记为 `not_due` 并写明原因：这表示本期没有判定，不是第五种结果。
+
+**规则如何判定。**
+
+- 没写 `period` 的子规则继承上一层的；根的默认值是测试所用指标的频率，没有则为 `quarter`。
+- `consecutive`（默认 1）写在比较上，要求它在最近 N 期每期都成立；写在 `all_of` 或 `any_of` 上，要求组合在同一期成立、连续 N 期，这时所有子规则的 `period` 必须与它相同。`evaluate_from` 之前的期间一律不计入连续期数。
+- `increase` 和 `decrease` 与上一财年的同一期间比较（季度规则比上年同季，年度规则比上一年），变动超过 `threshold` 时成立：单位为 `pp` 时取两个百分比之差；为 `%` 时取本身不是百分比的指标的相对变动（百分比指标用 `%` 门槛有歧义，不接受）；为指标自己的单位时取差值。
+- `between` 含两端，`outside` 为其补集。事件的读数为 `true` 时成立。
+- 同类单位之间换算（`USD`、`USD million`、`RMB 100 million` 即 `CNY 100 million`）；其他不一致使比较无法判定。
+- 缺读数的比较无法判定；连续期数中最近一期没有读数时，即使更早的某一期已经打断连续，也无法判定：某一期的结果要以该期的数据为据。`all_of` 只要有一个子规则不成立就不成立，`any_of` 只要有一个成立就成立，不管其他读数缺不缺。读数为 `null` 时比较不成立。
+- 先判定失败规则：成立为 `fail`，无法判定为 `undetermined`。否则判定 `warn_rule`：成立为 `warn`，无法判定为 `undetermined`，其余为 `pass`。
+
+`C-TEST-METRIC` 会报告引擎无法判定的规则（单位与指标不符、`increase` 或 `decrease` 的单位有歧义、`evaluate_on` 永远不会到期）。每条结果带 `reading`（规则第一个指标的本期读数）、`readings`（用到的全部读数，含连续期数中的前几期和同比基数）、按登记原样的 `rule` 与 `warn_rule`（规则只有一个比较时另有 `op`、`threshold`、`unit`）、`fail_if`、`warn_if`、`consecutive_count`、`missing`（无法判定时缺的读数）、`reason`，以及 `evaluation` 下判定过的规则树。在 `--today` 那天尚未结束的期间，其读数被忽略并列在 `ignored_readings`。
 
 ### 4.4 言行账本 ledger.yml
 
@@ -391,10 +416,12 @@ thesis-ci lint <path> [--counterpart <另一侧仓库>] [--today YYYY-MM-DD] [--
 
 ## 9. 指标登记表
 
-`spec/metrics.yml` 列出定量测试可以引用的指标：`id`、`description`、`unit`、`frequency`、`data`（`xbrl` 或 `filing_text`）、`xbrl`（候选概念，按优先顺序）、`formula` 与 `where`。XBRL 概念跟着发行人采用的会计准则走，不跟表格走：按美国会计准则编报的外国私人发行人（例如 PDD 的 20-F）同样用 `us-gaap` 概念，只有按 IFRS 编报的发行人才用 `ifrs-full`。登记表中没有的指标，用测试里的 `metric_def` 就地定义（字段同登记表条目，另可写 `components`，`data` 可取 `external` 或 `mixed`）。
+`spec/metrics.yml` 列出定量测试可以引用的指标：`id`、`description`、`unit`、`frequency`、`data`（`xbrl` 或 `filing_text`）、`xbrl`（候选概念，按优先顺序）、`formula` 与 `where`。thesis-ci 从 EDGAR companyfacts 计算 `xbrl` 指标（4.5），`book_value_per_share_yoy` 除外，因为没有登记的概念给出它所需的股数。XBRL 概念跟着发行人采用的会计准则走，不跟表格走：按美国会计准则编报的外国私人发行人（例如 PDD 的 20-F）同样用 `us-gaap` 概念，只有按 IFRS 编报的发行人才用 `ifrs-full`。登记表中没有的指标，用测试里的 `metric_def` 就地定义（字段同登记表条目，另可写 `components`，`data` 可取 `external` 或 `mixed`）。
 
 ## 10. 版本
 
 本规范为 v0.2。跑完两个财报季后定 v1.0，之前的不兼容改动在 `CHANGELOG.md` 中逐条记录。
 
 thesis-ci 0.3.0 增加英文支持和 `C-LANGUAGE`（3.4、3.5、5、7.5、8.5），除可选的 `title_original` 外不改任何文件格式；档案的 `spec_version` 仍为 `"0.2"`。
+
+thesis-ci 0.4.0 增加定量测试的求值（4.5）和两种新文件：读数与 `ci_results`（`readings.schema.json`、`ci-results.schema.json`）；`C-TEST-METRIC` 还会报告引擎无法判定的规则。档案文件的格式不变；档案的 `spec_version` 仍为 `"0.2"`。

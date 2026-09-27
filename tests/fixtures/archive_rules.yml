@@ -1,0 +1,2110 @@
+# Snapshot of the quantitative tests of the owners-office archives (companies/*/thesis.yml), reduced to
+# the fields the evaluation engine reads. Regenerate: python tests/test_archive_rules.py <owners-office>
+APP:
+  company: APP
+  filer:
+    cik: 0001751008
+    type: domestic
+    fiscal_year_end: 12-31
+    earnings_form: 8-K
+    annual_form: 10-K
+  tests:
+  - id: APP-Q1
+    type: quantitative
+    metric: revenue_yoy
+    rule:
+      op: <
+      threshold: 15
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: APP-Q2
+    type: quantitative
+    metric: operating_margin
+    rule:
+      op: decrease
+      threshold: 5
+      unit: pp
+      consecutive: 2
+      period: quarter
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: APP-Q3
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 1
+      unit: x
+      consecutive: 1
+      period: quarter
+    data: xbrl
+    effective_from: FY2026Q3
+    metric_def:
+      id: net_debt_to_fcf_ttm
+      unit: x
+      frequency: quarter
+      data: xbrl
+      xbrl:
+      - us-gaap:LongTermDebt
+      - us-gaap:LongTermDebtNoncurrent
+      - us-gaap:CashAndCashEquivalentsAtCarryingValue
+      - us-gaap:ShortTermInvestments
+      - us-gaap:NetCashProvidedByUsedInOperatingActivities
+      - us-gaap:PaymentsToAcquirePropertyPlantAndEquipment
+      formula: (debt - cash - short_term_investments) / sum_4q(operating_cash_flow - capex)
+      description: (omitted)
+  - id: APP-Q4
+    type: quantitative
+    metric: roic
+    rule:
+      op: <
+      threshold: 12
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: APP-Q5
+    type: quantitative
+    rule:
+      all_of:
+      - metric: revenue_yoy
+        op: <
+        threshold: 15
+        unit: '%'
+        consecutive: 2
+        period: quarter
+      - metric: axon_unit_drivers_yoy.installs
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 2
+        period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: axon_unit_drivers_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      components:
+        installs:
+          unit: '%'
+        net_revenue_per_install:
+          unit: '%'
+      description: (omitted)
+  - id: APP-Q6
+    type: quantitative
+    rule:
+      op: <
+      threshold: 45
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: xbrl
+    effective_from: FY2026Q3
+    metric_def:
+      id: owner_fcf_margin_ttm
+      unit: '%'
+      frequency: quarter
+      data: xbrl
+      xbrl:
+      - us-gaap:NetCashProvidedByUsedInOperatingActivities
+      - us-gaap:PaymentsToAcquirePropertyPlantAndEquipment
+      - us-gaap:ShareBasedCompensation
+      - us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+      - us-gaap:Revenues
+      formula: sum_4q(operating_cash_flow - capex - stock_based_compensation) / sum_4q(revenue)
+      description: (omitted)
+  - id: APP-Q7
+    type: quantitative
+    rule:
+      all_of:
+      - metric: axon_unit_drivers_yoy.installs
+        op: <
+        threshold: -15
+        unit: '%'
+        consecutive: 3
+        period: quarter
+      - metric: axon_unit_drivers_yoy.net_revenue_per_install
+        op: <
+        threshold: 10
+        unit: '%'
+        consecutive: 3
+        period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: axon_unit_drivers_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      components:
+        installs:
+          unit: '%'
+        net_revenue_per_install:
+          unit: '%'
+      description: (omitted)
+  - id: APP-Q8
+    type: quantitative
+    rule:
+      any_of:
+      - metric: acquisition_event.consideration
+        op: '>'
+        threshold: 100
+        unit: USD 100 million
+        period: event
+      - metric: acquisition_event.new_shares_pct
+        op: '>'
+        threshold: 5
+        unit: '%'
+        period: event
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: acquisition_event
+      unit: USD 100 million / % (by component)
+      frequency: event
+      data: filing_text
+      components:
+        consideration:
+          unit: USD 100 million
+        new_shares_pct:
+          unit: '%'
+      description: (omitted)
+  - id: APP-Q9
+    type: quantitative
+    rule:
+      any_of:
+      - metric: guidance_delivery.vs_mid
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 2
+        period: quarter
+      - metric: revenue_yoy
+        op: <
+        threshold: 20
+        unit: '%'
+        consecutive: 1
+        period: quarter
+    warn_rule:
+      any_of:
+      - metric: guidance_delivery.vs_mid
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: guidance_delivery.q4_qoq_accel
+        op: <=
+        threshold: 0
+        unit: pp
+        consecutive: 1
+        period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: guidance_delivery
+      unit: '% / pp (by component)'
+      frequency: quarter
+      data: filing_text
+      components:
+        vs_mid:
+          unit: '%'
+        q4_qoq_accel:
+          unit: pp
+      description: (omitted)
+  - id: APP-Q10
+    type: quantitative
+    rule:
+      all_of:
+      - metric: axon_unit_drivers_yoy.installs
+        op: <
+        threshold: -10
+        unit: '%'
+        consecutive: 2
+        period: quarter
+      - metric: axon_unit_drivers_yoy.net_revenue_per_install
+        op: <
+        threshold: 20
+        unit: '%'
+        consecutive: 2
+        period: quarter
+    warn_rule:
+      all_of:
+      - metric: axon_unit_drivers_yoy.net_revenue_per_install
+        op: <
+        threshold: 30
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: axon_unit_drivers_yoy.installs
+        op: <=
+        threshold: 0
+        unit: '%'
+        consecutive: 1
+        period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: axon_unit_drivers_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      components:
+        installs:
+          unit: '%'
+        net_revenue_per_install:
+          unit: '%'
+      description: (omitted)
+  - id: APP-Q11
+    type: quantitative
+    rule:
+      op: <
+      threshold: 55
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 58
+      unit: '%'
+      consecutive: 1
+      period: year
+      evaluate_on:
+      - FY2026
+    data: xbrl
+    effective_from: FY2026Q3
+    metric_def:
+      id: owner_fcf_margin_ttm
+      unit: '%'
+      frequency: quarter
+      data: xbrl
+      xbrl:
+      - us-gaap:NetCashProvidedByUsedInOperatingActivities
+      - us-gaap:PaymentsToAcquirePropertyPlantAndEquipment
+      - us-gaap:ShareBasedCompensation
+      - us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+      - us-gaap:Revenues
+      formula: sum_4q(operating_cash_flow - capex - stock_based_compensation) / sum_4q(revenue)
+      description: (omitted)
+  - id: APP-Q12
+    type: quantitative
+    rule:
+      all_of:
+      - metric: vector_speed_gap.vector_qoq
+        op: '>='
+        threshold: 10
+        unit: '%'
+        consecutive: 2
+        period: quarter
+      - metric: vector_speed_gap.app_vs_mid
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 2
+        period: quarter
+    warn_rule:
+      any_of:
+      - metric: vector_speed_gap.gap_change
+        op: '>='
+        threshold: 0
+        unit: pp
+        consecutive: 1
+        period: quarter
+      - metric: vector_speed_gap.app_vs_mid
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 1
+        period: quarter
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      id: vector_speed_gap
+      unit: '% / pp (by component)'
+      frequency: quarter
+      data: mixed
+      components:
+        vector_qoq:
+          unit: '%'
+        app_vs_mid:
+          unit: '%'
+        gap_change:
+          unit: pp
+      description: (omitted)
+  - id: APP-Q13
+    type: quantitative
+    rule:
+      any_of:
+      - metric: upgrade_check.vs_mid
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: upgrade_check.q4_qoq_accel
+        op: <=
+        threshold: 0
+        unit: pp
+        consecutive: 1
+        period: year
+      - all_of:
+        - metric: upgrade_check.installs
+          op: <
+          threshold: 0
+          unit: '%'
+          consecutive: 1
+          period: quarter
+        - metric: upgrade_check.net_revenue_per_install
+          op: <
+          threshold: 30
+          unit: '%'
+          consecutive: 1
+          period: quarter
+        evaluate_on:
+        - FY2026Q3
+      evaluate_on:
+      - FY2026Q3
+      - FY2026Q4
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: upgrade_check
+      unit: '% / pp (by component)'
+      frequency: quarter
+      data: filing_text
+      components:
+        vs_mid:
+          unit: '%'
+        q4_qoq_accel:
+          unit: pp
+        installs:
+          unit: '%'
+        net_revenue_per_install:
+          unit: '%'
+      description: (omitted)
+AXP:
+  company: AXP
+  filer:
+    cik: 0000004962
+    type: domestic
+    fiscal_year_end: 12-31
+    earnings_form: 8-K
+    annual_form: 10-K
+  tests:
+  - id: AXP-Q1
+    type: quantitative
+    rule:
+      op: <
+      threshold: 5
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 8
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: xbrl
+    effective_from: FY2026Q3
+    metric_def:
+      id: revenue_net_of_interest_expense_yoy
+      unit: '%'
+      frequency: quarter
+      data: xbrl
+      xbrl:
+      - us-gaap:RevenuesNetOfInterestExpense
+      - us-gaap:Revenues
+      formula: revenue_t / revenue_{t-4q} - 1
+      description: (omitted)
+  - id: AXP-Q2
+    type: quantitative
+    metric: roe
+    rule:
+      op: <
+      threshold: 12
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: AXP-Q3
+    type: quantitative
+    metric: diluted_shares_yoy
+    rule:
+      op: '>'
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: AXP-Q4
+    type: quantitative
+    rule:
+      op: <
+      threshold: 70
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+    metric_def:
+      id: capital_return_to_common_ni_3y
+      unit: '%'
+      frequency: year
+      data: xbrl
+      xbrl:
+      - us-gaap:PaymentsForRepurchaseOfCommonStock
+      - us-gaap:PaymentsOfDividendsCommonStock
+      - us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic
+      formula: sum_3y(buybacks + common_dividends) / sum_3y(net_income_to_common)
+      description: (omitted)
+  - id: AXP-Q5
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 0
+      unit: pp
+      consecutive: 2
+      period: year
+      evaluate_from: FY2026
+    warn_rule:
+      op: '>'
+      threshold: 0
+      unit: pp
+      consecutive: 1
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: delta_remuneration_growth_minus_revenue_growth
+      unit: pp
+      frequency: year
+      data: filing_text
+      formula: yoy(delta_amex_remuneration) - yoy(axp_revenue_net_of_interest_expense)
+      description: (omitted)
+  - id: AXP-Q6
+    type: quantitative
+    metric: net_card_fees_yoy
+    rule:
+      all_of:
+      - metric: net_card_fees_yoy
+        op: <
+        threshold: 10
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: net_card_fees_yoy.card_member_services_expense_yoy
+        op: '>='
+        threshold: 30
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      evaluate_on:
+      - FY2027Q2
+    warn_rule:
+      any_of:
+      - metric: net_card_fees_yoy
+        op: <
+        threshold: 10
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: net_card_fees_yoy.card_member_services_expense_yoy
+        op: '>='
+        threshold: 15
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      evaluate_on:
+      - FY2027Q2
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      components:
+        card_member_services_expense_yoy:
+          unit: '%'
+      description: (omitted)
+  - id: AXP-Q7
+    type: quantitative
+    metric: reserve_build_release
+    rule:
+      all_of:
+      - metric: reserve_build_release.industry_card_nco_rate
+        op: '>='
+        threshold: 4.73
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: reserve_build_release
+        op: '>'
+        threshold: 0
+        unit: USD
+        consecutive: 2
+        period: quarter
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      unit: USD
+      frequency: quarter
+      data: mixed
+      components:
+        industry_card_nco_rate:
+          unit: '%'
+      description: (omitted)
+  - id: AXP-Q8
+    type: quantitative
+    metric: discount_revenue_to_billed_business
+    rule:
+      all_of:
+      - any_of:
+        - metric: discount_revenue_to_billed_business
+          op: decrease
+          threshold: 0.05
+          unit: pp
+          consecutive: 2
+          period: year
+        - metric: discount_revenue_to_billed_business
+          op: <
+          threshold: 2.15
+          unit: '%'
+          consecutive: 1
+          period: year
+      - metric: discount_revenue_to_billed_business.merchant_rate_unexplained_decline_bp
+        op: '>'
+        threshold: 0
+        unit: bp
+        period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    retired_at: FY2026Q4
+    metric_def:
+      unit: '%'
+      frequency: year
+      data: filing_text
+      components:
+        cobrand_share_of_billed_business:
+          unit: '%'
+        merchant_rate_unexplained_decline_bp:
+          unit: bp
+      description: (omitted)
+  - id: AXP-Q17
+    type: quantitative
+    metric: discount_revenue_to_billed_business
+    rule:
+      all_of:
+      - any_of:
+        - metric: discount_revenue_to_billed_business
+          op: decrease
+          threshold: 0.05
+          unit: pp
+          consecutive: 2
+          period: year
+        - metric: discount_revenue_to_billed_business
+          op: <
+          threshold: 2.15
+          unit: '%'
+          consecutive: 1
+          period: year
+      - metric: discount_revenue_to_billed_business.merchant_rate_unexplained_decline_bp
+        op: '>'
+        threshold: 0
+        unit: bp
+        period: year
+    data: filing_text
+    effective_from: FY2026Q4
+    supersedes: AXP-Q8
+    metric_def:
+      unit: '%'
+      frequency: year
+      data: filing_text
+      components:
+        cobrand_share_of_billed_business:
+          unit: '%'
+        merchant_rate_unexplained_decline_bp:
+          unit: bp
+      description: (omitted)
+  - id: AXP-Q9
+    type: quantitative
+    rule:
+      metric: net_card_fee_to_cm_services_increment.qoq_change
+      op: <
+      threshold: 0
+      unit: x
+      consecutive: 2
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 1.0
+      unit: x
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: net_card_fee_to_cm_services_increment
+      unit: x
+      frequency: quarter
+      data: filing_text
+      formula: (net_card_fees_t - net_card_fees_{t-4q}) / (cm_services_t - cm_services_{t-4q})
+      components:
+        qoq_change:
+          unit: x
+      description: (omitted)
+  - id: AXP-Q10
+    type: quantitative
+    metric: interest_expense_minus_income_growth
+    rule:
+      op: '>'
+      threshold: 0
+      unit: pp
+      consecutive: 2
+      period: quarter
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: AXP-Q11
+    type: quantitative
+    rule:
+      metric: nco_spread_industry_minus_axp.nco_spread_yoy_change
+      op: <
+      threshold: 0
+      unit: pp
+      consecutive: 2
+      period: quarter
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      id: nco_spread_industry_minus_axp
+      unit: pp
+      frequency: quarter
+      data: mixed
+      formula: industry_card_nco_rate - net_write_off_rate
+      components:
+        industry_card_nco_rate:
+          unit: '%'
+        nco_spread_yoy_change:
+          unit: pp
+      description: (omitted)
+  - id: AXP-Q12
+    type: quantitative
+    metric: reserve_build_release
+    rule:
+      all_of:
+      - metric: reserve_build_release
+        op: '>'
+        threshold: 0
+        unit: USD
+      - metric: reserve_build_release.reserve_rate_yoy_change
+        op: '>'
+        threshold: 0
+        unit: pp
+      consecutive: 1
+      period: quarter
+    warn_rule:
+      op: '>'
+      threshold: 0
+      unit: USD
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      unit: USD
+      frequency: quarter
+      data: filing_text
+      components:
+        reserve_rate_yoy_change:
+          unit: pp
+      description: (omitted)
+  - id: AXP-Q13
+    type: quantitative
+    rule:
+      all_of:
+      - metric: proprietary_new_cards_yoy
+        op: <
+        threshold: 0
+        unit: '%'
+      - metric: proprietary_new_cards_yoy.marketing_expense_yoy
+        op: '>'
+        threshold: 0
+        unit: '%'
+      consecutive: 3
+      period: quarter
+    warn_rule:
+      all_of:
+      - metric: proprietary_new_cards_yoy
+        op: <
+        threshold: 0
+        unit: '%'
+      - metric: proprietary_new_cards_yoy.marketing_expense_yoy
+        op: '>'
+        threshold: 0
+        unit: '%'
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: proprietary_new_cards_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: new_cards_t / new_cards_{t-4q} - 1
+      components:
+        marketing_expense_yoy:
+          unit: '%'
+      description: (omitted)
+  - id: AXP-Q14
+    type: quantitative
+    rule:
+      op: <
+      threshold: 8.5
+      unit: '%'
+      consecutive: 1
+      period: half
+      evaluate_on:
+      - FY2027Q2
+    data: xbrl
+    effective_from: FY2026Q3
+    metric_def:
+      id: pre_provision_pretax_income_yoy
+      unit: '%'
+      frequency: quarter
+      data: xbrl
+      xbrl:
+      - us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest
+      - us-gaap:ProvisionForLoanLeaseAndOtherLosses
+      - us-gaap:ProvisionForLoanAndLeaseLosses
+      formula: (pretax_income + provisions)_t / (pretax_income + provisions)_{t-4q} - 1
+      description: (omitted)
+  - id: AXP-Q15
+    type: quantitative
+    rule:
+      op: <
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+    metric_def:
+      id: diluted_eps_yoy
+      unit: '%'
+      frequency: year
+      data: xbrl
+      xbrl:
+      - us-gaap:EarningsPerShareDiluted
+      formula: eps_diluted_t / eps_diluted_{t-1y} - 1
+      description: (omitted)
+  - id: AXP-Q16
+    type: quantitative
+    metric: segment_operating_margin
+    params:
+      segment: International Card Services
+      basis: Segment pretax income ÷ segment total revenues net of interest expense (the company's segment basis)
+    rule:
+      op: decrease
+      threshold: 0
+      unit: pp
+      consecutive: 2
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+BRK:
+  company: BRK
+  filer:
+    cik: 0001067983
+    type: domestic
+    fiscal_year_end: 12-31
+    annual_form: 10-K
+  tests:
+  - id: BRK-Q1
+    type: quantitative
+    rule:
+      op: <
+      threshold: 5
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 8
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: non_insurance_operating_earnings_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: sum_4q(bnsf + bhe + msr)_t / sum_4q(bnsf + bhe + msr)_{t-4q} - 1
+      description: (omitted)
+  - id: BRK-Q2
+    type: quantitative
+    metric: book_value_per_share_yoy
+    rule:
+      op: <
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: BRK-Q14
+    type: quantitative
+    metric: cash_and_tbills_to_total_assets
+    rule:
+      op: '>'
+      threshold: 30
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: BRK-Q3
+    type: quantitative
+    metric: diluted_shares_yoy
+    rule:
+      op: '>'
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: BRK-Q4
+    type: quantitative
+    metric: free_cash_flow_yoy
+    rule:
+      op: <
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: BRK-Q5
+    type: quantitative
+    params:
+      segment: GEICO
+    rule:
+      all_of:
+      - metric: geico_policies_in_force_yoy
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 2
+        period: year
+      - metric: combined_ratio
+        op: '>'
+        threshold: 100
+        unit: '%'
+        consecutive: 1
+        period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: geico_policies_in_force_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: policies_in_force_t / policies_in_force_{t-4q} - 1
+      description: (omitted)
+  - id: BRK-Q6
+    type: quantitative
+    metric: combined_ratio
+    params:
+      segment: all of the group's property and casualty businesses combined (excluding retroactive reinsurance)
+    rule:
+      op: '>'
+      threshold: 100
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+  - id: BRK-Q7
+    type: quantitative
+    rule:
+      all_of:
+      - metric: cash_drag.above_private_line
+        op: event
+        threshold: Year-end cash and Treasury bills above the breaker line registered in the private valuation file
+        consecutive: 2
+        period: year
+      - metric: cash_drag.capital_deployed_to_operating_cash_flow_2y
+        op: <
+        threshold: 50
+        unit: '%'
+        consecutive: 1
+        period: year
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      id: cash_drag
+      unit: '%'
+      frequency: year
+      data: mixed
+      formula: above_private_line = (cash_and_equivalents + us_treasury_bills)_year_end > private_line_year_end; capital_deployed_to_operating_cash_flow_2y
+        = sum_2y(acquisitions_net_of_cash_acquired + equity_purchases - equity_sales) / sum_2y(operating_cash_flow)
+      components:
+        above_private_line:
+          unit: event
+        capital_deployed_to_operating_cash_flow_2y:
+          unit: '%'
+      description: (omitted)
+  - id: BRK-Q8
+    type: quantitative
+    rule:
+      any_of:
+      - metric: buyback_avg_price_to_book
+        op: '>'
+        threshold: 1.8
+        unit: x
+        consecutive: 1
+        period: quarter
+      - all_of:
+        - metric: buyback_avg_price_to_book.below_private_line
+          op: event
+          threshold: Quarter-end price below the breaker line registered in the private valuation file
+        - metric: buyback_amount
+          op: ==
+          threshold: 0
+          unit: USD
+        consecutive: 4
+        period: quarter
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      id: buyback_avg_price_to_book
+      unit: x
+      frequency: quarter
+      data: mixed
+      formula: max_month(avg_repurchase_price_per_A_equivalent_share) / book_value_per_A_share_prior_quarter_end
+      components:
+        below_private_line:
+          unit: event
+      description: (omitted)
+  - id: BRK-Q15
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 0
+      unit: USD
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: common_cash_dividends_declared_or_paid
+      unit: USD
+      frequency: quarter
+      data: filing_text
+      formula: max(dividends_declared_t, dividends_paid_t); 0 if none recorded
+      description: (omitted)
+  - id: BRK-Q9
+    type: quantitative
+    params:
+      min_deal_size_usd: 30000000000
+      window_years: 3
+      tenure_start: '2026-01-01'
+    rule:
+      op: '>'
+      threshold: 30
+      unit: '%'
+      consecutive: 1
+      period: event
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: large_deal_impairment_3y
+      unit: '%'
+      frequency: event
+      data: filing_text
+      formula: max_over_qualifying_deals(cumulative_loss_within_window / initial_cost)
+      description: (omitted)
+  - id: BRK-Q10
+    type: quantitative
+    params:
+      segment: GEICO
+    rule:
+      any_of:
+      - metric: geico_policies_in_force_yoy
+        op: <
+        threshold: 4
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: combined_ratio
+        op: increase
+        threshold: 0
+        unit: pp
+        consecutive: 1
+        period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: geico_policies_in_force_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: policies_in_force_t / policies_in_force_{t-4q} - 1
+      description: (omitted)
+  - id: BRK-Q11
+    type: quantitative
+    params:
+      min_deal_size_usd: 5000000000
+    rule:
+      op: <
+      threshold: 9
+      unit: '%'
+      consecutive: 1
+      period: event
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: new_acquisition_initial_pretax_yield
+      unit: '%'
+      frequency: event
+      data: filing_text
+      formula: min_over_qualifying_deals(target_pretax_income_last_full_year / (purchase_consideration + assumed_debt))
+      description: (omitted)
+  - id: BRK-Q12
+    type: quantitative
+    rule:
+      op: <
+      threshold: 0
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      id: insurance_investment_income_yoy_when_rates_up
+      unit: '%'
+      frequency: quarter
+      data: mixed
+      formula: g_inc = insurance_investment_income_t / insurance_investment_income_{t-4q} - 1; g_bal = avg_bal(cash_tbills)_t
+        / avg_bal(cash_tbills)_{t-4q} - 1; value = g_inc if avg(fed_funds_target_mid)_t > avg(fed_funds_target_mid)_{t-4q}
+        and not (g_bal < g_inc < 0), else not computed
+      components:
+        insurance_investment_income:
+          unit: USD
+        cash_tbills:
+          unit: USD
+        fed_funds_target_mid:
+          unit: '%'
+      description: (omitted)
+  - id: BRK-Q13
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 0
+      unit: USD
+      consecutive: 2
+      period: quarter
+    warn_rule:
+      op: '>='
+      threshold: 0
+      unit: USD
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: cash_tbills_change_ex_buybacks
+      unit: USD
+      frequency: quarter
+      data: filing_text
+      formula: (cash_tbills_t - cash_tbills_{t-1q}) + buybacks_t
+      description: (omitted)
+  - id: BRK-Q16
+    type: quantitative
+    params:
+      trigger_loss_pct: 15
+      window_quarters:
+      - -1
+      - 2
+    rule:
+      op: <
+      threshold: 50
+      unit: '%'
+      consecutive: 1
+      period: event
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: downturn_equity_deployment_share
+      unit: '%'
+      frequency: event
+      data: filing_text
+      formula: (max(0, equity_purchases - equity_sales) + acquisitions_cash) / (max(0, equity_purchases - equity_sales) +
+        acquisitions_cash + new_loans_and_preferreds + buybacks), summed over quarters t-1 .. t+2 around the trigger quarter
+        t
+      description: (omitted)
+MSFT:
+  company: MSFT
+  filer:
+    cik: 0000789019
+    type: domestic
+    fiscal_year_end: 06-30
+    earnings_form: 8-K
+    annual_form: 10-K
+  tests:
+  - id: MSFT-Q1
+    type: quantitative
+    metric: revenue_yoy
+    rule:
+      op: <
+      threshold: 5
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 8
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: xbrl
+    effective_from: FY2027Q1
+  - id: MSFT-Q2
+    type: quantitative
+    metric: roic
+    rule:
+      op: <
+      threshold: 12
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2027Q1
+  - id: MSFT-Q3
+    type: quantitative
+    metric: diluted_shares_yoy
+    rule:
+      op: '>'
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2027Q1
+  - id: MSFT-Q4
+    type: quantitative
+    metric: fcf_to_non_gaap_net_income
+    rule:
+      op: <=
+      threshold: 52
+      unit: '%'
+      consecutive: 2
+      period: year
+      evaluate_from: FY2027
+    warn_rule:
+      op: <=
+      threshold: 52
+      unit: '%'
+      consecutive: 1
+      period: year
+      evaluate_from: FY2027
+    data: filing_text
+    effective_from: FY2027Q1
+  - id: MSFT-Q5
+    type: quantitative
+    rule:
+      all_of:
+      - metric: azure_growth_vs_capex_intensity.azure_revenue_yoy
+        op: <
+        threshold: 20
+        unit: '%'
+      - metric: azure_growth_vs_capex_intensity.capex_to_revenue
+        op: '>'
+        threshold: 25
+        unit: '%'
+      consecutive: 2
+      period: quarter
+    data: mixed
+    effective_from: FY2027Q1
+    metric_def:
+      id: azure_growth_vs_capex_intensity
+      unit: '%'
+      frequency: quarter
+      data: mixed
+      components:
+        azure_revenue_yoy:
+          unit: '%'
+        capex_to_revenue:
+          unit: '%'
+          xbrl:
+          - us-gaap:PaymentsToAcquirePropertyPlantAndEquipment
+      description: (omitted)
+  - id: MSFT-Q6
+    type: quantitative
+    metric: fcf_to_non_gaap_net_income
+    rule:
+      op: <
+      threshold: 45
+      unit: '%'
+      consecutive: 1
+      period: year
+      evaluate_on:
+      - FY2028
+    data: filing_text
+    effective_from: FY2027Q1
+  - id: MSFT-Q7
+    type: quantitative
+    rule:
+      op: <
+      threshold: 58
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 62
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2027Q1
+    metric_def:
+      id: microsoft_cloud_gross_margin
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      description: (omitted)
+  - id: MSFT-Q8
+    type: quantitative
+    rule:
+      op: <
+      threshold: 5
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2027Q1
+    metric_def:
+      id: commercial_rpo_ex_openai_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: rpo_ex_openai_t / rpo_ex_openai_{t-4q} - 1
+      description: (omitted)
+  - id: MSFT-Q9
+    type: quantitative
+    rule:
+      all_of:
+      - metric: m365_commercial_seats_yoy
+        op: <
+        threshold: 0
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - op: event
+        threshold: The company does not separately disclose growing agent or usage revenue
+        period: quarter
+    data: filing_text
+    effective_from: FY2027Q1
+    metric_def:
+      id: m365_commercial_seats_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: seats_t / seats_{t-4q} - 1
+      description: (omitted)
+  - id: MSFT-Q10
+    type: quantitative
+    metric: segment_revenue_yoy
+    params:
+      segment: Azure
+      basis: FY27 new basis (restated in the 8-K of 2026-09-02)
+      currency: constant currency
+    rule:
+      op: <
+      threshold: 25
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 30
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2027Q1
+  - id: MSFT-Q11
+    type: quantitative
+    rule:
+      op: <
+      threshold: 10
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 15
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2027Q1
+    metric_def:
+      id: commercial_rpo_ex_openai_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: rpo_ex_openai_t / rpo_ex_openai_{t-4q} - 1
+      description: (omitted)
+  - id: MSFT-Q12
+    type: quantitative
+    rule:
+      op: <=
+      threshold: 5
+      unit: pp
+      consecutive: 1
+      period: quarter
+    warn_rule:
+      any_of:
+      - metric: m365_cloud_minus_seat_growth.m365_commercial_cloud_revenue_yoy
+        op: <
+        threshold: 12
+        unit: '%'
+        consecutive: 1
+        period: quarter
+      - metric: m365_cloud_minus_seat_growth.m365_commercial_seats_yoy
+        op: <
+        threshold: 4
+        unit: '%'
+        consecutive: 1
+        period: quarter
+    data: filing_text
+    effective_from: FY2027Q1
+    metric_def:
+      id: m365_cloud_minus_seat_growth
+      unit: pp
+      frequency: quarter
+      data: filing_text
+      formula: m365_commercial_cloud_revenue_yoy - m365_commercial_seats_yoy
+      components:
+        m365_commercial_cloud_revenue_yoy:
+          unit: '%'
+        m365_commercial_seats_yoy:
+          unit: '%'
+      description: (omitted)
+  - id: MSFT-Q13
+    type: quantitative
+    metric: capex_to_revenue
+    rule:
+      op: '>'
+      threshold: 30
+      unit: '%'
+      consecutive: 1
+      period: year
+      evaluate_from: FY2029
+    warn_rule:
+      op: '>='
+      threshold: 20
+      unit: '%'
+      consecutive: 1
+      period: year
+      evaluate_from: FY2029
+    data: xbrl
+    effective_from: FY2027Q1
+  - id: MSFT-Q14
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 100
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2027Q1
+    metric_def:
+      id: purchase_commitments_due_12m_to_ocf
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: purchase_commitments_due_within_12m / operating_cash_flow_ttm
+      description: (omitted)
+PDD:
+  company: PDD
+  filer:
+    cik: 0001737806
+    type: foreign_private_issuer
+    fiscal_year_end: 12-31
+    earnings_form: 6-K
+    annual_form: 20-F
+  tests:
+  - id: PDD-Q1
+    type: quantitative
+    rule:
+      op: <
+      threshold: 5
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 8
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: revenue_yoy_6k
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: revenue_t / revenue_{t-4q} - 1
+      description: (omitted)
+  - id: PDD-Q2
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 0
+      unit: RMB 100 million
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: operating_invested_capital
+      unit: RMB 100 million
+      frequency: quarter
+      data: filing_text
+      formula: operating_receivables_prepayments + ppe_rou (+ inventory) - operating_payables - lease_liabilities
+      description: (omitted)
+  - id: PDD-Q3
+    type: quantitative
+    metric: diluted_shares_yoy
+    rule:
+      op: '>'
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: PDD-Q4
+    type: quantitative
+    rule:
+      op: <
+      threshold: 70
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: fcf_conversion_20f
+      unit: '%'
+      frequency: year
+      data: filing_text
+      formula: (operating_cash_flow - capex) / net_income
+      description: (omitted)
+  - id: PDD-Q5
+    type: quantitative
+    metric: segment_revenue_yoy
+    params:
+      segment: Online marketing services and others
+      segment_zh: Online marketing services and others
+      basis: reported basis
+    rule:
+      op: <=
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+  - id: PDD-Q6
+    type: quantitative
+    rule:
+      op: <
+      threshold: 18
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: operating_margin_ttm
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: sum(operating_profit, 4q) / sum(revenue, 4q)
+      description: (omitted)
+  - id: PDD-Q7
+    type: quantitative
+    rule:
+      op: decrease
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: merchant_float
+      unit: RMB 100 million
+      frequency: quarter
+      data: filing_text
+      formula: payable_to_merchants + merchant_deposits
+      description: (omitted)
+  - id: PDD-Q8
+    type: quantitative
+    rule:
+      all_of:
+      - metric: ppe_plus_inventory
+        op: '>'
+        threshold: 500
+        unit: RMB 100 million
+        period: quarter
+      - metric: ppe_plus_inventory.platform_op_margin_ttm_yoy_pp
+        op: <=
+        threshold: 0
+        unit: pp
+        period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: ppe_plus_inventory
+      unit: RMB 100 million
+      frequency: quarter
+      data: filing_text
+      formula: ppe_and_software_net + inventory
+      components:
+        platform_op_margin_ttm_yoy_pp:
+          unit: pp
+      description: (omitted)
+  - id: PDD-Q9
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 50
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: nonop_total_to_op
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: abs(interest_and_investment_income + fx_gain_loss + other_income_net) / operating_profit_q
+      description: (omitted)
+  - id: PDD-Q10
+    type: quantitative
+    metric: segment_revenue_yoy
+    params:
+      segment: Online marketing services and others
+      segment_zh: Online marketing services and others
+      basis: reported basis
+    rule:
+      op: <
+      threshold: 0
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+  - id: PDD-Q11
+    type: quantitative
+    rule:
+      op: <
+      threshold: 15
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: operating_margin_6k
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: operating_profit_q / revenue_q
+      description: (omitted)
+  - id: PDD-Q12
+    type: quantitative
+    rule:
+      op: decrease
+      threshold: 0
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: merchant_float
+      unit: RMB 100 million
+      frequency: quarter
+      data: filing_text
+      formula: payable_to_merchants + merchant_deposits
+      description: (omitted)
+  - id: PDD-Q13
+    type: quantitative
+    rule:
+      any_of:
+      - metric: cash_acquisition_amount
+        op: '>'
+        threshold: 1500
+        unit: RMB 100 million
+        period: event
+      - all_of:
+        - metric: cash_acquisition_amount.ppe_plus_inventory
+          op: '>'
+          threshold: 1000
+          unit: RMB 100 million
+          period: quarter
+        - metric: cash_acquisition_amount.operating_margin_ttm
+          op: <
+          threshold: 20
+          unit: '%'
+          period: quarter
+    warn_rule:
+      metric: cash_acquisition_amount.acquisition_amount
+      op: '>'
+      threshold: 500
+      unit: RMB 100 million
+      period: event
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: cash_acquisition_amount
+      unit: RMB 100 million
+      frequency: event
+      data: filing_text
+      components:
+        acquisition_amount:
+          unit: RMB 100 million
+        ppe_plus_inventory:
+          unit: RMB 100 million
+        operating_margin_ttm:
+          unit: '%'
+      description: (omitted)
+  - id: PDD-Q14
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 5
+      unit: '%'
+      period: event
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      id: regulatory_fines_to_prior_op
+      unit: '%'
+      frequency: event
+      data: mixed
+      formula: sum(fines_fiscal_year_to_date) / operating_profit_{t-1y}
+      components:
+        fines_fiscal_year_to_date:
+          unit: RMB 100 million
+        operating_profit_prior_year:
+          unit: RMB 100 million
+      description: (omitted)
+  - id: PDD-Q15
+    type: quantitative
+    params:
+      holders:
+      - Entities affiliated with Zheng Huang
+      - Entities affiliated with Tencent
+    rule:
+      op: decrease
+      threshold: 20
+      unit: '%'
+      consecutive: 1
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: major_holder_shares
+      unit: shares
+      frequency: year
+      data: filing_text
+      description: (omitted)
+  - id: PDD-Q16
+    type: quantitative
+    rule:
+      all_of:
+      - metric: other_income_to_op_year
+        op: '>'
+        threshold: 20
+        unit: '%'
+        consecutive: 2
+        period: year
+      - op: event
+        threshold: that year's annual report still does not disclose the composition of other income/(loss), net (taken from
+          PDD-L8's judgment on that year's annual report)
+        period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: other_income_to_op_year
+      unit: '%'
+      frequency: year
+      data: filing_text
+      formula: abs(other_income_net) / operating_profit
+      description: (omitted)
+  - id: PDD-Q17
+    type: quantitative
+    rule:
+      metric: selfop_inventory_impairment
+      op: '>'
+      threshold: 75
+      unit: RMB 100 million
+      period: year
+      evaluate_on:
+      - FY2027
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: selfop_inventory_impairment
+      unit: RMB 100 million
+      frequency: year
+      data: filing_text
+      description: (omitted)
+  - id: PDD-Q18
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 0
+      unit: RMB
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: shareholder_return_quarter
+      unit: RMB
+      frequency: quarter
+      data: filing_text
+      formula: share_repurchases + dividends_paid
+      description: (omitted)
+  - id: PDD-Q19
+    type: quantitative
+    metric: segment_revenue_yoy
+    params:
+      segment: Transaction services
+      segment_zh: Transaction services
+      basis: reported basis
+    rule:
+      op: <
+      threshold: 10
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+SPGI:
+  company: SPGI
+  filer:
+    cik: '0000064040'
+    type: domestic
+    fiscal_year_end: 12-31
+    earnings_form: 8-K
+    annual_form: 10-K
+  tests:
+  - id: SPGI-Q1
+    type: quantitative
+    metric: revenue_growth_organic_cc
+    rule:
+      op: <
+      threshold: 5
+      unit: '%'
+      consecutive: 4
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 6.5
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+  - id: SPGI-Q2
+    type: quantitative
+    rule:
+      op: <
+      threshold: 12
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: roic_adjusted_incl_redeemable_nci
+      unit: '%'
+      frequency: year
+      data: filing_text
+      formula: adjusted_operating_profit * (1 - 0.223) / (equity + total_debt + redeemable_noncontrolling_interest - cash)
+      description: (omitted)
+  - id: SPGI-Q3
+    type: quantitative
+    metric: diluted_shares_yoy
+    rule:
+      op: '>'
+      threshold: 0
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: SPGI-Q13
+    type: quantitative
+    metric: fcf_conversion
+    rule:
+      op: <
+      threshold: 70
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: SPGI-Q14
+    type: quantitative
+    metric: net_debt_to_ebitda
+    rule:
+      op: '>'
+      threshold: 3
+      unit: x
+      consecutive: 1
+      period: year
+    data: xbrl
+    effective_from: FY2026Q3
+  - id: SPGI-Q4
+    type: quantitative
+    params:
+      segment: Market Intelligence
+      segment_zh: Market Intelligence
+    rule:
+      any_of:
+      - all_of:
+        - metric: mi_subscription_revenue_yoy_change
+          op: <
+          threshold: 0
+          unit: USD
+          consecutive: 1
+          period: quarter
+        - metric: mi_subscription_revenue_yoy_change.mi_subscription_plus_recurring_variable_yoy_change
+          op: <
+          threshold: 0
+          unit: USD
+          consecutive: 1
+          period: quarter
+      - metric: mi_subscription_revenue_yoy_change.mi_organic_cc_revenue_growth_fy
+        op: <
+        threshold: 4
+        unit: '%'
+        consecutive: 2
+        period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: mi_subscription_revenue_yoy_change
+      unit: USD
+      frequency: quarter
+      data: filing_text
+      formula: mi_subscription_t - mi_subscription_{t-4q}
+      components:
+        mi_subscription_plus_recurring_variable_yoy_change:
+          unit: USD
+        mi_organic_cc_revenue_growth_fy:
+          unit: '%'
+      description: (omitted)
+  - id: SPGI-Q5
+    type: quantitative
+    rule:
+      op: <
+      threshold: 85
+      unit: '%'
+      consecutive: 2
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: adj_fcf_to_adj_net_income
+      unit: '%'
+      frequency: year
+      data: filing_text
+      formula: adjusted_free_cash_flow / adjusted_net_income
+      description: (omitted)
+  - id: SPGI-Q6
+    type: quantitative
+    metric: segment_revenue_yoy
+    params:
+      segment: Market Intelligence
+      segment_zh: Market Intelligence
+      basis: organic, constant currency (as defined by the company)
+    rule:
+      op: <
+      threshold: 5
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    warn_rule:
+      op: <
+      threshold: 6
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+  - id: SPGI-Q7
+    type: quantitative
+    rule:
+      op: <
+      threshold: -15
+      unit: '%'
+      consecutive: 2
+      period: quarter
+    warn_rule:
+      op: outside
+      threshold:
+      - -10
+      - 15
+      unit: '%'
+      consecutive: 1
+      period: quarter
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: ratings_billed_issuance_yoy
+      unit: '%'
+      frequency: quarter
+      data: filing_text
+      formula: billed_issuance_q / billed_issuance_{q-4} - 1
+      description: (omitted)
+  - id: SPGI-Q8
+    type: quantitative
+    rule:
+      op: <
+      threshold: 0
+      unit: USD
+      consecutive: 2
+      period: quarter
+    data: external
+    effective_from: FY2026Q3
+    metric_def:
+      id: index_linked_etf_net_flows
+      unit: USD
+      frequency: quarter
+      data: external
+      description: (omitted)
+  - id: SPGI-Q9
+    type: quantitative
+    rule:
+      op: <
+      threshold: 90
+      unit: '%'
+      consecutive: 2
+      period: year
+    warn_rule:
+      op: <
+      threshold: 95
+      unit: '%'
+      consecutive: 1
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: adj_fcf_to_adj_net_income
+      unit: '%'
+      frequency: year
+      data: filing_text
+      formula: adjusted_free_cash_flow / adjusted_net_income
+      description: (omitted)
+  - id: SPGI-Q10
+    type: quantitative
+    rule:
+      op: '>'
+      threshold: 130
+      unit: '%'
+      consecutive: 2
+      period: year
+    warn_rule:
+      op: outside
+      threshold:
+      - 85
+      - 110
+      unit: '%'
+      consecutive: 1
+      period: year
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: shareholder_return_to_adj_fcf
+      unit: '%'
+      frequency: year
+      data: filing_text
+      formula: (buybacks + dividends) / adjusted_free_cash_flow
+      description: (omitted)
+  - id: SPGI-Q11
+    type: quantitative
+    rule:
+      op: <
+      threshold: 0
+      unit: pp
+      consecutive: 4
+      period: quarter
+    data: mixed
+    effective_from: FY2026Q3
+    metric_def:
+      id: asset_linked_fee_growth_minus_us_etf_aum_growth
+      unit: pp
+      frequency: quarter
+      data: mixed
+      formula: yoy(asset_linked_fees) - yoy(us_etf_total_assets)
+      components:
+        asset_linked_fees:
+          unit: USD
+        us_etf_total_assets:
+          unit: USD
+      description: (omitted)
+  - id: SPGI-Q12
+    type: quantitative
+    params:
+      segment: Market Intelligence
+      segment_zh: Market Intelligence
+      basis: adjusted operating margin (as defined by the company)
+    rule:
+      op: <
+      threshold: 35
+      unit: '%'
+      consecutive: 1
+      period: year
+      evaluate_on:
+      - FY2028
+    warn_rule:
+      op: <
+      threshold: 38
+      unit: '%'
+      consecutive: 1
+      period: year
+      evaluate_on:
+      - FY2028
+    data: filing_text
+    effective_from: FY2026Q3
+    metric_def:
+      id: mi_adjusted_operating_margin_fy
+      unit: '%'
+      frequency: year
+      data: filing_text
+      formula: mi_adjusted_operating_profit_fy / mi_revenue_fy
+      description: (omitted)

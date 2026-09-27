@@ -51,7 +51,7 @@ on thesis-ci is public at [owners-office](https://github.com/kentian742-creator/
 ## The specification
 
 The specification (v0.2) lives in [`spec/`](spec/): [`SPEC.md`](spec/SPEC.md) (a Chinese version is in
-[`zh-CN/spec/SPEC.md`](zh-CN/spec/SPEC.md)), 16 JSON Schemas, the check registry [`checks.yml`](spec/checks.yml)
+[`zh-CN/spec/SPEC.md`](zh-CN/spec/SPEC.md)), 18 JSON Schemas, the check registry [`checks.yml`](spec/checks.yml)
 (35 checks), the metric registry [`metrics.yml`](spec/metrics.yml) and six monitoring templates, one for each of
 Peter Lynch's company categories, in [`templates/lynch/`](spec/templates/lynch/). Where `SPEC.md` and the
 machine-readable files disagree, the machine-readable files win.
@@ -77,6 +77,7 @@ thesis-ci checks                                # every check: scope, level, imp
 thesis-ci selftest                              # each check must flag a violating fixture and pass a clean one
 thesis-ci staleness path/to/archive --today 2026-09-24   # evaluate the staleness tests of every thesis.yml
 thesis-ci brier path/to/archive/forecasts/2026.yml       # Brier score and calibration bins per domain and book
+thesis-ci evaluate path/to/archive --company ACME --period FY2027Q1 --readings readings.yml   # judge the quantitative tests (SPEC 4.5)
 ```
 
 - `lint` exits 1 when there is any error-level finding, 0 otherwise (warnings do not fail); usage errors exit 2.
@@ -88,6 +89,8 @@ thesis-ci brier path/to/archive/forecasts/2026.yml       # Brier score and calib
 - `--format json` prints `{"repo", "visibility", "errors": [{"check","file","line","message"}], "warnings": [...], "checks_run": [...]}`.
 - `staleness` exits 1 when a test fails. `brier` scores resolved forecasts only (`happened` / `not_happened`):
   BS = mean((p − o)²); answering 50% every time scores 0.25.
+- `evaluate` prints the `ci_results` of one company for one fiscal quarter (YAML, or JSON with `--format json`) and
+  exits 0 whenever it ran: a failing test is a result, not an error.
 
 As a GitHub Action:
 

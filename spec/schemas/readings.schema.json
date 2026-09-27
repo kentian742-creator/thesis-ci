@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/readings.schema.json",
+  "title": "Metric readings of one company, the input of thesis-ci evaluate (SPEC 4.5)",
+  "type": "object",
+  "required": [
+    "company",
+    "as_of",
+    "readings"
+  ],
+  "properties": {
+    "company": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9.]{0,9}$"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "The date the readings were taken"
+    },
+    "note": {
+      "type": "string"
+    },
+    "readings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reading"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "reading": {
+      "type": "object",
+      "required": [
+        "metric",
+        "period",
+        "value",
+        "unit",
+        "source"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "pattern": "^([a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)?|[A-Z][A-Z0-9.]*-[QLS][0-9]+)$",
+          "description": "A metric id of spec/metrics.yml, a test's metric or metric_def.id, <metric>.<component>, or the id of a test whose op: event sub-rule names no metric"
+        },
+        "period": {
+          "type": "string",
+          "pattern": "^FY\\d{4}(Q[1-4]|H[12])?$",
+          "description": "The fiscal period the value measures: FY<year>, FY<year>H<half> or FY<year>Q<quarter>"
+        },
+        "value": {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ],
+          "description": "A number; true or false for an event; null when the metric was checked and there is nothing to measure (no qualifying event, or not computed by its definition), with the reason in note. A reading that could not be found is left out, never written as null."
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "%, pp, x, a currency code with an optional scale (USD, USD million, RMB 100 million), shares, event, ..."
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Za-z0-9._-]*(#[^\\]\\s]+)?$",
+          "description": "Source tag, TAG or TAG#LOCATOR"
+        },
+        "basis": {
+          "type": "string",
+          "description": "How the value was measured (definition, basis, formula with its inputs)"
+        },
+        "note": {
+          "type": "string"
+        },
+        "segment": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The segment measured; a test with params.segment uses only readings with the same segment, and a test without it only readings without one"
+        },
+        "series": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One of several parallel series of the same metric (for example one holder group of params.holders); a sub-rule holds when it holds for any series"
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "note"
+        ]
+      }
+    }
+  }
+}

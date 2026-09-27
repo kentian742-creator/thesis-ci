@@ -42,7 +42,7 @@
 
 ## 规范
 
-规范（v0.2）在 [`spec/`](../spec/)：[`SPEC.md`](../spec/SPEC.md)（中文版在 [`zh-CN/spec/SPEC.md`](spec/SPEC.md)）、16 个 JSON Schema、检查登记表 [`checks.yml`](../spec/checks.yml)（35 项检查）、指标登记表 [`metrics.yml`](../spec/metrics.yml)，以及 [`templates/lynch/`](../spec/templates/lynch/) 下的六个监控模板，对应彼得·林奇的六类公司。`SPEC.md` 与机器可读文件不一致时，以机器可读文件为准。
+规范（v0.2）在 [`spec/`](../spec/)：[`SPEC.md`](../spec/SPEC.md)（中文版在 [`zh-CN/spec/SPEC.md`](spec/SPEC.md)）、18 个 JSON Schema、检查登记表 [`checks.yml`](../spec/checks.yml)（35 项检查）、指标登记表 [`metrics.yml`](../spec/metrics.yml)，以及 [`templates/lynch/`](../spec/templates/lynch/) 下的六个监控模板，对应彼得·林奇的六类公司。`SPEC.md` 与机器可读文件不一致时，以机器可读文件为准。
 
 一个档案是一对仓库。公开仓库（`repo.yml` 中 `visibility: public`）存放论点、预注册、预测和信件；私有仓库（`visibility: private`）存放价值区间、决策备忘录和带金额的决策日志。`thesis-ci lint` 读取 `repo.yml` 决定运行哪些检查。每次预注册是三个文件：冻结的条目 `prereg/<period>.yml`（主人的覆盖写在 `<period>-owner.yml`）、时间戳证明 `<period>.yml.ots` 和结算文件 `<period>.settlement.yml`（SPEC 2.1）。档案以英文为主：关键文档的中文版放在 `zh-CN/<同一路径>`，其余文件都用英文（SPEC 8.5）。
 
@@ -59,6 +59,7 @@ thesis-ci checks                                # 列出全部检查：范围、
 thesis-ci selftest                              # 每项检查都必须抓住违规样例、放过合规样例
 thesis-ci staleness path/to/archive --today 2026-09-24   # 计算每个 thesis.yml 的时效测试
 thesis-ci brier path/to/archive/forecasts/2026.yml       # Brier 分与校准分箱（按领域、按账本）
+thesis-ci evaluate path/to/archive --company ACME --period FY2027Q1 --readings readings.yml   # 判定定量测试（SPEC 4.5）
 ```
 
 - `lint` 有错误级别的发现时退出码为 1，只有警告时为 0；参数错误为 2。
@@ -66,6 +67,7 @@ thesis-ci brier path/to/archive/forecasts/2026.yml       # Brier 分与校准分
 - `--base-ref <git 引用> --period FY<年>Q<季>`：把 `thesis.yml` 的测试与该引用比较（`C-TEST-FROZEN`），当期有效的测试不得改门槛或被删除。两个参数缺一个时这项检查空过。
 - `--format json` 输出 `{"repo", "visibility", "errors": [{"check","file","line","message"}], "warnings": [...], "checks_run": [...]}`。
 - `staleness` 有测试失败时退出码为 1。`brier` 只计已结算（`happened` / `not_happened`）的预测：BS = mean((p − o)²)，每条都报 50% 得 0.25。
+- `evaluate` 输出一家公司一个财季的 `ci_results`（YAML；`--format json` 时为 JSON），只要运行完成就以 0 退出：测试失败是结果，不是错误。
 
 在 GitHub Actions 中使用：
 

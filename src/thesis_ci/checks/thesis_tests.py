@@ -7,6 +7,7 @@ from typing import Any, Iterator
 
 from .. import contract
 from ..engine import Context, Issue, check
+from ..evaluate import shape_problems
 from ..periods import period_key, retired
 from ..repo import Doc, Repo, dig, is_number
 from ..staleness import evaluate
@@ -207,12 +208,20 @@ def c_test_metric(ctx: Context) -> Iterator[Issue]:
             if "rule" not in test:
                 yield Issue(path, f"{tid}: quantitative test has no rule", line)
             names = MetricNames(test)
+            found = False
             for key in ("rule", "warn_rule"):
                 if key in test:
                     for problem in rule_problems(test[key], key):
+                        found = True
                         yield Issue(path, f"{tid}: {problem}", doc.line("tests", i, key))
                     for problem in unresolved_metrics(test[key], key, names):
+                        found = True
                         yield Issue(path, f"{tid}: {problem}", doc.line("tests", i, key))
+            if not found and "rule" in test:  # parseable and resolved: can the evaluation engine judge it?
+                for problem in shape_problems(test):
+                    key = "warn_rule" if problem.startswith("warn_rule") else "rule"
+                    yield Issue(path, f"{tid}: the evaluation engine cannot judge it: {problem}",
+                                doc.line("tests", i, key))
             if definition is not None and test.get("data") != definition.get("data"):
                 yield Issue(
                     path,

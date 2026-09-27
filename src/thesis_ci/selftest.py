@@ -282,6 +282,11 @@ CASES: tuple[Case, ...] = (
     Case("C-TEST-METRIC", PUB, (replace(THESIS, "metric: recurring_share_v2.recurring", "metric: recurring_share_v2.subscriptions"),),
          "rule names an undefined component"),
     Case("C-TEST-QUAL-EVIDENCE", PUB, (replace(THESIS, "    lookback: 4\n", "    lookback: 0\n"),), "lookback 0"),
+    # --- the evaluation engine (thesis-ci 0.4.0)
+    Case("C-TEST-METRIC", PUB, (replace(THESIS, 'warn_rule: {op: "<", threshold: 58, unit: "%"', 'warn_rule: {op: decrease, threshold: 3, unit: "%"'),),
+         "a change of a percentage written in % (relative or points?)"),
+    Case("C-TEST-METRIC", PUB, (replace(THESIS, 'rule: {op: "<", threshold: 55, unit: "%"', 'rule: {op: "<", threshold: 55, unit: USD'),),
+         "threshold unit does not fit the metric's unit"),
     Case("C-STALENESS", PUB, (replace(THESIS, "  bear_case: 2026-09-22", "  bear_case: 2026-01-15"),), "bear case review too old"),
     Case("C-DISCOUNT-RATE", PRIV, (replace(BETA_VAL, "method_note: One discount rate from BETA's own cash-flow record (fictitious numbers).",
                                            'method_note: ""'),), "method_note empty"),

@@ -257,7 +257,7 @@ Fields every test has: `id` (`<TICKER>-<Q|L|S><n>`), `type`, `claim` (the part o
 
 **Staleness tests** (`type: staleness`): `section` is one of the fourteen keys of `reviewed`, and `max_age_quarters` is an integer; measured from `reviewed.<section>`, the test fails once more than `max_age_quarters × 91` days have passed.
 
-A test has only four possible results: `pass`, `warn`, `fail`, `undetermined`.
+A test has only four possible results: `pass`, `warn`, `fail`, `undetermined`. How quantitative tests are judged is set out in 4.5.
 
 ### 4.2 Fields maintained by the pipeline (00 §G8)
 
@@ -288,6 +288,31 @@ For every `reviewed` date in `thesis.yml` that equals the `as_of` of an update, 
 ### 4.3 Thresholds do not change once the results are out (00 §G7)
 
 `thesis-ci lint --base-ref <git ref> --period FY<year>Q<quarter>` compares the tests in `thesis.yml` one by one with the version at that ref (`C-TEST-FROZEN`): for tests in force for the current period (the base version's `effective_from` is not later than the current period and the test is not retired; an old test without `effective_from` counts as always in force), `rule`, `fail_if`, `warn_rule`, `warn_if` and `max_age_quarters` MUST NOT be changed, and the test MUST NOT be deleted. A change of formatting only (for example a flow mapping rewritten as a block mapping) is not a change. A PR made after results filings have arrived SHOULD pass both options.
+
+### 4.5 Evaluation (thesis-ci 0.4.0)
+
+`thesis-ci evaluate <archive> --company <TICKER> --period FY<year>Q<quarter> --readings <file> [--today YYYY-MM-DD] [--format yaml|json]` judges one company's quantitative tests against a readings document and prints a `ci_results` document (`ci-results.schema.json`). It exits 0 whenever it ran, because a failing test is a result, not an error; a usage error (an unreadable or invalid file, companies that disagree) exits 2.
+
+**Readings** (`readings.schema.json`): `{company, as_of, readings: [{metric, period, value, unit, source, basis?, note?, segment?, series?}]}`.
+
+- `metric` is a registry id, a test's `metric` or `metric_def.id`, or `<metric>.<component>`; a reading for an `op: event` sub-rule that names no metric is keyed by the test id (`MSFT-Q9`). `period` is `FY<year>`, `FY<year>H<half>` or `FY<year>Q<quarter>`, in the company's fiscal year. `source` is a source tag (3.1).
+- `value` is a number, `true` or `false` for an event, or `null` when the metric was checked and there is nothing to measure (no qualifying event, or not computed by its definition); a `null` reading needs a `note`. A reading that could not be found is left out, never written as `null`.
+- A test with `params.segment` uses only readings whose `segment` equals it, and a test without one only readings without one. Readings of one metric that carry `series` (for example one per holder group in `params.holders`) are judged series by series, and a sub-rule holds when it holds for any series.
+- `data: xbrl` metrics can be computed from EDGAR companyfacts (`thesis_ci.metrics`): only 10-K, 10-Q, 20-F and 40-F facts, each placed in the fiscal calendar by its start and end dates, the most recently filed value of a span winning; quarters no filing reports on their own are derived from year-to-date figures (Q4 = FY − 9M), except share counts and per-share amounts; the source is `<TICKER>-XBRL#<concept>:<accession>`. A metric that cannot be computed is left out.
+
+**Which tests, which periods.** Only tests in force for the period are judged (`effective_from` ≤ period < `retired_at`); the others are listed under `not_in_force`. A `quarter` or `event` rule reads the evaluated quarter; a `half` rule reads the half that ends with it (`FY<year>H<n>`, judged in Q2 and Q4); a `year` rule reads the fiscal year that ends with it (judged in Q4). A rule is not due when its period does not end with the quarter, when its `evaluate_on` does not name the quarter (a year in `evaluate_on` names each of its quarters), or when its `evaluate_from` is later. `all_of` is due only when all its sub-rules are; `any_of` when at least one is, and then only the due ones are judged. A test with nothing due is reported `not_due`, with the reason: this records that it was not judged this period and is not a fifth result.
+
+**How a rule is judged.**
+
+- A sub-rule without `period` inherits its parent's; the root's default is the frequency of the test's metric, else `quarter`.
+- `consecutive` (default 1) on a comparison asks it to hold in each of the last N periods; on `all_of` or `any_of` it asks the combination to hold, in the same period, in each of the last N periods, and all the sub-rules must then share its `period`. Periods before `evaluate_from` never count toward the run.
+- `increase` and `decrease` compare a reading with the same period one fiscal year earlier (for a quarter rule, the same quarter a year earlier; for a year rule, the previous year) and hold when the change exceeds `threshold`: in `pp`, the difference of two percentages; in `%`, the relative change of a metric that is not itself a percentage (a `%` threshold on a percentage is ambiguous and not accepted); in the metric's own unit, the difference.
+- `between` includes both ends; `outside` is its complement. An event holds when its reading is `true`.
+- Units of one kind are converted (`USD`, `USD million`, `RMB 100 million`, which is `CNY 100 million`); any other mismatch leaves the comparison undetermined.
+- A missing reading leaves a comparison undetermined, and a run of `consecutive` periods whose latest period has no reading is undetermined even when an earlier period already breaks it: a result for a period rests on that period's data. `all_of` is not triggered as soon as one sub-rule is not triggered, and `any_of` is triggered as soon as one is, whatever else is missing. A `null` reading means the comparison does not hold.
+- The fail rule is judged first: triggered gives `fail`, undetermined gives `undetermined`. Otherwise `warn_rule` is judged: triggered gives `warn`, undetermined gives `undetermined`, and anything else `pass`.
+
+`C-TEST-METRIC` reports a rule the engine cannot judge (units that do not fit the metric, an ambiguous `increase` or `decrease` unit, an `evaluate_on` that can never be due). Each result carries `reading` (this period's reading of the rule's first metric), `readings` (every reading used, the earlier periods of a run and the year-earlier bases included), `rule` and `warn_rule` as registered (with `op`, `threshold` and `unit` when the rule is one comparison), `fail_if`, `warn_if`, `consecutive_count`, `missing` (the readings an undetermined result lacked), `reason`, and the judged rule tree under `evaluation`. Readings of a period that had not ended on `--today` are ignored and listed under `ignored_readings`.
 
 ### 4.4 The say-do ledger ledger.yml
 
@@ -391,10 +416,12 @@ The archives are English-first. The Chinese version of a key document lives at `
 
 ## 9. Metric registry
 
-`spec/metrics.yml` lists the metrics that quantitative tests can reference: `id`, `description`, `unit`, `frequency`, `data` (`xbrl` or `filing_text`), `xbrl` (candidate concepts in order of preference), `formula` and `where`. XBRL concepts follow the accounting standards the issuer reports under, not the form: a foreign private issuer reporting under US GAAP (for example PDD's 20-F) uses `us-gaap` concepts as well; only issuers reporting under IFRS use `ifrs-full`. A metric not in the registry is defined in place with the test's `metric_def` (the same fields as a registry entry, plus `components`; `data` may also be `external` or `mixed`).
+`spec/metrics.yml` lists the metrics that quantitative tests can reference: `id`, `description`, `unit`, `frequency`, `data` (`xbrl` or `filing_text`), `xbrl` (candidate concepts in order of preference), `formula` and `where`. thesis-ci computes the `xbrl` metrics from EDGAR companyfacts (4.5), except `book_value_per_share_yoy`, whose share count no registered concept gives. XBRL concepts follow the accounting standards the issuer reports under, not the form: a foreign private issuer reporting under US GAAP (for example PDD's 20-F) uses `us-gaap` concepts as well; only issuers reporting under IFRS use `ifrs-full`. A metric not in the registry is defined in place with the test's `metric_def` (the same fields as a registry entry, plus `components`; `data` may also be `external` or `mixed`).
 
 ## 10. Versions
 
 This specification is v0.2. v1.0 will be set after two earnings seasons have run; until then, incompatible changes are recorded one by one in `CHANGELOG.md`.
 
 thesis-ci 0.3.0 adds English-language support and `C-LANGUAGE` (3.4, 3.5, 5, 7.5, 8.5) and changes no file format apart from the optional `title_original`; archives keep `spec_version: "0.2"`.
+
+thesis-ci 0.4.0 adds the evaluation of quantitative tests (4.5) with two new documents, readings and `ci_results` (`readings.schema.json`, `ci-results.schema.json`); `C-TEST-METRIC` now also reports rules the engine cannot judge. The format of archive files is unchanged; archives keep `spec_version: "0.2"`.

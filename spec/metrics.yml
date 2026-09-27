@@ -8,6 +8,10 @@
 #   example PDD's 20-F) uses us-gaap concepts as well; only issuers reporting under IFRS use ifrs-full.
 # When a test needs several quantities, write metric_def.components and reference them in rule as <metric>.<component>
 #   (SPEC 4.1).
+# thesis-ci computes the xbrl metrics from EDGAR companyfacts (thesis_ci/metrics.py, SPEC 4.5). For a formula over several
+#   quantities it tries each quantity's candidates in the order listed; the margins and ratios over revenue use the revenue
+#   concepts of revenue_yoy, and roic's tax rate is income tax / pretax income. book_value_per_share_yoy is not computed:
+#   no share-count concept is registered, and multi-class issuers need a conversion companyfacts does not carry.
 metrics:
   - id: revenue_yoy
     description: Year-on-year growth of total revenue
@@ -229,7 +233,7 @@ metrics:
     unit: pp
     frequency: quarter
     data: xbrl
-    xbrl: [us-gaap:InterestExpense, us-gaap:InterestAndDividendIncomeOperating]
+    xbrl: [us-gaap:InterestExpense, us-gaap:InterestExpenseOperating, us-gaap:InterestAndDividendIncomeOperating]
     formula: yoy(interest_expense) - yoy(interest_income)
 
   - id: combined_ratio

@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kentian742-creator/thesis-ci/spec/schemas/ci-results.schema.json",
+  "title": "Results of the quantitative thesis tests of one company for one period, the output of thesis-ci evaluate (SPEC 4.5)",
+  "type": "object",
+  "required": [
+    "company",
+    "period",
+    "evaluated_on",
+    "engine",
+    "summary",
+    "results",
+    "not_in_force",
+    "ignored_readings",
+    "warnings"
+  ],
+  "properties": {
+    "company": {
+      "type": "string"
+    },
+    "period": {
+      "type": "string",
+      "pattern": "^FY\\d{4}Q[1-4]$",
+      "description": "The fiscal quarter evaluated"
+    },
+    "evaluated_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "engine": {
+      "type": "string",
+      "description": "thesis-ci and its version"
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "pass",
+        "warn",
+        "fail",
+        "undetermined",
+        "not_due"
+      ],
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/result"
+      }
+    },
+    "not_in_force": {
+      "type": "array",
+      "description": "Quantitative tests not judged in this period: not yet effective, or retired",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "ignored_readings": {
+      "type": "array",
+      "description": "Readings left out, such as those of a period that had not ended on the evaluation date",
+      "items": {
+        "type": "object",
+        "required": [
+          "reason"
+        ]
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "result": {
+      "type": "object",
+      "required": [
+        "id",
+        "result",
+        "reason",
+        "rule",
+        "consecutive_count",
+        "reading",
+        "readings",
+        "missing",
+        "evaluation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "breaker",
+            "watch",
+            null
+          ]
+        },
+        "claim": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metric": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The test's metric (metric, or metric_def.id)"
+        },
+        "data": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "segment": {
+          "type": "string"
+        },
+        "fail_if": {
+          "type": "string"
+        },
+        "warn_if": {
+          "type": "string"
+        },
+        "rule": {
+          "description": "The rule as registered in thesis.yml"
+        },
+        "warn_rule": {
+          "description": "The warn rule as registered in thesis.yml"
+        },
+        "op": {
+          "description": "The rule's op, when the rule is a single comparison"
+        },
+        "threshold": {
+          "description": "The rule's threshold, when the rule is a single comparison"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "consecutive": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The consecutive periods the rule asks for, when the rule itself states it"
+        },
+        "supersedes": {
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "undetermined",
+            "not_due"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why: which rule was triggered, which readings are missing, why the test is not due"
+        },
+        "consecutive_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "How many periods in a row, up to this one, the fail rule's condition held (within its window)"
+        },
+        "reading": {
+          "description": "The reading of this period for the rule's first metric",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/reading"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "readings": {
+          "type": "array",
+          "description": "Every reading the evaluation used, including the earlier periods of consecutive windows and the bases of increase / decrease",
+          "items": {
+            "$ref": "#/$defs/reading"
+          }
+        },
+        "missing": {
+          "type": "array",
+          "description": "Readings the evaluation needed and did not get (listed when the result is undetermined)",
+          "items": {
+            "type": "object",
+            "required": [
+              "metric",
+              "period",
+              "rule"
+            ],
+            "properties": {
+              "metric": {
+                "type": "string"
+              },
+              "period": {
+                "type": "string"
+              },
+              "rule": {
+                "enum": [
+                  "rule",
+                  "warn_rule"
+                ]
+              },
+              "segment": {
+                "type": "string"
+              },
+              "series": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "evaluation": {
+          "type": "object",
+          "required": [
+            "fail",
+            "warn"
+          ],
+          "properties": {
+            "fail": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/node"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "warn": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/node"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "reading": {
+      "type": "object",
+      "required": [
+        "metric",
+        "period",
+        "value",
+        "unit",
+        "source"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "segment": {
+          "type": "string"
+        },
+        "series": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "description": "One judged node of a rule: a leaf with its window of periods, or all_of / any_of with its sub-rules",
+      "required": [
+        "kind",
+        "path",
+        "state"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "leaf",
+            "all_of",
+            "any_of"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "triggered",
+            "not_triggered",
+            "undetermined",
+            "not_due"
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      }
+    }
+  }
+}

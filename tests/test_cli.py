@@ -116,3 +116,58 @@ def test_brier_command(tmp_path, capsys):
 def test_module_entry_point_and_version():
     proc = subprocess.run([sys.executable, "-m", "thesis_ci", "--version"], capture_output=True, text=True)
     assert proc.returncode == 0 and proc.stdout.strip() == f"thesis-ci {__version__}"
+
+
+READINGS = """company: ACME
+as_of: 2026-10-30
+readings:
+  - {metric: gross_margin, period: FY2027Q1, value: 57.0, unit: "%", source: ACME-10Q-FY2027Q1#Item1}
+  - {metric: gross_margin, period: FY2026Q4, value: 60.0, unit: "%", source: ACME-10K-FY2026#Item8}
+"""
+
+
+def evaluate_cli(capsys, ws, tmp_path, *extra, readings=READINGS):
+    path = tmp_path / "readings.yml"
+    path.write_text(readings, encoding="utf-8")
+    return run_cli(capsys, "evaluate", str(ws / "public"), "--company", "ACME", "--period", "FY2027Q1",
+                   "--readings", str(path), "--today", "2026-11-01", *extra)
+
+
+def test_evaluate_command_json(ws, tmp_path, capsys):
+    from thesis_ci import contract
+
+    code, out = evaluate_cli(capsys, ws, tmp_path, "--format", "json")
+    data = json.loads(out)
+    assert code == 0
+    assert [e.message for e in contract.validator("ci-results").iter_errors(data)] == []
+    assert {r["id"]: r["result"] for r in data["results"]} == {
+        "ACME-Q1": "not_due", "ACME-Q2": "warn", "ACME-Q3": "not_due", "ACME-Q4": "not_due"}
+    assert data["not_in_force"] == [{"id": "ACME-Q5", "reason": "effective from FY2027Q2"}]
+    assert data["summary"]["warn"] == 1 and data["period"] == "FY2027Q1" and data["evaluated_on"] == "2026-11-01"
+
+
+def test_evaluate_command_yaml_is_the_default(ws, tmp_path, capsys):
+    import yaml
+
+    code, out = evaluate_cli(capsys, ws, tmp_path)
+    assert code == 0 and yaml.safe_load(out)["results"][1]["result"] == "warn"
+
+
+def test_evaluate_command_results_are_not_errors(ws, tmp_path, capsys):
+    """A failing test is data: the command still exits 0."""
+    code, out = evaluate_cli(capsys, ws, tmp_path, "--format", "json",
+                             readings=READINGS.replace("value: 57.0", "value: 50.0").replace("value: 60.0", "value: 54.0"))
+    assert code == 0 and json.loads(out)["summary"]["fail"] == 1
+
+
+def test_evaluate_command_usage_errors(ws, tmp_path, capsys):
+    assert evaluate_cli(capsys, ws, tmp_path, readings=READINGS.replace("company: ACME", "company: BETA"))[0] == 2
+    assert evaluate_cli(capsys, ws, tmp_path, readings=READINGS.replace("source: ACME-10Q-FY2027Q1#Item1", "x: 1"))[0] == 2
+    assert evaluate_cli(capsys, ws, tmp_path, readings="a: [")[0] == 2
+    assert main(["evaluate", str(ws / "public"), "--company", "NOPE", "--period", "FY2027Q1",
+                 "--readings", str(tmp_path / "readings.yml")]) == 2
+    assert main(["evaluate", str(ws / "nowhere"), "--company", "ACME", "--period", "FY2027Q1",
+                 "--readings", str(tmp_path / "readings.yml")]) == 2
+    with pytest.raises(SystemExit) as exc:
+        main(["evaluate", str(ws / "public"), "--company", "ACME", "--period", "FY2027", "--readings", "x.yml"])
+    assert exc.value.code == 2
