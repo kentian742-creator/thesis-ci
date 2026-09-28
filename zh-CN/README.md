@@ -71,7 +71,7 @@
 ## 快速开始
 
 ```bash
-pip install git+https://github.com/kentian742-creator/thesis-ci
+pip install thesis-ci                           # 从 PyPI 安装（或：pip install git+https://github.com/kentian742-creator/thesis-ci）
 thesis-ci init my-archive                       # 新建一个档案，含一家虚构的示例公司，profiles: [core]
 thesis-ci lint my-archive                       # 0 error(s), 0 warning(s)
 thesis-ci lint path/to/archive                  # 运行 repo.yml 所选检查组中适用于其 visibility 的检查

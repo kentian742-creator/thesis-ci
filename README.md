@@ -109,7 +109,7 @@ With the `owners-office` profile, archives are English first: the Chinese versio
 ## Quickstart
 
 ```bash
-pip install git+https://github.com/kentian742-creator/thesis-ci
+pip install thesis-ci                           # from PyPI (or: pip install git+https://github.com/kentian742-creator/thesis-ci)
 thesis-ci init my-archive                       # a new archive with one fictitious example company, profiles: [core]
 thesis-ci lint my-archive                       # 0 error(s), 0 warning(s)
 thesis-ci lint path/to/archive                  # runs the checks of repo.yml's profiles that apply to its visibility
