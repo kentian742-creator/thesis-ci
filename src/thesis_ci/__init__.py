@@ -5,4 +5,4 @@ This package lints archive repositories against the format contract in ``spec/``
 tests against metric readings (``evaluate``, ``readings``, ``metrics``).
 """
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"

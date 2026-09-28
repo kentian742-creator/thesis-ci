@@ -20,9 +20,10 @@
 visibility: public          # public | private
 owner: kentian742-creator
 spec_version: "0.2"
+profiles: [core]            # 可选：运行哪些检查组（8.6）；不写则运行全部检查组
 ```
 
-`thesis-ci lint <path>` 读取 `repo.yml` 决定适用哪些检查（见 `spec/checks.yml` 的 `scope`）。迁移期内 `spec_version: "0.1"` 仍被接受，但 `C-SCHEMA` 报警告；档案按本规范迁移完成后改为 `"0.2"`。
+`thesis-ci lint <path>` 读取 `repo.yml` 决定适用哪些检查（见 `spec/checks.yml` 的 `scope` 与 `profile`）。迁移期内 `spec_version: "0.1"` 仍被接受，但 `C-SCHEMA` 报警告；档案按本规范迁移完成后改为 `"0.2"`。
 
 ## 2. 目录约定
 
@@ -373,18 +374,20 @@ rows:
 
 ## 8. 检查
 
-`spec/checks.yml` 是全部检查的登记表。每项检查有 `id`、`title`、`scope`（`public`、`private`、`both`、`workspace`）、`level`（`error` 或 `warning`）和 `description`。实现必须为每个登记的检查提供一个函数和至少一个单元测试；单元测试的名称或文档字符串必须包含检查 id。
+`spec/checks.yml` 是全部检查的登记表。每项检查有 `id`、`title`、`profile`（`core`、`pipeline`、`owners-office`；8.6）、`scope`（`public`、`private`、`both`、`workspace`）、`level`（`error` 或 `warning`）和 `description`。实现必须为每个登记的检查提供一个函数和至少一个单元测试；单元测试的名称或文档字符串必须包含检查 id。
 
-宪法的每条规则（`constitution/rules.yml`）必须引用至少一个登记的检查 id。
+在运行 `owners-office` 检查组的档案里，宪法的每条规则（`constitution/rules.yml`）必须引用至少一个登记的检查 id。
 
 ### 8.1 命令行
 
 ```bash
 thesis-ci lint <path> [--counterpart <另一侧仓库>] [--today YYYY-MM-DD] [--expect-visibility public|private]
-                      [--base-ref <git 引用>] [--period FY<年>Q<季>] [--only <检查 id> ...] [--format text|json]
+                      [--base-ref <git 引用>] [--period FY<年>Q<季>] [--profile <检查组>,...]
+                      [--only <检查 id> ...] [--format text|json]
+thesis-ci init <目录> [--visibility public|private] [--profiles <检查组>,...]
 ```
 
-`--today` 决定截止时间是否已过（`C-PREREG-TIMING`、`C-PREREG-IMMUTABLE`）与时效（`C-STALENESS`）；`--base-ref` 与 `--period` 只用于 `C-TEST-FROZEN`；`--counterpart` 让私有仓库读到公开仓库的决策权配置与角色定义（`C-PROMPT-ISOLATION`）。
+`--profile` 与 `--only` 选择运行哪些检查（8.6）。`--today` 决定截止时间是否已过（`C-PREREG-TIMING`、`C-PREREG-IMMUTABLE`）与时效（`C-STALENESS`）；`--base-ref` 与 `--period` 只用于 `C-TEST-FROZEN`；`--counterpart` 让私有仓库读到公开仓库的决策权配置与角色定义（`C-PROMPT-ISOLATION`）。
 
 ### 8.2 决策权与信任等级 decision-rights.yml
 
@@ -405,7 +408,7 @@ thesis-ci lint <path> [--counterpart <另一侧仓库>] [--today YYYY-MM-DD] [--
 
 ### 8.5 英文优先：zh-CN/ 与 C-LANGUAGE（thesis-ci 0.3.0）
 
-档案以英文为主。关键文档的中文版放在仓库根目录的 `zh-CN/<相同路径>`，front matter 之后的第一行链接回英文原文，英文文件在开头附近写明中文版的位置。其余文件只有英文。
+运行 `owners-office` 检查组的档案以英文为主。关键文档的中文版放在仓库根目录的 `zh-CN/<相同路径>`，front matter 之后的第一行链接回英文原文，英文文件在开头附近写明中文版的位置。其余文件只有英文。
 
 - 中文版与它翻译的文件一样对外发布。公开内容的检查（`C-PUBLIC-NO-VALUATION`、`C-PUBLIC-NO-ADVICE`、`C-PUBLIC-NO-AMOUNTS`、`C-NO-PRICE-FEED` 的股价检查、`C-DEPENDS` 的中立检查）像读英文文件一样读 `zh-CN/companies/`、`zh-CN/industries/`、`zh-CN/forecasts/`、`zh-CN/letters/` 和 `zh-CN/mistakes.md`；`C-SRC-TAG` 检查其中的事实数字，标签按英文文件的位置解析（`zh-CN/companies/<TICKER>/story.md` 读 `companies/<TICKER>/sources.yml`）。
 - `C-LANGUAGE`（both，error）：`zh-CN/` 以外的文本文件不得含中日韩字符（汉字、假名、谚文、中日韩标点或全角字符）。例外：仓库根目录的 `zh-CN/`；测试与测试数据（`tests/`、`test/`、`fixtures/` 目录，`test_*.py`、`*_test.py`、`conftest.py`），它们可能需要中文文本；`sources.yml` 条目中 `title_original` 的值（3.5）。每个文件报一条错误，指向第一处含中日韩文字的行，并给出这样的行数。
@@ -413,6 +416,29 @@ thesis-ci lint <path> [--counterpart <另一侧仓库>] [--today YYYY-MM-DD] [--
 | id | 范围 | 级别 | 检查 |
 | --- | --- | --- | --- |
 | `C-LANGUAGE` | both | error | 英文文件不含中日韩文字；`zh-CN/`、测试、测试数据和 `sources.yml` 的 `title_original` 例外 |
+
+### 8.6 检查组（thesis-ci 0.5.0）
+
+每项检查恰好属于一个检查组（profile），由 `spec/checks.yml` 中的 `profile` 给出：
+
+| 检查组 | 适用于 | 检查 |
+| --- | --- | --- |
+| `core` | 任何论点档案 | `C-SCHEMA`、`C-SRC-TAG`、`C-SRC-FACT`、`C-SRC-ACCESSION`、`C-PUBLIC-NO-VALUATION`、`C-PUBLIC-NO-ADVICE`、`C-PUBLIC-NO-AMOUNTS`、`C-NO-PRICE-FEED`、`C-NO-TRADING`、`C-NO-SECRETS`、`C-TESTS-MIN`、`C-TESTS-COVERAGE`、`C-TESTS-CAPALLOC`、`C-TEST-METRIC`、`C-TEST-QUAL-EVIDENCE`、`C-STALENESS`、`C-DEPENDS`、`C-STORY`、`C-PREREG-TIMING`、`C-PREREG-IMMUTABLE`、`C-TEST-FROZEN` |
+| `pipeline` | 由大模型研究流水线写成的档案 | `C-LLM-ENTRY`、`C-AGENT-ISOLATION`、`C-PROMPT-ISOLATION`、`C-TRUST-WRITE` |
+| `owners-office` | 采用 Owner's Office 宪法的档案 | `C-RATING-ORDER`、`C-CONCENTRATION`、`C-DISCOUNT-RATE`、`C-SELL-REASONS`、`C-HURDLE`、`C-SINGLE-ORDER`、`C-DEFAULT-HOLD`、`C-DECISION-RIGHTS`、`C-CONSTITUTION-MAP`、`C-LANGUAGE` |
+
+**怎样选择。** 档案在 `repo.yml` 中写明自己的检查组（`profiles: [core]`、`profiles: [core, pipeline]`），顺序无关。没有 `profiles` 时运行全部检查组，与 0.5.0 之前相同。如果取值不是由互不重复的已知检查组构成的非空列表，也运行全部检查组，并由 `C-SCHEMA` 报错：写错一个字不会关掉任何检查。`thesis-ci lint --profile <检查组>,...` 在这一次运行中以指定的检查组代替 `repo.yml` 里的（公开仓库的 CI 可以这样固定检查组，就像固定 `--expect-visibility` 一样）；`--only` 只运行它列出的检查，不管检查组。检查组选出检查，再由 `scope` 决定其中哪些在公开仓库或私有仓库上运行。`thesis-ci init` 新建的档案写 `profiles: [core]`，除非 `--profiles` 另有指定。
+
+**各检查组需要什么。** `core` 只要求 `repo.yml`，以及 `companies/` 下每家公司的 `thesis.yml` 和 `story.md`，它们的来源标签在 `sources.yml` 中解析；它读到的其他内容（预注册、账本、行业模块、预测、信件、代码）存在时才检查。`core` 的检查不要求任何只有其他检查组才读的文件：`constitution/rules.yml` 和 `constitution/decision-rights.yml` 只有 `C-CONSTITUTION-MAP` 和 `C-DECISION-RIGHTS`（`owners-office`）要求；`agents/*.yml`、`trust/levels.yml` 和 `prompts/*.md` 只与 `pipeline` 的检查有关，这些文件不存在时那些检查空过。不管选了哪些检查组，`C-SCHEMA` 都校验第 2 节列出的每一个存在的文件，所以即使没有 `owners-office`，`memos/*.yml` 也要符合 `memo.schema.json`。
+
+**边界情形的归属。** 一项检查只要保护的是任何论点档案，就归入 `core`，不管它源自谁的规则：
+
+- `C-TESTS-COVERAGE` 和 `C-TESTS-CAPALLOC` 引用宪法第 2、3 条，但它们要求的（测试合起来考察护城河、定价权、资本回报、自由现金流、资本配置和管理层）是一篇关于生意的论点起码要检验的内容：`core`。`C-CONSTITUTION-MAP` 仍把第 2、3 条映射到它们。
+- `C-TEST-QUAL-EVIDENCE` 要求 `judge: independent_model`，但它规定的是定性测试本身的形态（一道问题、一个不通过条件、指定的文件、回看期数），并不调用模型：`core`。
+- `C-PUBLIC-NO-VALUATION`、`C-PUBLIC-NO-ADVICE`、`C-PUBLIC-NO-AMOUNTS`、`C-NO-PRICE-FEED` 和 `C-NO-TRADING` 源自 00 §H2 与 §H4，但它们让公开档案里没有估值、股价、持仓金额和建议，让任何档案里都没有股价来源和下单代码：`core`。`C-DEPENDS` 也属于 `core`：依赖必须能解析，而列出持仓的行业模块会泄露仓位。
+- `C-LLM-ENTRY` 与 `C-NO-TRADING` 一样是代码的静态扫描，但只有模型参与撰写档案时，唯一的模型入口才有意义：`pipeline`。`C-TRUST-WRITE` 把 `thesis.yml` 与流水线保存的记录（`trust/levels.yml`、`reviewed_sections`）对照：`pipeline`。
+- `C-RATING-ORDER` 检查的评级 thesis schema 已经要求，它只多检查 `hq/ranking.yml` 的排名理由（00 §V13），这是 Owner's Office 的做法：`owners-office`。`C-DECISION-RIGHTS` 检查这部宪法的 `decision-rights.yml` 中的三级决策权和信任等级：`owners-office`。
+- `C-LANGUAGE` 要求档案以英文为主、中文版放在 `zh-CN/` 下（8.5），这是 Owner's Office 的约定；用其他语言写的档案会通不过：`owners-office`。
 
 ## 9. 指标登记表
 
@@ -425,3 +451,5 @@ thesis-ci lint <path> [--counterpart <另一侧仓库>] [--today YYYY-MM-DD] [--
 thesis-ci 0.3.0 增加英文支持和 `C-LANGUAGE`（3.4、3.5、5、7.5、8.5），除可选的 `title_original` 外不改任何文件格式；档案的 `spec_version` 仍为 `"0.2"`。
 
 thesis-ci 0.4.0 增加定量测试的求值（4.5）和两种新文件：读数与 `ci_results`（`readings.schema.json`、`ci-results.schema.json`）；`C-TEST-METRIC` 还会报告引擎无法判定的规则。档案文件的格式不变；档案的 `spec_version` 仍为 `"0.2"`。
+
+thesis-ci 0.5.0 增加检查组（8.6）和 `repo.yml` 的可选字段 `profiles`；检查本身不变，没有 `profiles` 的档案检查结果与以前相同。档案的 `spec_version` 仍为 `"0.2"`。

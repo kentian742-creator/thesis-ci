@@ -33,6 +33,8 @@ def test_wheel_contains_spec_and_fixtures(wheel):
         "thesis_ci/spec/schemas/thesis.schema.json",
         "thesis_ci/spec/templates/lynch/stalwart.yml",
         "thesis_ci/fixtures/workspace/public/companies/ACME/thesis.yml",
+        "thesis_ci/starter/README.md",
+        "thesis_ci/starter/companies/ACME/thesis.yml",
         "thesis_ci/cli.py",
     ):
         assert required in names, required
@@ -53,3 +55,19 @@ def test_cli_runs_from_the_unpacked_wheel(wheel, tmp_path):
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert proc.stdout.splitlines()[0] == str(site / "thesis_ci" / "spec")
     assert "35/35 checks pass" in proc.stdout
+
+
+def test_init_runs_from_the_unpacked_wheel(wheel, tmp_path):
+    """thesis-ci init finds its starter files (and the owners-office constitution) inside an installed wheel."""
+    site = tmp_path / "site"
+    zipfile.ZipFile(wheel).extractall(site)
+    code = (
+        "import sys; sys.path.insert(0, sys.argv[1]);"
+        "from thesis_ci import cli;"
+        "assert cli.main(['init', sys.argv[2], '--profiles', 'core,owners-office']) == 0;"
+        "sys.exit(cli.main(['lint', sys.argv[2]]))"
+    )
+    proc = subprocess.run([sys.executable, "-c", code, str(site), str(tmp_path / "archive")], capture_output=True,
+                          text=True, cwd=tmp_path, timeout=300)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "0 error(s), 0 warning(s)" in proc.stdout

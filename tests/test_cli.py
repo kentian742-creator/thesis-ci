@@ -77,8 +77,15 @@ def test_checks_json(capsys):
     code, out = run_cli(capsys, "checks", "--format", "json")
     rows = json.loads(out)
     assert code == 0 and len(rows) == 35
-    assert set(rows[0]) == {"id", "title", "scope", "level", "implemented", "selftest"}
+    assert set(rows[0]) == {"id", "title", "profile", "scope", "level", "implemented", "selftest"}
     assert all(r["implemented"] and r["selftest"] == "pass" for r in rows)
+    assert {r["profile"] for r in rows} == {"core", "pipeline", "owners-office"}
+
+
+def test_checks_text_shows_the_profile(capsys):
+    code, out = run_cli(capsys, "checks")
+    line = next(ln for ln in out.splitlines() if ln.startswith("C-HURDLE "))
+    assert code == 0 and line.split()[1:4] == ["owners-office", "private", "error"]
 
 
 def test_selftest_command(capsys):

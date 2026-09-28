@@ -26,6 +26,19 @@
     },
     "counterpart": {
       "type": "string"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "core",
+          "pipeline",
+          "owners-office"
+        ]
+      },
+      "description": "The check profiles thesis-ci lint runs on this archive (SPEC 8.6); when absent, every profile runs"
     }
   },
   "additionalProperties": false

@@ -3,9 +3,26 @@
 #        both = runs in both; workspace = needs to see the public and the private repository together (locally or in the
 #        acceptance script).
 # level: error blocks the merge; warning is only reported.
+# profile: the group this check belongs to (SPEC 8.6). An archive chooses the profiles it runs with `profiles` in
+#        repo.yml; when repo.yml has no `profiles`, every profile runs.
+profiles:
+  core: >-
+    Any thesis archive: file schemas, source tags, thesis tests and their coverage and metrics, staleness, the
+    two-minute story, pre-registration timing and immutability, frozen thresholds, no secrets, no price feed, no
+    trading, and the public-content checks that keep valuations, prices, position amounts and advice out of a public
+    archive.
+  pipeline: >-
+    Guardrails for an archive written by an LLM research pipeline: one model entry point, auditing roles and prompts
+    that never see what they must judge independently of, and trust levels and review dates that only the pipeline
+    writes.
+  owners-office: >-
+    One investor's constitution, that of Owner's Office: concentration, the benchmark hurdle, single-order entry,
+    allowed sell reasons, default hold, the discount-rate formula, decision rights, the rating order, the map from
+    constitution rules to checks, and English-first archives.
 checks:
   - id: C-SCHEMA
     title: Files match their schemas
+    profile: core
     scope: both
     level: error
     description: >-
@@ -19,6 +36,7 @@ checks:
 
   - id: C-SRC-TAG
     title: Fact numbers in Markdown carry source tags
+    profile: core
     scope: both
     level: error
     description: >-
@@ -30,6 +48,7 @@ checks:
 
   - id: C-SRC-FACT
     title: YAML facts carry resolvable sources
+    profile: core
     scope: both
     level: error
     description: >-
@@ -42,6 +61,7 @@ checks:
 
   - id: C-SRC-ACCESSION
     title: Periodic-report sources carry an EDGAR accession number
+    profile: core
     scope: both
     level: warning
     description: >-
@@ -49,6 +69,7 @@ checks:
 
   - id: C-PUBLIC-NO-VALUATION
     title: The public repository contains no value ranges or price ranges
+    profile: core
     scope: public
     level: error
     description: >-
@@ -65,6 +86,7 @@ checks:
 
   - id: C-PUBLIC-NO-ADVICE
     title: Public files are scanned for buy or sell wording
+    profile: core
     scope: public
     level: error
     description: >-
@@ -79,6 +101,7 @@ checks:
 
   - id: C-PUBLIC-NO-AMOUNTS
     title: The public repository contains no position amounts
+    profile: core
     scope: public
     level: error
     description: >-
@@ -87,6 +110,7 @@ checks:
 
   - id: C-NO-PRICE-FEED
     title: Code contains no daily share price feed (static scan)
+    profile: core
     scope: both
     level: error
     description: >-
@@ -99,6 +123,7 @@ checks:
 
   - id: C-NO-TRADING
     title: Code contains no broker or order interface (static scan)
+    profile: core
     scope: both
     level: error
     description: >-
@@ -107,6 +132,7 @@ checks:
 
   - id: C-LLM-ENTRY
     title: All model calls go through one module, pipeline/llm.py
+    profile: pipeline
     scope: both
     level: error
     description: >-
@@ -115,6 +141,7 @@ checks:
 
   - id: C-NO-SECRETS
     title: No secrets are committed
+    profile: core
     scope: both
     level: error
     description: >-
@@ -123,6 +150,7 @@ checks:
 
   - id: C-TESTS-MIN
     title: At least 5 tests per company, all three types
+    profile: core
     scope: public
     level: error
     description: >-
@@ -133,6 +161,7 @@ checks:
 
   - id: C-TESTS-COVERAGE
     title: Tests cover moat, pricing power, returns on capital and free cash flow
+    profile: core
     scope: public
     level: error
     description: >-
@@ -141,6 +170,7 @@ checks:
 
   - id: C-TESTS-CAPALLOC
     title: Tests cover capital allocation
+    profile: core
     scope: public
     level: error
     description: >-
@@ -149,6 +179,7 @@ checks:
 
   - id: C-TEST-METRIC
     title: Quantitative tests are executable
+    profile: core
     scope: public
     level: error
     description: >-
@@ -161,6 +192,7 @@ checks:
 
   - id: C-TEST-QUAL-EVIDENCE
     title: Qualitative tests require an independent judgment and sources
+    profile: core
     scope: public
     level: error
     description: >-
@@ -170,6 +202,7 @@ checks:
 
   - id: C-STALENESS
     title: Staleness tests can be computed and are not expired
+    profile: core
     scope: public
     level: warning
     description: >-
@@ -178,6 +211,7 @@ checks:
 
   - id: C-DEPENDS
     title: Industry dependencies resolve and industry modules stay neutral
+    profile: core
     scope: public
     level: error
     description: >-
@@ -186,6 +220,7 @@ checks:
 
   - id: C-STORY
     title: Each company has a two-minute story (at most 350 English words or 700 CJK characters)
+    profile: core
     scope: public
     level: error
     description: >-
@@ -195,6 +230,7 @@ checks:
 
   - id: C-RATING-ORDER
     title: Quality first, management second, valuation third
+    profile: owners-office
     scope: both
     level: error
     description: >-
@@ -204,6 +240,7 @@ checks:
 
   - id: C-CONCENTRATION
     title: Holdings stay concentrated, and a new position clears the entry bar
+    profile: owners-office
     scope: both
     level: error
     description: >-
@@ -215,6 +252,7 @@ checks:
 
   - id: C-DISCOUNT-RATE
     title: Discount rate = 10-year Treasury yield + this company's premium, with the basis written down
+    profile: owners-office
     scope: private
     level: error
     description: >-
@@ -226,6 +264,7 @@ checks:
 
   - id: C-SELL-REASONS
     title: "A sale gives an allowed reason: permanent deterioration or a clearly better opportunity"
+    profile: owners-office
     scope: both
     level: error
     description: >-
@@ -235,6 +274,7 @@ checks:
 
   - id: C-HURDLE
     title: "A purchase clears the benchmark: Berkshire Hathaway first, an S&P 500 fund second"
+    profile: owners-office
     scope: private
     level: error
     description: >-
@@ -247,6 +287,7 @@ checks:
 
   - id: C-SINGLE-ORDER
     title: A position is opened with a single order
+    profile: owners-office
     scope: both
     level: error
     description: >-
@@ -255,6 +296,7 @@ checks:
 
   - id: C-DEFAULT-HOLD
     title: Decisions involving money default to doing nothing
+    profile: owners-office
     scope: both
     level: error
     description: >-
@@ -263,6 +305,7 @@ checks:
 
   - id: C-DECISION-RIGHTS
     title: The three decision levels (act, act and report, the owner decides) are consistent
+    profile: owners-office
     scope: public
     level: error
     description: >-
@@ -271,6 +314,7 @@ checks:
 
   - id: C-CONSTITUTION-MAP
     title: Every constitution rule has an executable check
+    profile: owners-office
     scope: public
     level: error
     description: >-
@@ -279,6 +323,7 @@ checks:
 
   - id: C-AGENT-ISOLATION
     title: The auditor and the blind reader never see what they must judge independently of
+    profile: pipeline
     scope: public
     level: error
     description: >-
@@ -287,6 +332,7 @@ checks:
 
   - id: C-PREREG-TIMING
     title: Pre-registrations are merged before the results are first public
+    profile: core
     scope: public
     level: error
     description: >-
@@ -298,6 +344,7 @@ checks:
 
   - id: C-PREREG-IMMUTABLE
     title: Pre-registrations cannot change after the deadline
+    profile: core
     scope: public
     level: error
     description: >-
@@ -311,6 +358,7 @@ checks:
 
   - id: C-TRUST-WRITE
     title: Only the pipeline edits trust levels and review dates
+    profile: pipeline
     scope: public
     level: warning
     description: >-
@@ -321,6 +369,7 @@ checks:
 
   - id: C-TEST-FROZEN
     title: Thresholds for the current period do not change after the results are out
+    profile: core
     scope: public
     level: error
     description: >-
@@ -333,6 +382,7 @@ checks:
 
   - id: C-PROMPT-ISOLATION
     title: Prompt inputs stay within what the role may see
+    profile: pipeline
     scope: private
     level: warning
     description: >-
@@ -344,6 +394,7 @@ checks:
 
   - id: C-LANGUAGE
     title: English files contain no CJK text
+    profile: owners-office
     scope: both
     level: error
     description: >-

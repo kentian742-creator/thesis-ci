@@ -24,6 +24,12 @@ inputs:
       so a public archive relabelled private cannot skip the public checks.
     required: false
     default: ""
+  profile:
+    description: >-
+      Optional: the check profiles to run (core, pipeline, owners-office; comma-separated) whatever the profiles of
+      repo.yml, so an edit to repo.yml cannot switch checks off.
+    required: false
+    default: ""
   base-ref:
     description: >-
       Optional git ref (e.g. origin/main) to compare the thesis tests with (C-TEST-FROZEN). Check out with enough
@@ -54,6 +60,7 @@ runs:
         TCI_COUNTERPART: ${{ inputs.counterpart }}
         TCI_FORMAT: ${{ inputs.format }}
         TCI_EXPECT_VISIBILITY: ${{ inputs.expect-visibility }}
+        TCI_PROFILE: ${{ inputs.profile }}
         TCI_BASE_REF: ${{ inputs.base-ref }}
         TCI_PERIOD: ${{ inputs.period }}
       run: |
@@ -63,6 +70,9 @@ runs:
         fi
         if [ -n "$TCI_EXPECT_VISIBILITY" ]; then
           args+=(--expect-visibility "$TCI_EXPECT_VISIBILITY")
+        fi
+        if [ -n "$TCI_PROFILE" ]; then
+          args+=(--profile "$TCI_PROFILE")
         fi
         if [ -n "$TCI_BASE_REF" ]; then
           args+=(--base-ref "$TCI_BASE_REF")

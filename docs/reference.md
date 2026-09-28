@@ -53,7 +53,8 @@
   first such line. Tests and fixtures, which may exercise Chinese text, are exempt, and so is the `title_original` of
   a `sources.yml` entry, which quotes a source's title in its own language.
 - **Vacuous pass**: checks pass when their inputs do not exist yet (no memos, no pre-registrations, ...). A public
-  archive must have `constitution/rules.yml` and `constitution/decision-rights.yml`.
+  archive that runs the `owners-office` profile must have `constitution/rules.yml` and
+  `constitution/decision-rights.yml` (SPEC 8.6).
 - **Selftest.** `thesis-ci selftest` copies the bundled example archive
   ([`src/thesis_ci/fixtures/workspace`](../src/thesis_ci/fixtures/workspace), fictitious data) to a temporary directory
   and applies at least one violating edit per check. `C-CONSTITUTION-MAP` requires every check the constitution

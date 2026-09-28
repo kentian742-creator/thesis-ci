@@ -129,6 +129,8 @@ class Report:
     visibility: str
     findings: list[Finding] = field(default_factory=list)
     checks_run: list[str] = field(default_factory=list)
+    # the profiles that selected the checks; None when every profile ran (no selection) or --only chose them
+    profiles: tuple[str, ...] | None = None
 
     @property
     def errors(self) -> list[Finding]:
@@ -148,6 +150,32 @@ class Report:
         }
 
 
+def declared_profiles(repo: Repo) -> tuple[str, ...] | None:
+    """The profiles repo.yml selects, in registry order; None when it selects none (every profile runs).
+
+    A malformed value (anything but a non-empty list of distinct, known profile names, as repo.schema.json has it)
+    also runs every profile: a typo must not switch checks off, and C-SCHEMA, which then runs, reports it.
+    """
+    declared = (repo.meta or {}).get("profiles")
+    known = contract.profiles()
+    if not (isinstance(declared, list) and declared and all(isinstance(p, str) and p in known for p in declared)
+            and len(set(declared)) == len(declared)):
+        return None
+    return tuple(p for p in known if p in declared)
+
+
+def select_profiles(repo: Repo, override: Iterable[str] | None = None) -> tuple[str, ...] | None:
+    """The profiles a lint runs: ``override`` (lint --profile) if given, else repo.yml's; None means all of them."""
+    if override is None:
+        return declared_profiles(repo)
+    wanted = set(override)
+    unknown = sorted(wanted - set(contract.profiles()))
+    if unknown or not wanted:
+        raise ValueError(f"unknown profile(s): {', '.join(unknown) or '(none given)'}; "
+                         f"the profiles are {', '.join(contract.profiles())}")
+    return tuple(p for p in contract.profiles() if p in wanted)
+
+
 def applies(scope: str, visibility: str, has_counterpart: bool) -> bool:
     if scope == "both":
         return True
@@ -164,17 +192,23 @@ def run(
     expect_visibility: str | None = None,
     base_ref: str | None = None,
     period: str | None = None,
+    profiles: Iterable[str] | None = None,
 ) -> Report:
+    """Lint one archive. ``only`` runs exactly those checks; otherwise ``profiles`` (lint --profile), else the
+    ``profiles`` of repo.yml, else every profile selects them (SPEC 8.6). Scope then decides what applies."""
     if expect_visibility not in (None, "public", "private"):
         raise ValueError(f"expect_visibility must be public or private, not {expect_visibility!r}")
     registry = load_checks()
     repo = Repo(path)
     ctx = Context(repo, Repo(counterpart) if counterpart else None, today, expect_visibility, base_ref, period)
     wanted = set(only) if only else None
-    report = Report(repo=str(repo.root), visibility=ctx.visibility)
+    selected = None if wanted is not None else select_profiles(repo, profiles)
+    report = Report(repo=str(repo.root), visibility=ctx.visibility, profiles=selected)
     for meta in contract.registered_checks():
         cid = meta["id"]
         if wanted is not None and cid not in wanted:
+            continue
+        if selected is not None and meta["profile"] not in selected:
             continue
         if not applies(meta["scope"], ctx.visibility, ctx.counterpart is not None):
             continue

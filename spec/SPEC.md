@@ -20,9 +20,10 @@ Every archive repository MUST have a `repo.yml` at its root:
 visibility: public          # public | private
 owner: kentian742-creator
 spec_version: "0.2"
+profiles: [core]            # optional: the check profiles to run (8.6); every profile runs when absent
 ```
 
-`thesis-ci lint <path>` reads `repo.yml` to decide which checks apply (see `scope` in `spec/checks.yml`). During the migration `spec_version: "0.1"` is still accepted, but `C-SCHEMA` gives a warning; once an archive has been migrated to this specification, set it to `"0.2"`.
+`thesis-ci lint <path>` reads `repo.yml` to decide which checks apply (see `scope` and `profile` in `spec/checks.yml`). During the migration `spec_version: "0.1"` is still accepted, but `C-SCHEMA` gives a warning; once an archive has been migrated to this specification, set it to `"0.2"`.
 
 ## 2. Directory layout
 
@@ -373,18 +374,20 @@ In the public repository each of the following is an error: `valuation.yml`, `me
 
 ## 8. Checks
 
-`spec/checks.yml` is the registry of all checks. Each check has `id`, `title`, `scope` (`public`, `private`, `both`, `workspace`), `level` (`error` or `warning`) and `description`. An implementation MUST provide a function and at least one unit test for each registered check; the name or the docstring of the unit test MUST contain the check id.
+`spec/checks.yml` is the registry of all checks. Each check has `id`, `title`, `profile` (`core`, `pipeline`, `owners-office`; 8.6), `scope` (`public`, `private`, `both`, `workspace`), `level` (`error` or `warning`) and `description`. An implementation MUST provide a function and at least one unit test for each registered check; the name or the docstring of the unit test MUST contain the check id.
 
-Every rule of the constitution (`constitution/rules.yml`) MUST reference at least one registered check id.
+In an archive that runs the `owners-office` profile, every rule of the constitution (`constitution/rules.yml`) MUST reference at least one registered check id.
 
 ### 8.1 Command line
 
 ```bash
 thesis-ci lint <path> [--counterpart <other repository>] [--today YYYY-MM-DD] [--expect-visibility public|private]
-                      [--base-ref <git ref>] [--period FY<year>Q<quarter>] [--only <check id> ...] [--format text|json]
+                      [--base-ref <git ref>] [--period FY<year>Q<quarter>] [--profile <profile>,...]
+                      [--only <check id> ...] [--format text|json]
+thesis-ci init <directory> [--visibility public|private] [--profiles <profile>,...]
 ```
 
-`--today` decides whether a deadline has passed (`C-PREREG-TIMING`, `C-PREREG-IMMUTABLE`) and the staleness (`C-STALENESS`); `--base-ref` and `--period` are used only by `C-TEST-FROZEN`; `--counterpart` lets the private repository read the public repository's decision rights and role definitions (`C-PROMPT-ISOLATION`).
+`--profile` and `--only` choose the checks (8.6). `--today` decides whether a deadline has passed (`C-PREREG-TIMING`, `C-PREREG-IMMUTABLE`) and the staleness (`C-STALENESS`); `--base-ref` and `--period` are used only by `C-TEST-FROZEN`; `--counterpart` lets the private repository read the public repository's decision rights and role definitions (`C-PROMPT-ISOLATION`).
 
 ### 8.2 Decision rights and trust levels decision-rights.yml
 
@@ -405,7 +408,7 @@ See `decision-rights.schema.json`. `levels` holds the three decision levels, wit
 
 ### 8.5 English first: zh-CN/ and C-LANGUAGE (thesis-ci 0.3.0)
 
-The archives are English-first. The Chinese version of a key document lives at `zh-CN/<same path>` at the repository root; after any front matter, its first line links back to the English file, and the English file says near the top where the Chinese version is. Every other file is in English only.
+The archives that run the `owners-office` profile are English-first. The Chinese version of a key document lives at `zh-CN/<same path>` at the repository root; after any front matter, its first line links back to the English file, and the English file says near the top where the Chinese version is. Every other file is in English only.
 
 - A Chinese version is published like the file it translates. The checks of public content (`C-PUBLIC-NO-VALUATION`, `C-PUBLIC-NO-ADVICE`, `C-PUBLIC-NO-AMOUNTS`, the share-price check of `C-NO-PRICE-FEED`, the neutrality check of `C-DEPENDS`) read `zh-CN/companies/`, `zh-CN/industries/`, `zh-CN/forecasts/`, `zh-CN/letters/` and `zh-CN/mistakes.md` as they read the English files, and `C-SRC-TAG` checks their fact numbers, resolving tags as for the English file (`zh-CN/companies/<TICKER>/story.md` reads `companies/<TICKER>/sources.yml`).
 - `C-LANGUAGE` (both, error): no text file outside `zh-CN/` contains CJK characters (Han ideographs, kana, hangul, CJK punctuation or full-width forms). Exempt are `zh-CN/` at the repository root; tests and fixtures (a `tests/`, `test/` or `fixtures/` directory, `test_*.py`, `*_test.py`, `conftest.py`), which may exercise Chinese text; and the value of `title_original` in a `sources.yml` (3.5). The check reports one error per file, at its first line with CJK text, with the number of such lines.
@@ -413,6 +416,29 @@ The archives are English-first. The Chinese version of a key document lives at `
 | id | scope | level | check |
 | --- | --- | --- | --- |
 | `C-LANGUAGE` | both | error | an English file contains no CJK text; `zh-CN/`, tests, fixtures and `title_original` in `sources.yml` are exempt |
+
+### 8.6 Profiles (thesis-ci 0.5.0)
+
+Every check belongs to exactly one profile, given by `profile` in `spec/checks.yml`:
+
+| Profile | For | Checks |
+| --- | --- | --- |
+| `core` | any thesis archive | `C-SCHEMA`, `C-SRC-TAG`, `C-SRC-FACT`, `C-SRC-ACCESSION`, `C-PUBLIC-NO-VALUATION`, `C-PUBLIC-NO-ADVICE`, `C-PUBLIC-NO-AMOUNTS`, `C-NO-PRICE-FEED`, `C-NO-TRADING`, `C-NO-SECRETS`, `C-TESTS-MIN`, `C-TESTS-COVERAGE`, `C-TESTS-CAPALLOC`, `C-TEST-METRIC`, `C-TEST-QUAL-EVIDENCE`, `C-STALENESS`, `C-DEPENDS`, `C-STORY`, `C-PREREG-TIMING`, `C-PREREG-IMMUTABLE`, `C-TEST-FROZEN` |
+| `pipeline` | an archive written by an LLM research pipeline | `C-LLM-ENTRY`, `C-AGENT-ISOLATION`, `C-PROMPT-ISOLATION`, `C-TRUST-WRITE` |
+| `owners-office` | an archive that adopts the Owner's Office constitution | `C-RATING-ORDER`, `C-CONCENTRATION`, `C-DISCOUNT-RATE`, `C-SELL-REASONS`, `C-HURDLE`, `C-SINGLE-ORDER`, `C-DEFAULT-HOLD`, `C-DECISION-RIGHTS`, `C-CONSTITUTION-MAP`, `C-LANGUAGE` |
+
+**Choosing.** An archive names its profiles in `repo.yml` (`profiles: [core]`, `profiles: [core, pipeline]`); the order does not matter. When `profiles` is absent, every profile runs, as before 0.5.0. A value that is not a non-empty list of distinct, known profiles also runs every profile, and `C-SCHEMA` reports it: a typo never switches checks off. `thesis-ci lint --profile <profile>,...` runs the named profiles instead of those in `repo.yml` for that run (a public archive's CI MAY pin them this way, as it pins `--expect-visibility`); `--only` runs exactly the checks it names, whatever the profiles. A profile selects checks; `scope` then decides which of them run on a public or a private archive. `thesis-ci init` writes a new archive with `profiles: [core]` unless `--profiles` says otherwise.
+
+**What each profile needs.** `core` requires only `repo.yml` and, for each company under `companies/`, `thesis.yml` and `story.md`, whose source tags resolve in a `sources.yml`; whatever else it reads (pre-registrations, ledgers, industry modules, forecasts, letters, code) it checks when it exists. No `core` check requires a file that only another profile reads: `constitution/rules.yml` and `constitution/decision-rights.yml` are required only by `C-CONSTITUTION-MAP` and `C-DECISION-RIGHTS` (`owners-office`), and `agents/*.yml`, `trust/levels.yml` and `prompts/*.md` matter only to `pipeline` checks, which pass when these files are absent. `C-SCHEMA` validates every file of section 2 that exists, whatever the profiles, so a `memos/*.yml` is checked against `memo.schema.json` even without `owners-office`.
+
+**Borderline assignments.** A check belongs to `core` when it protects any thesis archive, whoever wrote the rule it came from:
+
+- `C-TESTS-COVERAGE` and `C-TESTS-CAPALLOC` cite constitution rules 2 and 3, but what they require (tests that together look at moat, pricing power, returns on capital, free cash flow, capital allocation and management) is the minimum a thesis about a business must test: `core`. `C-CONSTITUTION-MAP` still maps rules 2 and 3 to them.
+- `C-TEST-QUAL-EVIDENCE` asks for `judge: independent_model`, but it defines what a qualitative test is (a question, a failure condition, named documents, a lookback) and calls no model: `core`.
+- `C-PUBLIC-NO-VALUATION`, `C-PUBLIC-NO-ADVICE`, `C-PUBLIC-NO-AMOUNTS`, `C-NO-PRICE-FEED` and `C-NO-TRADING` come from 00 §H2 and §H4, but they keep valuations, share prices, position amounts and advice out of a public archive, and price feeds and order code out of any archive: `core`. `C-DEPENDS` is `core` too: dependencies must resolve, and an industry module that names holdings leaks positions.
+- `C-LLM-ENTRY` is a static code scan like `C-NO-TRADING`, but one model entry point matters only when models write the archive: `pipeline`. `C-TRUST-WRITE` compares `thesis.yml` with records a pipeline keeps (`trust/levels.yml`, `reviewed_sections`): `pipeline`.
+- `C-RATING-ORDER` checks the ratings the thesis schema already requires and adds only the ranking reasons of `hq/ranking.yml` (00 §V13), a practice of Owner's Office: `owners-office`. `C-DECISION-RIGHTS` checks the three decision levels and the trust levels of this constitution's `decision-rights.yml`: `owners-office`.
+- `C-LANGUAGE` enforces English-first archives with Chinese versions under `zh-CN/` (8.5), a convention of Owner's Office; an archive written in another language would fail it: `owners-office`.
 
 ## 9. Metric registry
 
@@ -425,3 +451,5 @@ This specification is v0.2. v1.0 will be set after two earnings seasons have run
 thesis-ci 0.3.0 adds English-language support and `C-LANGUAGE` (3.4, 3.5, 5, 7.5, 8.5) and changes no file format apart from the optional `title_original`; archives keep `spec_version: "0.2"`.
 
 thesis-ci 0.4.0 adds the evaluation of quantitative tests (4.5) with two new documents, readings and `ci_results` (`readings.schema.json`, `ci-results.schema.json`); `C-TEST-METRIC` now also reports rules the engine cannot judge. The format of archive files is unchanged; archives keep `spec_version: "0.2"`.
+
+thesis-ci 0.5.0 adds check profiles (8.6) and the optional `profiles` field of `repo.yml`; the checks themselves are unchanged, and an archive without `profiles` lints as before. Archives keep `spec_version: "0.2"`.

@@ -1,0 +1,12 @@
+# Source tags (thesis-ci SPEC 3): every [src:TAG] and source: TAG in companies/ACME/ is listed here.
+# A tag may carry a locator after #, such as ACME-10K-FY2025#Item7. This source is fictitious.
+sources:
+  - tag: ACME-10K-FY2025
+    kind: filing
+    title: ACME Corp. Form 10-K for FY2025 (fictitious)
+    issuer_cik: "0000000001"
+    form: 10-K
+    period: FY2025
+    accession: 0000000001-26-000001   # the EDGAR accession number of the filing
+    filed: 2026-02-20
+    primary: true

@@ -36,6 +36,12 @@ def registered_checks() -> tuple[dict, ...]:
     return tuple(_load_yaml("checks.yml")["checks"])
 
 
+@lru_cache(maxsize=None)
+def profiles() -> tuple[str, ...]:
+    """The check profiles of spec/checks.yml, in file order (SPEC 8.6)."""
+    return tuple(_load_yaml("checks.yml")["profiles"])
+
+
 def check_meta(check_id: str) -> dict:
     for meta in registered_checks():
         if meta["id"] == check_id:

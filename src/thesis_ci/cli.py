@@ -1,4 +1,4 @@
-"""Command line: thesis-ci lint | checks | selftest | staleness | brier | evaluate."""
+"""Command line: thesis-ci lint | checks | selftest | init | staleness | brier | evaluate."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 
-from . import __version__, brier, contract, engine, evaluate, periods, readings, selftest, staleness
+from . import __version__, brier, contract, engine, evaluate, periods, readings, scaffold, selftest, staleness
 
 
 def _date(value: str) -> dt.date:
@@ -30,6 +30,18 @@ def _print_json(obj) -> None:
     print(json.dumps(obj, ensure_ascii=False, indent=2))
 
 
+def _names(values: list[str] | None) -> list[str]:
+    """Values of a repeatable option that also takes comma-separated lists (--only A,B --only C)."""
+    return [v.strip() for item in (values or []) for v in item.split(",") if v.strip()]
+
+
+def _unknown_profiles(names: list[str]) -> str | None:
+    unknown = sorted(set(names) - set(contract.profiles()))
+    if unknown:
+        return f"unknown profile(s): {', '.join(unknown)}; the profiles are {', '.join(contract.profiles())}"
+    return None
+
+
 def cmd_lint(args: argparse.Namespace) -> int:
     root = Path(args.path)
     if not root.is_dir():
@@ -38,22 +50,28 @@ def cmd_lint(args: argparse.Namespace) -> int:
     if args.counterpart and not Path(args.counterpart).is_dir():
         print(f"thesis-ci: counterpart {args.counterpart} is not a directory", file=sys.stderr)
         return 2
-    only = [c.strip() for item in (args.only or []) for c in item.split(",") if c.strip()]
+    only = _names(args.only)
     known = {m["id"] for m in contract.registered_checks()}
     unknown = sorted(set(only) - known)
     if unknown:
         print(f"thesis-ci: unknown check id(s): {', '.join(unknown)}", file=sys.stderr)
         return 2
+    profiles = _names(args.profile)
+    problem = _unknown_profiles(profiles)
+    if problem:
+        print(f"thesis-ci: {problem}", file=sys.stderr)
+        return 2
     report = engine.run(root, args.counterpart, args.today, only or None, args.expect_visibility,
-                        args.base_ref, args.period)
+                        args.base_ref, args.period, profiles or None)
     if args.format == "json":
         _print_json(report.as_dict())
     else:
         for f in report.findings:
             where = f"{f.file}:{f.line}" if f.line else f.file or "."
             print(f"{where}: {f.level} [{f.check}] {f.message}")
+        selected = f" (profiles: {', '.join(report.profiles)})" if report.profiles else ""
         print(f"thesis-ci: {len(report.errors)} error(s), {len(report.warnings)} warning(s); "
-              f"{len(report.checks_run)} checks on {report.visibility} repo {report.repo}")
+              f"{len(report.checks_run)} checks{selected} on {report.visibility} repo {report.repo}")
     return 1 if report.errors else 0
 
 
@@ -64,14 +82,15 @@ def cmd_checks(args: argparse.Namespace) -> int:
         cid = meta["id"]
         implemented = cid in registry
         passed = selftest.selftest_passes(cid) if implemented else False
-        rows.append({"id": cid, "title": meta["title"], "scope": meta["scope"], "level": meta["level"],
-                     "implemented": implemented, "selftest": "pass" if passed else "fail"})
+        rows.append({"id": cid, "title": meta["title"], "profile": meta["profile"], "scope": meta["scope"],
+                     "level": meta["level"], "implemented": implemented, "selftest": "pass" if passed else "fail"})
     if args.format == "json":
         _print_json(rows)
     else:
         for r in rows:
             impl = "yes" if r["implemented"] else "NO"
-            print(f"{r['id']:<24} {r['scope']:<9} {r['level']:<8} implemented={impl:<3} selftest={r['selftest']:<4} {r['title']}")
+            print(f"{r['id']:<24} {r['profile']:<13} {r['scope']:<9} {r['level']:<8} implemented={impl:<3} "
+                  f"selftest={r['selftest']:<4} {r['title']}")
     return 0
 
 
@@ -90,6 +109,27 @@ def cmd_selftest(args: argparse.Namespace) -> int:
                 print(f"     skipped: {skipped}")
         print(f"thesis-ci selftest: {len(results) - len(failed)}/{len(results)} checks pass (spec: {contract.spec_dir()})")
     return 1 if failed else 0
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    profiles = _names(args.profiles) or list(scaffold.DEFAULT_PROFILES)
+    problem = _unknown_profiles(profiles)
+    if problem:
+        print(f"thesis-ci: {problem}", file=sys.stderr)
+        return 2
+    try:
+        written = scaffold.init_archive(args.path, args.visibility, profiles)
+    except (FileExistsError, NotADirectoryError) as exc:
+        print(f"thesis-ci: {exc}", file=sys.stderr)
+        return 2
+    root = Path(args.path)
+    chosen = [p for p in contract.profiles() if p in profiles]
+    print(f"thesis-ci init: wrote a {args.visibility} archive to {root} (profiles: {', '.join(chosen)}); "
+          "ACME and its data are fictitious")
+    for path in written:
+        print(f"  {path.relative_to(root).as_posix()}")
+    print(f"next: thesis-ci lint {root}")
+    return 0
 
 
 def cmd_staleness(args: argparse.Namespace) -> int:
@@ -163,7 +203,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--format", choices=["text", "json"], default="text")
     p.add_argument("--counterpart", help="the other archive (public <-> private) for cross-repository checks")
     p.add_argument("--today", type=_date, help="evaluation date, YYYY-MM-DD (default: today)")
-    p.add_argument("--only", nargs="+", action="extend", metavar="CHECK_ID", help="run only these checks")
+    p.add_argument("--only", nargs="+", action="extend", metavar="CHECK_ID",
+                   help="run only these checks, whatever the profiles")
+    p.add_argument("--profile", action="append", metavar="PROFILE[,PROFILE...]",
+                   help="run the checks of these profiles (core, pipeline, owners-office) instead of those repo.yml "
+                        "names; comma-separated or repeated")
     p.add_argument("--expect-visibility", choices=["public", "private"],
                    help="lint as this visibility whatever repo.yml says, and fail if repo.yml says otherwise "
                         "(a public archive relabelled private would otherwise skip every public check)")
@@ -180,6 +224,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("selftest", help="prove every check flags a violating fixture and passes a clean one")
     p.add_argument("--format", choices=["text", "json"], default="text")
     p.set_defaults(func=cmd_selftest)
+
+    p = sub.add_parser("init", help="write a minimal, lint-clean archive with one fictitious example company")
+    p.add_argument("path", help="directory for the archive (created if needed; existing files are never overwritten)")
+    p.add_argument("--visibility", choices=["public", "private"], default="public",
+                   help="the visibility written to repo.yml (default: public)")
+    p.add_argument("--profiles", action="append", metavar="PROFILE[,PROFILE...]",
+                   help="the profiles written to repo.yml, comma-separated or repeated (default: core)")
+    p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("staleness", help="evaluate the staleness tests of every companies/*/thesis.yml")
     p.add_argument("path")

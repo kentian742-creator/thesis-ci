@@ -18,7 +18,7 @@ makes a thesis behave like code:
 | Source code | `thesis.yml`: the thesis, its grades for business quality, management and capital allocation, the industry modules it relies on, and its tests |
 | Unit tests | Thesis tests, each written before the data (three kinds, below) |
 | CI | `thesis-ci evaluate` judges the quantitative tests against a quarter's readings; once a period's results are out, CI rejects any edit to that period's thresholds (checked against git history) |
-| Lint | `thesis-ci lint`: every number cites a primary source, public files are scanned for valuation figures and buy or sell wording, and each rule in your written investing rules (`constitution/rules.yml`) has a matching check |
+| Lint | `thesis-ci lint`: every number cites a primary source, public files are scanned for valuation figures and buy or sell wording, and you choose which groups of checks (profiles) apply |
 | Test reports | `thesis-ci brier` scores resolved forecasts: Brier score and calibration by domain, and separately for the system's forecasts and the owner's overrides |
 
 The three kinds of test:
@@ -34,12 +34,33 @@ It is built for individual investors and small teams who keep written theses and
 running an LLM research pipeline that needs guardrails: sourced facts, no advice in public output, and auditing models
 that never see the drafting model's inputs.
 
-**Opinionated by default.** Several checks encode one investor's written rules, the constitution of
-[Owner's Office](https://github.com/kentian742-creator/owners-office), where thesis-ci was built: holdings stay within
-concentration limits, a position is opened with a single order, a sale needs one of the allowed reasons, a purchase
-must clear a benchmark (Berkshire Hathaway or an S&P 500 index fund), and a discount rate is a Treasury yield plus a
-company premium. These checks pass when their inputs are absent (no decision memos, no valuations), and `--only`
-restricts a run to the checks you choose; a switch to turn the investing profile off is planned.
+## Profiles
+
+Every check belongs to one of three profiles, and an archive chooses the ones it runs:
+
+- **`core`**, for any thesis archive: files match their schemas; every number cites a source; thesis tests are
+  complete and executable, and together cover moat, pricing power, returns on capital, free cash flow, capital
+  allocation and management; reviews are not overdue; each company has a short two-minute story; pre-registrations
+  are made before the results and never change; thresholds freeze once results are out; nothing commits a secret, fetches
+  share prices or places orders; and a public archive holds no valuations, share prices, position amounts or buy and
+  sell advice.
+- **`pipeline`**, for an archive that an LLM research pipeline writes: all model calls go through one module, the
+  auditor and the blind reader never see the drafts and conclusions they judge, each prompt gives its role only what
+  the role may see, and only the pipeline changes trust levels and review dates.
+- **`owners-office`**, one investor's rules: the constitution of
+  [Owner's Office](https://github.com/kentian742-creator/owners-office), where thesis-ci was built. Holdings stay
+  concentrated and a new position is at least 10% of the portfolio; a position is opened with a single order; a sale
+  needs one of the allowed reasons; a purchase must clear a benchmark (Berkshire Hathaway first, an S&P 500 index fund
+  second); a discount rate is the 10-year Treasury yield plus a company premium; a decision involving money defaults
+  to doing nothing and rests with the owner; each constitution rule maps to a check; and every file outside `zh-CN/`
+  is in English. Its checks of memos and valuations pass when there are none, but a public archive needs
+  `constitution/rules.yml` and `constitution/decision-rights.yml`.
+
+Choose them in `repo.yml`, for example `profiles: [core]` or `profiles: [core, pipeline]`. Most archives want `core`;
+add `pipeline` if models write your research, and `owners-office` only if you adopt those rules as your own.
+`thesis-ci init` starts a new archive with `profiles: [core]`. When `repo.yml` has no `profiles` line, every profile
+runs, which is how thesis-ci behaved before profiles existed. `thesis-ci checks` shows each check's profile, and the
+table under [Checks](#checks) lists them.
 
 ## What a test looks like
 
@@ -74,36 +95,48 @@ machine-readable files win.
 
 Your research lives in an archive: a public repository (theses, forecasts, letters) and, if you keep valuations or
 position sizes, a private one next to it (`visibility` in each `repo.yml` says which is which). `thesis-ci lint` reads
-`repo.yml` to decide which checks apply. A pre-registration is three files per event (SPEC 2.1):
+`visibility` and `profiles` in `repo.yml` to decide which checks apply. A pre-registration is three files per event
+(SPEC 2.1):
 
 - `prereg/<period>.yml`, the forecasts, frozen once the deadline passes (the owner's overrides go in
   `<period>-owner.yml`);
 - `<period>.yml.ots`, the OpenTimestamps proof that the file existed before the results;
 - `<period>.settlement.yml`, the settlement against the criteria written in advance.
 
-Archives are English first: the Chinese version of a key document lives at `zh-CN/<same path>`, and every other file is
-in English (SPEC 8.5).
+With the `owners-office` profile, archives are English first: the Chinese version of a key document lives at
+`zh-CN/<same path>`, and every other file is in English (SPEC 8.5).
 
 ## Quickstart
 
 ```bash
 pip install git+https://github.com/kentian742-creator/thesis-ci
-thesis-ci lint path/to/archive                  # runs the checks that apply to repo.yml's visibility
+thesis-ci init my-archive                       # a new archive with one fictitious example company, profiles: [core]
+thesis-ci lint my-archive                       # 0 error(s), 0 warning(s)
+thesis-ci lint path/to/archive                  # runs the checks of repo.yml's profiles that apply to its visibility
 thesis-ci lint path/to/private --counterpart path/to/public   # lint the private side with the public one alongside
 thesis-ci lint path/to/archive --format json --today 2026-09-24 --only C-SRC-TAG C-STORY
 thesis-ci lint . --expect-visibility public     # lint as a public archive; fail if repo.yml says otherwise
+thesis-ci lint . --profile core                 # run the core checks only, whatever repo.yml says
 thesis-ci lint . --base-ref origin/main --period FY2027Q1   # after results: thresholds in force stay frozen
-thesis-ci checks                                # every check: scope, level, implemented, selftest result
+thesis-ci checks                                # every check: profile, scope, level, implemented, selftest result
 thesis-ci selftest                              # each check must flag a violating fixture and pass a clean one
 thesis-ci staleness path/to/archive --today 2026-09-24   # evaluate the staleness tests of every thesis.yml
 thesis-ci brier path/to/archive/forecasts/2026.yml       # Brier score and calibration by domain, system vs owner
 thesis-ci evaluate path/to/archive --company ACME --period FY2027Q1 --readings readings.yml   # judge the quantitative tests (SPEC 4.5)
 ```
 
+- `init <dir> [--visibility public|private] [--profiles core,pipeline,owners-office]` writes `repo.yml`, a short
+  `README.md` and one example company, `companies/ACME/` (`thesis.yml` with five tests, the minimum, including a
+  quantitative, a qualitative and a staleness test; `story.md`; `sources.yml`). The data are fictitious. It never
+  overwrites a file: if any of them exists, it writes nothing and exits 2. A public archive with `owners-office` also
+  gets the two files that profile requires, `constitution/rules.yml` and `constitution/decision-rights.yml`.
 - `lint` exits 1 when there is any error-level finding, 0 otherwise (warnings do not fail); usage errors exit 2.
+- `--profile core,pipeline` runs those profiles instead of the ones `repo.yml` names (repeat the option or separate
+  names with commas). `--only` runs exactly the checks it names, whatever the profiles.
 - `--expect-visibility public|private` runs the checks for that visibility whatever `repo.yml` says and reports a
   mismatch as a `C-SCHEMA` error. A public archive's CI should pass `--expect-visibility public`; otherwise changing
-  `repo.yml` to `private` skips every public check.
+  `repo.yml` to `private` skips every public check. For the same reason CI can pin the profiles with `--profile`, so
+  that removing a profile from `repo.yml` does not switch its checks off.
 - `--base-ref <git ref> --period FY<year>Q<quarter>` compares the thesis tests with that ref (`C-TEST-FROZEN`): the
   criteria of tests in force for the period may not be edited or removed. Without both, the check is skipped and
   reported as passing.
@@ -122,52 +155,54 @@ As a GitHub Action:
     path: .                      # archive repository root
     # counterpart: ../private    # optional: path to the paired public or private archive
     expect-visibility: public    # optional, recommended for a public archive
+    # profile: core              # optional: run these profiles whatever repo.yml says (from v0.5.0)
     # base-ref: origin/main      # optional, with period, for C-TEST-FROZEN (check out with fetch-depth: 0)
     # period: FY2027Q1
 ```
 
 ## Checks
 
-| id | scope | level | check |
-| --- | --- | --- | --- |
-| `C-SCHEMA` | both | error | Files match their schemas |
-| `C-SRC-TAG` | both | error | Fact numbers in Markdown carry source tags |
-| `C-SRC-FACT` | both | error | YAML facts carry resolvable sources |
-| `C-SRC-ACCESSION` | both | warning | Periodic-report sources carry an EDGAR accession number |
-| `C-PUBLIC-NO-VALUATION` | public | error | The public repository contains no value ranges or price ranges |
-| `C-PUBLIC-NO-ADVICE` | public | error | Public files are scanned for buy or sell wording |
-| `C-PUBLIC-NO-AMOUNTS` | public | error | The public repository contains no position amounts |
-| `C-NO-PRICE-FEED` | both | error | Code contains no daily share price feed (static scan) |
-| `C-NO-TRADING` | both | error | Code contains no broker or order interface (static scan) |
-| `C-LLM-ENTRY` | both | error | All model calls go through one module, pipeline/llm.py |
-| `C-NO-SECRETS` | both | error | No secrets are committed |
-| `C-TESTS-MIN` | public | error | At least 5 tests per company, all three types |
-| `C-TESTS-COVERAGE` | public | error | Tests cover moat, pricing power, returns on capital and free cash flow |
-| `C-TESTS-CAPALLOC` | public | error | Tests cover capital allocation |
-| `C-TEST-METRIC` | public | error | Quantitative tests are executable |
-| `C-TEST-QUAL-EVIDENCE` | public | error | Qualitative tests require an independent judgment and sources |
-| `C-STALENESS` | public | warning | Staleness tests can be computed and are not expired |
-| `C-DEPENDS` | public | error | Industry dependencies resolve and industry modules stay neutral |
-| `C-STORY` | public | error | Each company has a two-minute story (at most 350 English words or 700 CJK characters) |
-| `C-RATING-ORDER` | both | error | Quality first, management second, valuation third |
-| `C-CONCENTRATION` | both | error | Holdings stay concentrated, and a new position clears the entry bar |
-| `C-DISCOUNT-RATE` | private | error | Discount rate = 10-year Treasury yield + this company's premium, with the basis written down |
-| `C-SELL-REASONS` | both | error | A sale gives an allowed reason: permanent deterioration or a clearly better opportunity |
-| `C-HURDLE` | private | error | A purchase clears the benchmark: Berkshire Hathaway first, an S&P 500 fund second |
-| `C-SINGLE-ORDER` | both | error | A position is opened with a single order |
-| `C-DEFAULT-HOLD` | both | error | Decisions involving money default to doing nothing |
-| `C-DECISION-RIGHTS` | public | error | The three decision levels (act, act and report, the owner decides) are consistent |
-| `C-CONSTITUTION-MAP` | public | error | Every constitution rule has an executable check |
-| `C-AGENT-ISOLATION` | public | error | The auditor and the blind reader never see what they must judge independently of |
-| `C-PREREG-TIMING` | public | error | Pre-registrations are merged before the results are first public |
-| `C-PREREG-IMMUTABLE` | public | error | Pre-registrations cannot change after the deadline |
-| `C-TRUST-WRITE` | public | warning | Only the pipeline edits trust levels and review dates |
-| `C-TEST-FROZEN` | public | error | Thresholds for the current period do not change after the results are out |
-| `C-PROMPT-ISOLATION` | private | warning | Prompt inputs stay within what the role may see |
-| `C-LANGUAGE` | both | error | English files contain no CJK text |
+| id | profile | scope | level | check |
+| --- | --- | --- | --- | --- |
+| `C-SCHEMA` | core | both | error | Files match their schemas |
+| `C-SRC-TAG` | core | both | error | Fact numbers in Markdown carry source tags |
+| `C-SRC-FACT` | core | both | error | YAML facts carry resolvable sources |
+| `C-SRC-ACCESSION` | core | both | warning | Periodic-report sources carry an EDGAR accession number |
+| `C-PUBLIC-NO-VALUATION` | core | public | error | The public repository contains no value ranges or price ranges |
+| `C-PUBLIC-NO-ADVICE` | core | public | error | Public files are scanned for buy or sell wording |
+| `C-PUBLIC-NO-AMOUNTS` | core | public | error | The public repository contains no position amounts |
+| `C-NO-PRICE-FEED` | core | both | error | Code contains no daily share price feed (static scan) |
+| `C-NO-TRADING` | core | both | error | Code contains no broker or order interface (static scan) |
+| `C-LLM-ENTRY` | pipeline | both | error | All model calls go through one module, pipeline/llm.py |
+| `C-NO-SECRETS` | core | both | error | No secrets are committed |
+| `C-TESTS-MIN` | core | public | error | At least 5 tests per company, all three types |
+| `C-TESTS-COVERAGE` | core | public | error | Tests cover moat, pricing power, returns on capital and free cash flow |
+| `C-TESTS-CAPALLOC` | core | public | error | Tests cover capital allocation |
+| `C-TEST-METRIC` | core | public | error | Quantitative tests are executable |
+| `C-TEST-QUAL-EVIDENCE` | core | public | error | Qualitative tests require an independent judgment and sources |
+| `C-STALENESS` | core | public | warning | Staleness tests can be computed and are not expired |
+| `C-DEPENDS` | core | public | error | Industry dependencies resolve and industry modules stay neutral |
+| `C-STORY` | core | public | error | Each company has a two-minute story (at most 350 English words or 700 CJK characters) |
+| `C-RATING-ORDER` | owners-office | both | error | Quality first, management second, valuation third |
+| `C-CONCENTRATION` | owners-office | both | error | Holdings stay concentrated, and a new position clears the entry bar |
+| `C-DISCOUNT-RATE` | owners-office | private | error | Discount rate = 10-year Treasury yield + this company's premium, with the basis written down |
+| `C-SELL-REASONS` | owners-office | both | error | A sale gives an allowed reason: permanent deterioration or a clearly better opportunity |
+| `C-HURDLE` | owners-office | private | error | A purchase clears the benchmark: Berkshire Hathaway first, an S&P 500 fund second |
+| `C-SINGLE-ORDER` | owners-office | both | error | A position is opened with a single order |
+| `C-DEFAULT-HOLD` | owners-office | both | error | Decisions involving money default to doing nothing |
+| `C-DECISION-RIGHTS` | owners-office | public | error | The three decision levels (act, act and report, the owner decides) are consistent |
+| `C-CONSTITUTION-MAP` | owners-office | public | error | Every constitution rule has an executable check |
+| `C-AGENT-ISOLATION` | pipeline | public | error | The auditor and the blind reader never see what they must judge independently of |
+| `C-PREREG-TIMING` | core | public | error | Pre-registrations are merged before the results are first public |
+| `C-PREREG-IMMUTABLE` | core | public | error | Pre-registrations cannot change after the deadline |
+| `C-TRUST-WRITE` | pipeline | public | warning | Only the pipeline edits trust levels and review dates |
+| `C-TEST-FROZEN` | core | public | error | Thresholds for the current period do not change after the results are out |
+| `C-PROMPT-ISOLATION` | pipeline | private | warning | Prompt inputs stay within what the role may see |
+| `C-LANGUAGE` | owners-office | both | error | English files contain no CJK text |
 
-The scope is `public`, `private`, `both`, or `workspace` (runs only with `--counterpart`). Full definitions are in
-[`spec/checks.yml`](spec/checks.yml).
+The profile is `core`, `pipeline` or `owners-office` ([Profiles](#profiles)). The scope is `public`, `private`, `both`,
+or `workspace` (runs only with `--counterpart`). Full definitions are in [`spec/checks.yml`](spec/checks.yml), and SPEC
+8.6 explains the profile of each borderline check.
 
 How each check reads an archive (sentence splitting, what counts as a fact number, which files are scanned, wording
 normalization, story length, the language check, vacuous passes and the selftest) is described in
@@ -178,7 +213,6 @@ normalization, story length, the language check, vacuous passes and the selftest
 - **An EDGAR listener** that polls the submissions API and opens a pull request when a new filing arrives (planned).
 - **Settlement** of pre-registrations and say-do ledgers against their written criteria: the file format is specified
   (`prereg-settlement.schema.json`); the settling itself is done by your pipeline.
-- **A switch for the investing profile**, so the checks that encode one investor's rules can be turned off.
 - A calibration dashboard and signpost-triggered review issues, together with v1.0.
 
 Out of scope: thesis-ci creates no timestamps. Stamp pre-registrations with the OpenTimestamps `ots` client;
@@ -195,9 +229,10 @@ pytest -q
 thesis-ci selftest
 ```
 
-To add a check: register it in `spec/checks.yml`, implement it in `src/thesis_ci/checks/` with `@check("C-...")`,
-add at least one violating case to `src/thesis_ci/selftest.py`, and write a unit test whose docstring names the
-check id. The test suite verifies that the registry and the implementations match one to one.
+To add a check: register it in `spec/checks.yml` with its profile, implement it in `src/thesis_ci/checks/` with
+`@check("C-...")`, add at least one violating case to `src/thesis_ci/selftest.py`, write a unit test whose docstring
+names the check id, and list it in the check tables of this README and SPEC 8.6 (and of their Chinese versions). The
+test suite verifies that the registry, the implementations and those tables match one to one.
 
 ## License
 

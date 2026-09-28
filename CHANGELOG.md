@@ -3,6 +3,53 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.5.0 — Profiles and init (unreleased)
+
+thesis-ci is usable by people other than its first user. Every check now belongs to a profile, `core`, `pipeline` or
+`owners-office`, and an archive chooses in `repo.yml` which profiles it runs, so the checks that encode one
+investor's rules can be left out. `thesis-ci init` starts a new archive that lints clean. The checks themselves are
+unchanged, and an archive without `profiles` lints exactly as before; archives keep `spec_version: "0.2"`.
+
+### New
+
+- Profiles (SPEC 8.6). `spec/checks.yml` gains a top-level `profiles` list and a `profile` for every check:
+  - `core` (21 checks), for any thesis archive: schemas, sources, thesis tests with their coverage and metrics,
+    staleness, the two-minute story, pre-registration timing and immutability, frozen thresholds, no secrets, no
+    price feed, no trading, and the public-content checks that keep valuations, prices, position amounts and advice
+    out of a public archive;
+  - `pipeline` (4), for an archive written by an LLM research pipeline: `C-LLM-ENTRY`, `C-AGENT-ISOLATION`,
+    `C-PROMPT-ISOLATION`, `C-TRUST-WRITE`;
+  - `owners-office` (10), the Owner's Office constitution: `C-RATING-ORDER`, `C-CONCENTRATION`, `C-DISCOUNT-RATE`,
+    `C-SELL-REASONS`, `C-HURDLE`, `C-SINGLE-ORDER`, `C-DEFAULT-HOLD`, `C-DECISION-RIGHTS`, `C-CONSTITUTION-MAP`,
+    `C-LANGUAGE`.
+
+  SPEC 8.6 gives the reason for each borderline assignment (`C-TESTS-COVERAGE`, `C-TESTS-CAPALLOC` and
+  `C-TEST-QUAL-EVIDENCE` are `core`; `C-LLM-ENTRY` and `C-TRUST-WRITE` are `pipeline`; `C-RATING-ORDER`,
+  `C-DECISION-RIGHTS` and `C-LANGUAGE` are `owners-office`).
+- `repo.yml` takes an optional `profiles: [core, ...]` (`repo.schema.json`). Without it every profile runs. A value that
+  is not a non-empty list of distinct, known profiles also runs every profile, and `C-SCHEMA` reports it. An older
+  thesis-ci rejects the new field (`C-SCHEMA`), so upgrade before adding it.
+- `thesis-ci lint --profile <profile>,...` (comma-separated or repeated) runs those profiles instead of the ones in
+  `repo.yml`; `--only` still runs exactly the checks it names, whatever the profiles. When profiles select the checks,
+  the summary line names them (`21 checks (profiles: core) on public repo ...`); with no selection it reads as before,
+  and the JSON output is unchanged. The GitHub Action takes a matching `profile` input.
+- `thesis-ci checks` shows each check's profile (a `profile` column, and a `profile` key in the JSON rows).
+- `thesis-ci init <dir> [--visibility public|private] [--profiles core,...]` writes `repo.yml`, a short `README.md`
+  and one fictitious example company, `companies/ACME/`: `thesis.yml` with five tests (three quantitative, one
+  qualitative, one staleness: five is the minimum, and together they cover the six dimensions `core` requires),
+  `story.md` and `sources.yml`. Review dates are the day of the run and the tests take effect from the next quarter,
+  so the archive lints with no errors and no warnings. A public archive with `owners-office` also gets
+  `constitution/rules.yml` and `constitution/decision-rights.yml` from the example archive. `init` never overwrites a
+  file: if any of its files exists, it writes nothing and exits 2. `thesis_ci.scaffold.init_archive()` does the same
+  from Python.
+
+### Documentation
+
+- The README describes the three profiles and how to choose them in place of the "Opinionated by default" paragraph,
+  adds `init` and `--profile` to the Quickstart, a profile column to the table of checks, and drops the planned
+  switch from "Not included yet". SPEC 1, 8, 8.1, 8.5, 8.6 (new) and 10 are updated, and `docs/reference.md` says the
+  constitution files are required only with `owners-office`; the Chinese versions follow.
+
 ## v0.4.0 — The evaluation engine (2026-09-27)
 
 thesis-ci now judges quantitative thesis tests: given a company's `thesis.yml` and a document of metric readings, it

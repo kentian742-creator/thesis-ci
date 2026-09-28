@@ -1,0 +1,105 @@
+# A thesis as code (thesis-ci SPEC 4; schema: spec/schemas/thesis.schema.json).
+# ACME Corp. and every number and source in this archive are fictitious: replace them with a company you follow.
+schema_version: "0.2"
+company: ACME                     # the ticker; the directory companies/ACME/ carries the same name
+name: ACME Corp. (fictitious)
+exchange: NYSE
+status: candidate                 # holding, candidate or archive
+filer:                            # the SEC filer whose XBRL data the quantitative tests read
+  cik: "0000000001"
+  type: domestic                  # domestic or foreign_private_issuer
+  fiscal_year_end: "12-31"
+  earnings_form: 8-K
+  annual_form: 10-K
+category: stalwart                # one of Peter Lynch's six company types; spec/templates/lynch/ has a template for each
+category_rationale: Revenue has grown by about 8% a year for a decade [src:ACME-10K-FY2025#Item7], which makes ACME a stalwart.
+domain: other                     # the group its forecasts are scored in (thesis-ci brier)
+depends_on: []                    # industry modules the thesis relies on, such as industries/widgets
+trust_level: 1                    # 0-3; kept by a research pipeline if one writes the archive (SPEC 4.2), else leave 1
+as_of: {{TODAY}}
+reviewed:                         # when each part of the thesis was last reviewed; staleness tests read these dates
+  business: {{TODAY}}
+  economics: {{TODAY}}
+  moat: {{TODAY}}
+  capital_allocation: {{TODAY}}
+  management: {{TODAY}}
+  culture: {{TODAY}}
+  runway: {{TODAY}}
+  valuation: {{TODAY}}
+  bear_case: {{TODAY}}
+  monitoring: {{TODAY}}
+  thesis: {{TODAY}}
+  breakers: {{TODAY}}
+ratings:                          # grades A-E of the business and of management, never of the share price
+  business: B+
+  management: B
+thesis:
+  summary: ACME makes small parts that factories cannot run without; about 60% of its revenue recurs every year [src:ACME-10K-FY2025#Item7].
+  pillars:
+    - id: P1
+      claim: A customer that changes suppliers must recertify its production lines, so few customers leave
+      source: ACME-10K-FY2025#Item1
+  permanent_loss_paths:
+    - A new open standard makes ACME's parts interchangeable with cheaper ones
+# Thesis tests: each is written down before the data it is judged on. At least five tests must be in force, with at
+# least one of each type, and together they cover moat, pricing power, returns on capital, free cash flow, capital
+# allocation and management. A criterion written in advance (fail_if, rule) is not a fact and needs no source tag.
+tests:
+  - id: ACME-Q1
+    type: quantitative
+    claim: Gross margin shows that pricing power holds
+    origin: manual                # where the test came from: manual means written by you
+    severity: breaker             # failing it breaks the thesis; watch only raises a flag
+    covers: [pricing_power, moat]
+    metric: gross_margin          # defined in spec/metrics.yml and computed from SEC XBRL data
+    fail_if: below 55% for two consecutive quarters
+    rule: {op: "<", threshold: 55, unit: "%", consecutive: 2, period: quarter}
+    warn_if: below 58%
+    warn_rule: {op: "<", threshold: 58, unit: "%", consecutive: 1, period: quarter}
+    data: xbrl
+    effective_from: {{NEXT_PERIOD}}          # judged from this period on; once its results are out, never edited
+    baseline: {value: 61, unit: "%", period: FY2025, source: ACME-10K-FY2025#Item8}
+  - id: ACME-Q2
+    type: quantitative
+    claim: Return on invested capital stays at the level of an excellent business
+    origin: template:stalwart
+    severity: watch
+    covers: [returns_on_capital]
+    metric: roic
+    fail_if: below 12% for two consecutive years
+    rule: {op: "<", threshold: 12, unit: "%", consecutive: 2, period: year}
+    data: xbrl
+    effective_from: {{NEXT_PERIOD}}
+  - id: ACME-Q3
+    type: quantitative
+    claim: Buybacks and dividends are paid out of free cash flow, not out of borrowing
+    origin: manual
+    severity: watch
+    covers: [capital_allocation, free_cash_flow]
+    metric: shareholder_return_to_fcf
+    fail_if: above 100% for two consecutive years
+    rule: {op: ">", threshold: 100, unit: "%", consecutive: 2, period: year}
+    data: xbrl
+    effective_from: {{NEXT_PERIOD}}
+  - id: ACME-L1
+    type: qualitative
+    claim: Management has not lowered the medium-term financial targets it published
+    origin: template:stalwart
+    severity: watch
+    covers: [management]
+    question: In this period's documents, did management lower or withdraw the medium-term financial targets it had published?
+    fail_if: Yes, without giving new, testable targets at the same time
+    judge: independent_model      # answered by a model that did not write the thesis, quoting its evidence
+    evidence: required
+    where: [earnings press releases and calls of this period and the three before]
+    lookback: 4                   # how many quarters of documents are read, this one included
+    effective_from: {{NEXT_PERIOD}}
+  - id: ACME-S1
+    type: staleness
+    claim: The moat judgment goes no longer than four quarters without a review
+    origin: template:stalwart
+    severity: watch
+    covers: [moat]
+    section: moat                 # fails once reviewed.moat is more than 4 x 91 days old
+    max_age_quarters: 4
+    effective_from: {{NEXT_PERIOD}}
