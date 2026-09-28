@@ -460,6 +460,17 @@ def test_c_language_exempt_paths(ws, lint, rel):
     assert lint(ws, "C-LANGUAGE") == []
 
 
+def test_c_language_a_run_s_inputs_keep_their_language_and_its_outputs_do_not(ws, lint):
+    """C-LANGUAGE: a pipeline run's inputs/ (a slice's too) are verbatim copies of its sources and keep their language;
+    what the run wrote, and inputs/ anywhere else, are English like everything else."""
+    put(ws, "private/runs/SPGI/2026-09-28-14Q/inputs/dossier.txt", "完整企业报告\n")
+    put(ws, "private/runs/AXP/2026-09-27-04A/slices/s01/inputs/sources.txt", "营收\n")
+    put(ws, "private/runs/SPGI/2026-09-28-15A/outputs/prereg.yml", "note: 营收\n")
+    put(ws, "private/inputs/notes.md", "营收\n")
+    found = sorted(f.file for f in lint(ws, "C-LANGUAGE", side="private"))
+    assert found == ["inputs/notes.md", "runs/SPGI/2026-09-28-15A/outputs/prereg.yml"]
+
+
 def test_c_language_nested_zh_cn_is_not_exempt(ws, lint):
     """C-LANGUAGE: only the zh-CN/ directory at the repository root holds the Chinese versions."""
     put(ws, "public/docs/zh-CN/DESIGN.md", "设计\n")

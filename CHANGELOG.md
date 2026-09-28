@@ -3,6 +3,13 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.5.2 — Run inputs keep their language (2026-09-28)
+
+`C-LANGUAGE` no longer reports the inputs of a pipeline run (`runs/**/inputs/`, a slice's included). They are verbatim
+copies of the sources a step read, and a source keeps its own language, as `title_original` already does; what a run
+writes is English as before. Found when the first real pre-registration run read the owner's Chinese report as its
+dossier. The README opens with a two-minute trial, and the repository has issue forms and a pull request template.
+
 ## v0.5.1 — Packaging and contributing (2026-09-27)
 
 No change in behavior. thesis-ci is on PyPI (`pip install thesis-ci`) and publishes through trusted publishing when a

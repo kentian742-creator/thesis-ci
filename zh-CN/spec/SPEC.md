@@ -411,11 +411,11 @@ thesis-ci init <目录> [--visibility public|private] [--profiles <检查组>,..
 运行 `owners-office` 检查组的档案以英文为主。关键文档的中文版放在仓库根目录的 `zh-CN/<相同路径>`，front matter 之后的第一行链接回英文原文，英文文件在开头附近写明中文版的位置。其余文件只有英文。
 
 - 中文版与它翻译的文件一样对外发布。公开内容的检查（`C-PUBLIC-NO-VALUATION`、`C-PUBLIC-NO-ADVICE`、`C-PUBLIC-NO-AMOUNTS`、`C-NO-PRICE-FEED` 的股价检查、`C-DEPENDS` 的中立检查）像读英文文件一样读 `zh-CN/companies/`、`zh-CN/industries/`、`zh-CN/forecasts/`、`zh-CN/letters/` 和 `zh-CN/mistakes.md`；`C-SRC-TAG` 检查其中的事实数字，标签按英文文件的位置解析（`zh-CN/companies/<TICKER>/story.md` 读 `companies/<TICKER>/sources.yml`）。
-- `C-LANGUAGE`（both，error）：`zh-CN/` 以外的文本文件不得含中日韩字符（汉字、假名、谚文、中日韩标点或全角字符）。例外：仓库根目录的 `zh-CN/`；测试与测试数据（`tests/`、`test/`、`fixtures/` 目录，`test_*.py`、`*_test.py`、`conftest.py`），它们可能需要中文文本；`sources.yml` 条目中 `title_original` 的值（3.5）。每个文件报一条错误，指向第一处含中日韩文字的行，并给出这样的行数。
+- `C-LANGUAGE`（both，error）：`zh-CN/` 以外的文本文件不得含中日韩字符（汉字、假名、谚文、中日韩标点或全角字符）。例外：仓库根目录的 `zh-CN/`；测试与测试数据（`tests/`、`test/`、`fixtures/` 目录，`test_*.py`、`*_test.py`、`conftest.py`），它们可能需要中文文本；`sources.yml` 条目中 `title_original` 的值（3.5）；流水线运行的输入（`runs/**/inputs/`，含分片的输入），它们是某一步所读来源的原样副本，保留来源本身的语言（自 thesis-ci 0.5.2 起）。运行写出的内容和其他文件一样必须是英文。每个文件报一条错误，指向第一处含中日韩文字的行，并给出这样的行数。
 
 | id | 范围 | 级别 | 检查 |
 | --- | --- | --- | --- |
-| `C-LANGUAGE` | both | error | 英文文件不含中日韩文字；`zh-CN/`、测试、测试数据和 `sources.yml` 的 `title_original` 例外 |
+| `C-LANGUAGE` | both | error | 英文文件不含中日韩文字；`zh-CN/`、测试、测试数据、`sources.yml` 的 `title_original` 和运行的 `inputs/` 例外 |
 
 ### 8.6 检查组（thesis-ci 0.5.0）
 

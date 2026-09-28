@@ -411,11 +411,11 @@ See `decision-rights.schema.json`. `levels` holds the three decision levels, wit
 The archives that run the `owners-office` profile are English-first. The Chinese version of a key document lives at `zh-CN/<same path>` at the repository root; after any front matter, its first line links back to the English file, and the English file says near the top where the Chinese version is. Every other file is in English only.
 
 - A Chinese version is published like the file it translates. The checks of public content (`C-PUBLIC-NO-VALUATION`, `C-PUBLIC-NO-ADVICE`, `C-PUBLIC-NO-AMOUNTS`, the share-price check of `C-NO-PRICE-FEED`, the neutrality check of `C-DEPENDS`) read `zh-CN/companies/`, `zh-CN/industries/`, `zh-CN/forecasts/`, `zh-CN/letters/` and `zh-CN/mistakes.md` as they read the English files, and `C-SRC-TAG` checks their fact numbers, resolving tags as for the English file (`zh-CN/companies/<TICKER>/story.md` reads `companies/<TICKER>/sources.yml`).
-- `C-LANGUAGE` (both, error): no text file outside `zh-CN/` contains CJK characters (Han ideographs, kana, hangul, CJK punctuation or full-width forms). Exempt are `zh-CN/` at the repository root; tests and fixtures (a `tests/`, `test/` or `fixtures/` directory, `test_*.py`, `*_test.py`, `conftest.py`), which may exercise Chinese text; and the value of `title_original` in a `sources.yml` (3.5). The check reports one error per file, at its first line with CJK text, with the number of such lines.
+- `C-LANGUAGE` (both, error): no text file outside `zh-CN/` contains CJK characters (Han ideographs, kana, hangul, CJK punctuation or full-width forms). Exempt are `zh-CN/` at the repository root; tests and fixtures (a `tests/`, `test/` or `fixtures/` directory, `test_*.py`, `*_test.py`, `conftest.py`), which may exercise Chinese text; the value of `title_original` in a `sources.yml` (3.5); and the inputs of a pipeline run (`runs/**/inputs/`, a slice's included), which are verbatim copies of the sources a step read and keep their own language (since thesis-ci 0.5.2). What a run writes is English like every other file. The check reports one error per file, at its first line with CJK text, with the number of such lines.
 
 | id | scope | level | check |
 | --- | --- | --- | --- |
-| `C-LANGUAGE` | both | error | an English file contains no CJK text; `zh-CN/`, tests, fixtures and `title_original` in `sources.yml` are exempt |
+| `C-LANGUAGE` | both | error | an English file contains no CJK text; `zh-CN/`, tests, fixtures, `title_original` in `sources.yml` and a run's `inputs/` are exempt |
 
 ### 8.6 Profiles (thesis-ci 0.5.0)
 

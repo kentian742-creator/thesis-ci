@@ -1,8 +1,9 @@
 """C-LANGUAGE: the archives are English-first, so an English file contains no Chinese, Japanese or Korean text.
 
-The Chinese version of a key document lives at zh-CN/<same path> (SPEC 8.5). Everything else is English, with two
-exemptions: tests and fixtures, which may exercise Chinese text, and the ``title_original`` field of a sources.yml
-entry, which quotes a source's title in its own language (``title`` carries the English translation).
+The Chinese version of a key document lives at zh-CN/<same path> (SPEC 8.5). Everything else is English, with three
+exemptions: tests and fixtures, which may exercise Chinese text; the ``title_original`` field of a sources.yml entry,
+which quotes a source's title in its own language (``title`` carries the English translation); and the inputs of a
+pipeline run (``runs/**/inputs/``), which are verbatim copies of the sources a step read, in their own language.
 """
 
 from __future__ import annotations
@@ -19,12 +20,15 @@ from ..textscan import CJK_RE, snippet
 TEST_DIRS = frozenset({"tests", "test", "fixtures"})
 TEST_FILES = ("test_*.py", "*_test.py", "conftest.py")
 ORIGINAL_TITLE_KEY = "title_original"
+RUNS_DIR, RUN_INPUTS_DIR = "runs", "inputs"  # runs/<scope>/<run>/inputs/ (and slices/<id>/inputs/): source copies
 
 
 def language_exempt(rel: str) -> bool:
-    """True for the Chinese versions under zh-CN/ and for tests and fixtures."""
+    """True for the Chinese versions under zh-CN/, for tests and fixtures, and for a run's copies of its sources."""
     parts = rel.split("/")
     if parts[0] == ZH_DIR or any(part in TEST_DIRS for part in parts[:-1]):
+        return True
+    if parts[0] == RUNS_DIR and RUN_INPUTS_DIR in parts[1:-1]:
         return True
     return any(fnmatchcase(parts[-1], pattern) for pattern in TEST_FILES)
 
