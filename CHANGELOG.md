@@ -3,7 +3,7 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
-## v0.5.0 — Profiles and init (unreleased)
+## v0.5.0 — Profiles and init (2026-09-27)
 
 thesis-ci is usable by people other than its first user. Every check now belongs to a profile, `core`, `pipeline` or
 `owners-office`, and an archive chooses in `repo.yml` which profiles it runs, so the checks that encode one

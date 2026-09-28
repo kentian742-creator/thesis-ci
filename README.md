@@ -150,12 +150,12 @@ As a GitHub Action:
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.4.0
+- uses: kentian742-creator/thesis-ci@v0.5.0
   with:
     path: .                      # archive repository root
     # counterpart: ../private    # optional: path to the paired public or private archive
     expect-visibility: public    # optional, recommended for a public archive
-    # profile: core              # optional: run these profiles whatever repo.yml says (from v0.5.0)
+    # profile: core              # optional: run these profiles whatever repo.yml says
     # base-ref: origin/main      # optional, with period, for C-TEST-FROZEN (check out with fetch-depth: 0)
     # period: FY2027Q1
 ```

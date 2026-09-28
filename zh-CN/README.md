@@ -100,12 +100,12 @@ thesis-ci evaluate path/to/archive --company ACME --period FY2027Q1 --readings r
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.4.0
+- uses: kentian742-creator/thesis-ci@v0.5.0
   with:
     path: .                      # 档案仓库根目录
     # counterpart: ../private    # 可选：另一侧仓库
     expect-visibility: public    # 可选，建议公开仓库使用
-    # profile: core              # 可选：不管 repo.yml 怎么写，都运行这些检查组（v0.5.0 起）
+    # profile: core              # 可选：不管 repo.yml 怎么写，都运行这些检查组
     # base-ref: origin/main      # 可选：与 period 一起用于 C-TEST-FROZEN（checkout 需 fetch-depth: 0）
     # period: FY2027Q1
 ```
