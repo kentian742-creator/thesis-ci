@@ -1,0 +1,45 @@
+name: Bug report
+description: thesis-ci crashes, gives a wrong result, or does not do what the README or the specification says.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Please use **fictitious data only**: never attach real valuations, positions or anything private.
+        `thesis-ci init repro` writes a lint-clean archive to start a minimal example from.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `thesis-ci --version`.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: What you ran
+      description: The command line, and the minimal archive files it needs (or a link to them).
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The check id and message, or the traceback.
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Data
+      options:
+        - label: The example contains fictitious data only.
+          required: true

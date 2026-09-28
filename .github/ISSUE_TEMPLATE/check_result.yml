@@ -1,0 +1,40 @@
+name: A check flags too much or too little
+description: A false positive (a check fails on something that is fine) or a false negative (it misses a real problem).
+labels: [bug]
+body:
+  - type: input
+    id: check
+    attributes:
+      label: Check id
+      placeholder: C-SRC-TAG
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - False positive (flags something that is fine)
+        - False negative (misses a real problem)
+    validations:
+      required: true
+  - type: textarea
+    id: text
+    attributes:
+      label: The smallest text or file that shows it
+      description: Fictitious data only. Include the exact sentence or YAML the check reads.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why the result is wrong
+      description: For a false negative, which rule in spec/SPEC.md or spec/checks.yml it breaks.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `thesis-ci --version`.

@@ -14,6 +14,37 @@ you registered before earnings.
 
 A Chinese version of this page is in [zh-CN/README.md](zh-CN/README.md).
 
+## Try it in two minutes
+
+Python 3.10 or later; no account, no API key and no model.
+
+```bash
+pip install thesis-ci
+thesis-ci init my-archive     # an archive with one fictitious company, ACME
+thesis-ci lint my-archive
+```
+
+```text
+thesis-ci: 0 error(s), 0 warning(s); 21 checks (profiles: core) on public repo .../my-archive
+```
+
+Now add a sentence a public archive may not contain, and lint again:
+
+```bash
+echo 'Revenue grew 40% last year, so this is a strong buy with a price target of $120.' >> my-archive/companies/ACME/story.md
+thesis-ci lint my-archive
+```
+
+```text
+companies/ACME/story.md:16: error [C-PUBLIC-NO-ADVICE] buy/sell advice wording: 'strong buy'
+companies/ACME/story.md:16: error [C-PUBLIC-NO-VALUATION] price-range wording in public content: 'price target'
+companies/ACME/story.md:16: error [C-SRC-TAG] fact number '40%' has no [src:] tag in its sentence: Revenue grew 40% last year, so this is a strong buy with a …
+thesis-ci: 3 error(s), 0 warning(s); 21 checks (profiles: core) on public repo .../my-archive
+```
+
+The 40% cites no filing, "strong buy" is advice and "price target" is a valuation. Everything else, from the test
+format to CI in GitHub Actions, is in the [Quickstart](#quickstart) below.
+
 ## Why
 
 Most investment theses are prose: easy to write, hard to check, and quietly revised when the facts change. thesis-ci
@@ -226,6 +257,13 @@ Out of scope: thesis-ci creates no timestamps. Stamp pre-registrations with the 
 
 The specification stays at v0.x until two earnings seasons have run; incompatible changes are listed in the
 [CHANGELOG](CHANGELOG.md).
+
+## Feedback
+
+Questions, ideas and archives you built with thesis-ci belong in
+[Discussions](https://github.com/kentian742-creator/thesis-ci/discussions). A check that flags something it should not,
+or misses something it should, is a bug: open an [issue](https://github.com/kentian742-creator/thesis-ci/issues) with
+a minimal archive that shows it ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Development
 

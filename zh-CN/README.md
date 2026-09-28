@@ -12,6 +12,36 @@
 
 > **不构成投资建议。** thesis-ci 不抓取股价，不给买卖信号，也不执行任何交易。
 
+## 两分钟试用
+
+需要 Python 3.10 或更高版本；不需要账号、API 密钥，也不调用任何模型。
+
+```bash
+pip install thesis-ci
+thesis-ci init my-archive     # 一个只含虚构公司 ACME 的档案
+thesis-ci lint my-archive
+```
+
+```text
+thesis-ci: 0 error(s), 0 warning(s); 21 checks (profiles: core) on public repo .../my-archive
+```
+
+再加一句公开档案里不允许出现的话，重新检查：
+
+```bash
+echo 'Revenue grew 40% last year, so this is a strong buy with a price target of $120.' >> my-archive/companies/ACME/story.md
+thesis-ci lint my-archive
+```
+
+```text
+companies/ACME/story.md:16: error [C-PUBLIC-NO-ADVICE] buy/sell advice wording: 'strong buy'
+companies/ACME/story.md:16: error [C-PUBLIC-NO-VALUATION] price-range wording in public content: 'price target'
+companies/ACME/story.md:16: error [C-SRC-TAG] fact number '40%' has no [src:] tag in its sentence: Revenue grew 40% last year, so this is a strong buy with a …
+thesis-ci: 3 error(s), 0 warning(s); 21 checks (profiles: core) on public repo .../my-archive
+```
+
+40% 没有引用任何申报文件，"strong buy" 是买卖建议，"price target" 是估值。测试格式、在 GitHub Actions 里跑 CI 等其余内容，见下面的[快速开始](#快速开始)。
+
 ## 为什么
 
 大多数投资论点是一段文字：写起来容易，检查起来难，事实一变就被悄悄改写。thesis-ci 让论点像代码一样运转：
@@ -169,6 +199,10 @@ thesis-ci evaluate path/to/archive --company ACME --period FY2027Q1 --readings r
 不在范围内：thesis-ci 不打时间戳。请用 OpenTimestamps 的 `ots` 客户端给预注册打时间戳；`C-PREREG-IMMUTABLE` 检查截止之后证明是否存在，并在装有 `ots` 时核验。
 
 规范在跑完两个财报季之前保持 v0.x，不兼容的改动逐条记入 [CHANGELOG](../CHANGELOG.md)。
+
+## 反馈
+
+问题、想法，以及你用 thesis-ci 搭建的档案，欢迎发到 [Discussions](https://github.com/kentian742-creator/thesis-ci/discussions)。某项检查误报或漏报都算缺陷：请提交 [issue](https://github.com/kentian742-creator/thesis-ci/issues)，附一个能复现问题的最小档案（见 [CONTRIBUTING.md](../CONTRIBUTING.md)）。
 
 ## 开发
 
