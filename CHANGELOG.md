@@ -3,6 +3,13 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.5.1 — Packaging and contributing (2026-09-27)
+
+No change in behavior. thesis-ci is on PyPI (`pip install thesis-ci`) and publishes through trusted publishing when a
+release is published. The package metadata gives a clearer description, keywords, classifiers and links (specification,
+changelog, issues, an example archive); CI tests Python 3.10 to 3.14; `CONTRIBUTING.md` explains how to report a
+problem, propose a specification change, add a check and release; the README shows status badges.
+
 ## v0.5.0 — Profiles and init (2026-09-27)
 
 thesis-ci is usable by people other than its first user. Every check now belongs to a profile, `core`, `pipeline` or

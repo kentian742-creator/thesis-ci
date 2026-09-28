@@ -2,6 +2,12 @@
 
 # thesis-ci
 
+[![CI](https://github.com/kentian742-creator/thesis-ci/actions/workflows/ci.yml/badge.svg)](https://github.com/kentian742-creator/thesis-ci/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/thesis-ci)](https://pypi.org/project/thesis-ci/)
+[![Python](https://img.shields.io/pypi/pyversions/thesis-ci)](https://pypi.org/project/thesis-ci/)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-blue)](../LICENSE)
+[![Spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey)](../LICENSE-SPEC.md)
+
 **投资论点的持续集成。** thesis-ci 把写成文字的论点变成可能不通过的测试，检查每个数字是否引用了申报文件，在某一季度业绩公开后冻结这一季度的门槛，并给财报前登记的预测打分。
 
 > **不构成投资建议。** thesis-ci 不抓取股价，不给买卖信号，也不执行任何交易。
@@ -100,7 +106,7 @@ thesis-ci evaluate path/to/archive --company ACME --period FY2027Q1 --readings r
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.5.0
+- uses: kentian742-creator/thesis-ci@v0.5.1
   with:
     path: .                      # 档案仓库根目录
     # counterpart: ../private    # 可选：另一侧仓库
@@ -175,6 +181,8 @@ thesis-ci selftest
 新增一项检查：先在 `spec/checks.yml` 登记并写明所属检查组，再在 `src/thesis_ci/checks/` 中用 `@check("C-...")` 实现，
 在 `src/thesis_ci/selftest.py` 中加至少一个违规样例，写一个文档字符串含检查 id 的单元测试，
 并把它列进本 README 和 SPEC 8.6 的检查表（及其英文版）。测试会核对登记表、实现和这些表格一一对应。
+
+提问题、修改规范和发版的流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)（英文）。
 
 ## 许可
 

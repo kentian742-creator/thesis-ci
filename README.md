@@ -1,5 +1,11 @@
 # thesis-ci
 
+[![CI](https://github.com/kentian742-creator/thesis-ci/actions/workflows/ci.yml/badge.svg)](https://github.com/kentian742-creator/thesis-ci/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/thesis-ci)](https://pypi.org/project/thesis-ci/)
+[![Python](https://img.shields.io/pypi/pyversions/thesis-ci)](https://pypi.org/project/thesis-ci/)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-blue)](LICENSE)
+[![Spec: CC BY 4.0](https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey)](LICENSE-SPEC.md)
+
 **Continuous integration for investment theses.** thesis-ci turns a written thesis into tests that can fail, checks
 that every number cites a filing, freezes each quarter's thresholds once results are public, and scores the forecasts
 you registered before earnings.
@@ -150,7 +156,7 @@ As a GitHub Action:
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.5.0
+- uses: kentian742-creator/thesis-ci@v0.5.1
   with:
     path: .                      # archive repository root
     # counterpart: ../private    # optional: path to the paired public or private archive
@@ -233,6 +239,8 @@ To add a check: register it in `spec/checks.yml` with its profile, implement it 
 `@check("C-...")`, add at least one violating case to `src/thesis_ci/selftest.py`, write a unit test whose docstring
 names the check id, and list it in the check tables of this README and SPEC 8.6 (and of their Chinese versions). The
 test suite verifies that the registry, the implementations and those tables match one to one.
+
+Issues, specification changes and releases are described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

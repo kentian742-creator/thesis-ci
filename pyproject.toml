@@ -4,17 +4,27 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thesis-ci"
-version = "0.5.0"
-description = "Thesis as code: lint investment-thesis archives (thesis.yml, sources, pre-registrations) and score forecast calibration."
+version = "0.5.1"
+description = "Continuous integration for investment theses: falsifiable tests, sourced facts, frozen thresholds and scored forecasts."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT AND CC-BY-4.0"
 license-files = ["LICENSE", "LICENSE-SPEC.md"]
 authors = [{ name = "kentian742-creator" }]
-keywords = ["investing", "thesis", "linter", "calibration", "brier", "ci"]
+keywords = ["investing", "investment-research", "thesis", "linter", "continuous-integration", "forecasting", "calibration", "brier-score", "pre-registration", "sec-edgar", "xbrl"]
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = ["pyyaml>=6.0", "jsonschema>=4.18"]
@@ -27,6 +37,10 @@ thesis-ci = "thesis_ci.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/kentian742-creator/thesis-ci"
+Specification = "https://github.com/kentian742-creator/thesis-ci/blob/main/spec/SPEC.md"
+Changelog = "https://github.com/kentian742-creator/thesis-ci/blob/main/CHANGELOG.md"
+Issues = "https://github.com/kentian742-creator/thesis-ci/issues"
+"Example archive" = "https://github.com/kentian742-creator/owners-office"
 
 # The format contract lives in the top-level spec/ directory (licensed CC BY 4.0).
 # Wheels ship it inside the package as thesis_ci/spec; editable installs read spec/ directly.
