@@ -576,3 +576,10 @@ def test_c_single_order_english_negation(ws, lint, note, levels):
 def test_sentences_report_the_line_where_a_sentence_starts():
     """C-SRC-TAG: a sentence spanning lines is reported at its first line."""
     assert [line for line, _s in sentences("Intro.\n\nRevenue grew\n16% [src:A#p1]. End.")] == [1, 3, 4]
+
+
+def test_a_forecast_in_the_probability_language_needs_no_tag():
+    """C-SRC-TAG: "It is likely (0.65) that ... at least 4%" is a judgment written in advance, not a fact (SPEC 3.1)."""
+    assert untagged_facts("It is likely (0.65) that sales grow by at least 4% in FY2027.") == []
+    assert untagged_facts("It is very unlikely (10%) that margins fall below 40%.") == []
+    assert len(untagged_facts("Sales are likely to grow 4% next year.")) == 1  # no stated probability: tag it

@@ -226,15 +226,21 @@ def sentences(text: str, markdown: bool = True) -> Iterator[tuple[int, str]]:
             yield bisect_right(starts, first), sentence
 
 
+# A forecast stated in the standard probability language with its probability, "It is likely (0.65) that ...": a
+# judgment written in advance, not a fact, so it needs no tag (SPEC 3.1).
+PROBABILITY_JUDGMENT_RE = re.compile(r"(?i)\b(?:very likely|likely|uncertain|unlikely|very unlikely)\s*\(\s*(?:0?\.\d{1,2}|1(?:\.0+)?|\d{1,2}%)\s*\)")
+
+
 def untagged_facts(text: str, markdown: bool = True) -> list[tuple[int, str, str]]:
-    """(line, sentence, number) for every sentence with a fact number and no [src:] tag; the line is the number's."""
+    """(line, sentence, number) for every sentence with a fact number and no [src:] tag; the line is the number's. A
+    sentence stating a probability judgment (PROBABILITY_JUDGMENT_RE) is a forecast, not a fact."""
     masked = mask(text, markdown)
     starts = _line_index(masked)
     out = []
     for start, end in sentence_spans(masked):
         sentence = masked[start:end]
         fact = FACT_RE.search(sentence)
-        if fact and not TAG_RE.search(sentence):
+        if fact and not TAG_RE.search(sentence) and not PROBABILITY_JUDGMENT_RE.search(sentence):
             out.append((bisect_right(starts, start + fact.start()), sentence.strip(), fact.group(0).strip()))
     return out
 

@@ -187,7 +187,7 @@ As a GitHub Action:
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.5.2
+- uses: kentian742-creator/thesis-ci@v0.5.3
   with:
     path: .                      # archive repository root
     # counterpart: ../private    # optional: path to the paired public or private archive

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thesis-ci"
-version = "0.5.2"
+version = "0.5.3"
 description = "Continuous integration for investment theses: falsifiable tests, sourced facts, frozen thresholds and scored forecasts."
 readme = "README.md"
 requires-python = ">=3.10"

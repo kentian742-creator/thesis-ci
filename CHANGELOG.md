@@ -3,6 +3,12 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.5.3 — Forecasts in prose need no source tag (2026-09-28)
+
+`C-SRC-TAG` no longer asks for a source tag in a sentence that states a forecast in the standard probability language
+with its probability ("It is likely (0.65) that ..."): like a pre-registration item, it is a judgment written in
+advance, not a fact (SPEC 3.1). Found when the first dossier written by the pipeline was linted.
+
 ## v0.5.2 — Run inputs keep their language (2026-09-28)
 
 `C-LANGUAGE` no longer reports the inputs of a pipeline run (`runs/**/inputs/`, a slice's included). They are verbatim
