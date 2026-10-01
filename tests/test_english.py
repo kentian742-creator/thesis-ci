@@ -583,3 +583,10 @@ def test_a_forecast_in_the_probability_language_needs_no_tag():
     assert untagged_facts("It is likely (0.65) that sales grow by at least 4% in FY2027.") == []
     assert untagged_facts("It is very unlikely (10%) that margins fall below 40%.") == []
     assert len(untagged_facts("Sales are likely to grow 4% next year.")) == 1  # no stated probability: tag it
+
+
+def test_a_semicolon_inside_parentheses_does_not_end_the_sentence():
+    text = ("Capital expenditure exceeded depreciation by $47.3bn ($156.2bn against $109.0bn for 2016–2025; "
+            "[src:X-10K-FY2025#p40]).\n")
+    assert untagged_facts(text) == []
+    assert len(untagged_facts("Revenue was $5bn; costs were $3bn [src:X-10K-FY2025].\n")) == 1  # outside parentheses

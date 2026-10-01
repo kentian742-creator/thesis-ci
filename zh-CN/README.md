@@ -136,7 +136,7 @@ thesis-ci evaluate path/to/archive --company ACME --period FY2027Q1 --readings r
 
 ```yaml
 - uses: actions/checkout@v5
-- uses: kentian742-creator/thesis-ci@v0.5.3
+- uses: kentian742-creator/thesis-ci@v0.5.4
   with:
     path: .                      # 档案仓库根目录
     # counterpart: ../private    # 可选：另一侧仓库

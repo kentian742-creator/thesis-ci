@@ -3,6 +3,12 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.5.4: a semicolon inside parentheses does not end a sentence (2026-10-01)
+
+`C-SRC-TAG` no longer splits a sentence at a semicolon inside parentheses, so "($156.2bn against $109.0bn for
+2016–2025; [src:X-10K-FY2025#p40])" keeps its tag in the same sentence as its numbers. Found when the pipeline's
+Berkshire Hathaway dossier was rejected for ten such sentences.
+
 ## v0.5.3 — Forecasts in prose need no source tag (2026-09-28)
 
 `C-SRC-TAG` no longer asks for a source tag in a sentence that states a forecast in the standard probability language

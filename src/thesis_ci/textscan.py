@@ -2,7 +2,7 @@
 
 Every sentence that contains a fact number must contain at least one ``[src:TAG]`` tag. Text in Chinese, Japanese or
 Korean is split into sentences at the Chinese full stop, exclamation mark, question mark and semicolon and at every
-newline. English text is split at ``.``, ``!``, ``?`` and ``;`` followed by whitespace, except after an abbreviation
+newline. English text is split at ``.``, ``!``, ``?`` and ``;`` followed by whitespace (``;`` not inside parentheses), except after an abbreviation
 (``U.S.``, ``Inc.``, ``e.g.``, ``No. 1``) and inside a source tag; a line break inside an English paragraph does not end a
 sentence (prose is often hard-wrapped), but a blank line, a heading, a list item, a table row or a block quote does.
 Front matter, fenced code, inline code and link URLs never count; they are blanked out (not deleted) so line numbers
@@ -186,6 +186,13 @@ def _hard_break(prev: str, nxt: str) -> bool:
     return bool(_BLOCK_START_RE.match(nxt))
 
 
+def _inside_parentheses(text: str, pos: int) -> bool:
+    """Whether ``pos`` lies inside a parenthesis opened earlier in the same paragraph."""
+    start = text.rfind("\n\n", 0, pos)
+    segment = text[start + 1 if start >= 0 else 0: pos]
+    return segment.count("(") > segment.count(")")
+
+
 def sentence_spans(masked: str) -> list[tuple[int, int]]:
     """(start, end) offsets of the sentences of already masked text (see the module docstring)."""
     lines = masked.split("\n")
@@ -203,6 +210,8 @@ def sentence_spans(masked: str) -> list[tuple[int, int]]:
             continue
         if masked[pos] == "." and _abbreviation(masked, pos):
             continue
+        if masked[pos] == ";" and _inside_parentheses(masked, pos):
+            continue  # "(... for 2016-2025; [src:X])": the tag after the semicolon belongs to the same sentence
         seps.add((m.end(), m.end()))
     spans: list[tuple[int, int]] = []
     prev = 0
