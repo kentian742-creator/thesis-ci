@@ -12,6 +12,9 @@
 #   quantities it tries each quantity's candidates in the order listed; the margins and ratios over revenue use the revenue
 #   concepts of revenue_yoy, and roic's tax rate is income tax / pretax income. book_value_per_share_yoy is not computed:
 #   no share-count concept is registered, and multi-class issuers need a conversion companyfacts does not carry.
+# A test's own metric_def with data: xbrl is computed from its formula, written with the names of quantities, the sums
+#   (sum_4q, sum_<n>y) and the growth forms that SPEC 9.1 defines; the formulas below document the registry's metrics,
+#   which keep their own computations.
 metrics:
   - id: revenue_yoy
     description: Year-on-year growth of total revenue

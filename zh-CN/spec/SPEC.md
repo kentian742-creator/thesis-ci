@@ -252,6 +252,7 @@ source: MSFT-10K-FY2026#Item8
     evaluate_from: FY2028Q4
 ```
 
+- **`data: xbrl` 的定义**按它的 `formula` 从 EDGAR companyfacts 计算，公式用 9.1 的公式语言书写（`operating_income` 这样的量名、求和 `sum_4q` 与 `sum_<n>y`、增长式）；它的 `xbrl` 列出优先尝试的概念。`thesis_ci.metrics.computable()` 说明一条定义能否计算、为什么不能。
 - **期间选择**：`rule`（及子规则）可以写 `evaluate_on`（只在这些期间求值）或 `evaluate_from`（从这一期起求值），取值为 `FY<年>` 或 `FY<年>Q<季>`。
 
 **定性测试**（`type: qualitative`）：必须有 `question`（独立模型要回答的是非题）、`fail_if`、`judge: independent_model`、`evidence: required`、`where`（判定时读哪些文件：字符串或字符串列表，流水线据此抓取）和 `lookback`（读几期文件，含本期，正整数；一期是一个财季，与 `effective_from` 同一计法，年度文件按财季折算，例如要读到上一份年报写 5）；可选 `judge_notes`（交给判定员的判定规则，字符串或列表）。判定时必须附出处和一句以内的原文摘录。
@@ -299,7 +300,8 @@ reviewed_sections: [economics, monitoring]
 - `metric` 是登记表中的 id、测试的 `metric` 或 `metric_def.id`，或 `<指标>.<组成项>`；没有写指标的 `op: event` 子规则，其读数以测试 id 为键（`MSFT-Q9`）。`period` 取 `FY<年>`、`FY<年>H<半年>` 或 `FY<年>Q<季>`，按公司自己的财年。`source` 是来源标签（3.1）。
 - `value` 是数字；事件为 `true` 或 `false`；指标查过、但没有可量的东西（没有符合条件的事件，或按定义不计算）时为 `null`，此时必须写 `note`。找不到的读数不写，绝不写成 `null`。
 - 带 `params.segment` 的测试只用 `segment` 与之相同的读数，不带的测试只用不带 `segment` 的读数。同一指标的读数带 `series` 时（例如 `params.holders` 中每个持有人集团一组），逐组判定，任何一组成立即子规则成立。
-- `data: xbrl` 的指标可以从 EDGAR companyfacts 计算（`thesis_ci.metrics`）：只用 10-K、10-Q、20-F 和 40-F 的事实，按起止日期放进财年日历，同一区间取最晚申报的数值；没有单独披露的季度用年初至今的数字推出（第四季度 = 全年 − 前九个月），股数和每股数据除外；来源写作 `<代码>-XBRL#<概念>:<登记号>`。算不出的指标不出现。
+- `data: xbrl` 的指标，以及 `data: xbrl` 指标定义的公式（9.1），可以从 EDGAR companyfacts 计算（`thesis_ci.metrics`）：只用 10-K、10-Q、20-F 和 40-F 的事实，按起止日期放进公司自己的财年日历，同一区间取最晚申报的数值；没有单独披露的季度用年初至今的数字推出（第四季度 = 全年 − 前九个月），股数和每股数据除外；来源写作 `<代码>-XBRL#<概念>:<登记号>`。算不出的指标不出现。
+- **财年日历**以公司自己的为准。一个财季在公司为它提交的 10-Q 或 10-K 所报告的日期结束：取这份申报中各事实最常见的截止日。申报按登记号、财季（`fp`：Q1、Q2、Q3，年报为 FY）和这个日期定位，从不按 `fy`，因为 `fy` 可能是申报所在的年份，而不是事实所属的年份；离 `filer.fiscal_year_end` 推出的日期超过 46 天的，说明 `fp` 标错了，不采用。没有任何申报覆盖的季度，按推出的日期结束。事实与这些日期相差 10 天以内即算匹配。因此 Costco 的 12、12、12、16 周季度（FY2026 分别截至 2025-11-23、2026-02-15、2026-05-10 和 2026-08-30）按申报读取，而不是当作在月末结束的季度。
 
 **判定哪些测试、哪些期间。** 只判定本期生效的测试（`effective_from` ≤ 本期 < `retired_at`），其余列在 `not_in_force`。`quarter` 或 `event` 规则读本季；`half` 规则读以本季结束的半年（`FY<年>H<n>`，在第二、第四季判定）；`year` 规则读以本季结束的财年（在第四季判定）。规则的期间不在本季结束、`evaluate_on` 没有列出本季（`evaluate_on` 中的年份代表该年的每个季度）或 `evaluate_from` 更晚时，该规则不到期。`all_of` 要所有子规则都到期才到期；`any_of` 只要有一个到期就到期，且只判定到期的子规则。没有任何规则到期的测试记为 `not_due` 并写明原因：这表示本期没有判定，不是第五种结果。
 
@@ -442,7 +444,72 @@ thesis-ci init <目录> [--visibility public|private] [--profiles <检查组>,..
 
 ## 9. 指标登记表
 
-`spec/metrics.yml` 列出定量测试可以引用的指标：`id`、`description`、`unit`、`frequency`、`data`（`xbrl` 或 `filing_text`）、`xbrl`（候选概念，按优先顺序）、`formula` 与 `where`。thesis-ci 从 EDGAR companyfacts 计算 `xbrl` 指标（4.5），`book_value_per_share_yoy` 除外，因为没有登记的概念给出它所需的股数。XBRL 概念跟着发行人采用的会计准则走，不跟表格走：按美国会计准则编报的外国私人发行人（例如 PDD 的 20-F）同样用 `us-gaap` 概念，只有按 IFRS 编报的发行人才用 `ifrs-full`。登记表中没有的指标，用测试里的 `metric_def` 就地定义（字段同登记表条目，另可写 `components`，`data` 可取 `external` 或 `mixed`）。
+`spec/metrics.yml` 列出定量测试可以引用的指标：`id`、`description`、`unit`、`frequency`、`data`（`xbrl` 或 `filing_text`）、`xbrl`（候选概念，按优先顺序）、`formula` 与 `where`。thesis-ci 从 EDGAR companyfacts 计算 `xbrl` 指标（4.5），`book_value_per_share_yoy` 除外，因为没有登记的概念给出它所需的股数。XBRL 概念跟着发行人采用的会计准则走，不跟表格走：按美国会计准则编报的外国私人发行人（例如 PDD 的 20-F）同样用 `us-gaap` 概念，只有按 IFRS 编报的发行人才用 `ifrs-full`。登记表中没有的指标，用测试里的 `metric_def` 就地定义（字段同登记表条目，另可写 `components`，`data` 可取 `external` 或 `mixed`）；`data: xbrl` 的定义由 thesis-ci 按它的 `formula` 计算（9.1）。
+
+### 9.1 指标定义的公式（thesis-ci 0.6.0）
+
+`data: xbrl` 的 `metric_def` 按它的 `formula` 计算。公式由 thesis-ci 自己解析，不会把其中任何内容当作代码执行。
+
+**语言。**
+
+- 数字（`1`、`0.5`）、量名（见下表）、按通常优先级计算的 `+ - * /`、负号和括号。
+- `sum_4q(expr)`：`expr` 在以读数所属期间结束的最近四个财季上的合计。`sum_<n>y(expr)`：`expr` 在以读数所属财年结束的最近 `n` 个财年（1 到 99）上的合计；它只有财年读数，因此用到它的定义必须写 `frequency: year`。
+- 量名、括号表达式或求和之后可以跟时间下标：`_t` 是读数自己的期间，`_{t-4q}` 与 `_{t-1y}` 是早一个财年的同一期间。增长式就用它们写：`revenue_t / revenue_{t-4q} - 1`、`(pretax_income + provisions)_t / (pretax_income + provisions)_{t-4q} - 1`。不接受其他下标，也没有以 `_t` 结尾的量名。
+- 一个公式最多 1,000 个字符，括号、求和与正负号最多嵌套 50 层。
+
+**期间。** 一条定义按它的 `frequency` 及更长的期间读取：季度定义或没写 `frequency` 的定义读季度、半年和财年；半年定义读半年和财年；年度定义只读财年。求和之外的表达式按读数自己的期间计算：流量（利润表或现金流量表的项目）取该期间的数值，原样报告的或由年初至今的数字推出的（4.5）；余额取期末那一天的数值。只有金额流量能跨期相加：`sum_…()` 中出现余额、股数或每股数据，定义即不可计算。
+
+**概念。** 每个量名都有按优先顺序排列的候选概念（见下表）。定义在 `xbrl` 中列出、且属于某个量名候选的概念先试，按列出的顺序；该量名的其余候选随后作为后备。对每个量名，读数采用第一个具备该读数所需全部数值的候选，因此一个读数绝不把同一个量的两个概念混在一起。列出的概念若不是公式中任何量名的候选，就不读取；`computable()` 会注明。
+
+**缺少事实。** 读数所需的任何一个季度或年度缺少事实，该期间就没有读数。不做插值，申报中没有报告的项目也不当作零。除以零或负数同样没有读数。
+
+**单位。** 公式的结果是比率、金额、股数或每股数据，定义的 `unit` 必须与之相符。比率以 `%` 或 `pp`（比率乘以 100）或 `x`（比率本身）读取，所以公式写成单纯的比率，从不乘以 100。金额可用任何货币单位（`USD`、`USD million`），按报告货币读取；股数用 `shares`，每股数据用 `<货币>/shares`，例如 `USD/shares`。
+
+**不认识的量名。** 不在表中的量名使定义不可计算，并写明原因；thesis-ci 从不猜测一个量名的含义。
+
+**检查一条定义。** `thesis_ci.metrics.computable(definition)` 在任何读数都不可能算出时返回 `(False, 原因)`：没有公式、语法错误、不认识的量名或函数、对不能相加的东西求和、按年求和却没写 `frequency: year`，或单位不符。`(True, 注释)` 同样不保证有读数，因为缺少事实的期间仍然没有读数；注释列出公式不读取的 `xbrl` 概念。流水线可以调用它，拒收 XBRL 测试永远读不出的论点。
+
+**0.6.0 之前的写法。** 单个量名的增长式（`x_t / x_{t-4q} - 1` 或 `x_t / x_{t-1y} - 1`），若定义在 `xbrl` 中列出了概念，仍只在这些概念上计算，并且对要求的每个期间都计算，与 thesis-ci 0.4.0 相同。
+
+**读数。** `basis` 给出公式、代入数值后的公式，以及每个量名所用的概念和每个数值的来历（原样报告或推出，附登记号）；`source` 列出数值所依据的全部概念和登记号（3.1）。
+
+**词汇表。** 流量按期间计量，余额按日期计量；股数是期间内的加权平均数。
+
+| 量名 | 同义名 | 类型 | 候选概念（按优先顺序） |
+| --- | --- | --- | --- |
+| `revenue` | `revenues` | 流量 | `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax`, `us-gaap:Revenues`, `ifrs-full:Revenue` |
+| `total_revenue` | `total_revenues` | 流量 | `us-gaap:Revenues`, `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax`, `ifrs-full:Revenue` |
+| `revenue_net_of_interest_expense` | `revenues_net_of_interest_expense` | 流量 | `us-gaap:RevenuesNetOfInterestExpense` |
+| `gross_profit` | | 流量 | `us-gaap:GrossProfit`, `ifrs-full:GrossProfit` |
+| `operating_income` | `operating_profit`, `income_from_operations` | 流量 | `us-gaap:OperatingIncomeLoss`, `ifrs-full:ProfitLossFromOperatingActivities` |
+| `pretax_income` | `pretax_profit`, `income_before_taxes`, `income_before_income_taxes` | 流量 | `us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest`, `us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments` |
+| `income_tax` | `income_taxes`, `income_tax_expense` | 流量 | `us-gaap:IncomeTaxExpenseBenefit` |
+| `net_income` | `net_profit`, `net_earnings` | 流量 | `us-gaap:NetIncomeLoss`, `us-gaap:ProfitLoss`, `ifrs-full:ProfitLoss` |
+| `net_income_to_common` | `net_income_available_to_common`, `net_income_attributable_to_common` | 流量 | `us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic` |
+| `operating_cash_flow` | `cash_from_operations`, `ocf` | 流量 | `us-gaap:NetCashProvidedByUsedInOperatingActivities`, `ifrs-full:CashFlowsFromUsedInOperatingActivities` |
+| `capex` | `capital_expenditure`, `capital_expenditures` | 流量 | `us-gaap:PaymentsToAcquirePropertyPlantAndEquipment`, `ifrs-full:PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities` |
+| `stock_based_compensation` | `share_based_compensation`, `sbc` | 流量 | `us-gaap:ShareBasedCompensation`, `us-gaap:AllocatedShareBasedCompensationExpense` |
+| `d_and_a` | `depreciation_and_amortization` | 流量 | `us-gaap:DepreciationDepletionAndAmortization` |
+| `buybacks` | `share_repurchases`, `repurchases` | 流量 | `us-gaap:PaymentsForRepurchaseOfCommonStock`, `ifrs-full:PaymentsToAcquireOrRedeemEntitysShares` |
+| `dividends` | `dividends_paid` | 流量 | `us-gaap:PaymentsOfDividends`, `us-gaap:PaymentsOfDividendsCommonStock` |
+| `common_dividends` | `common_stock_dividends` | 流量 | `us-gaap:PaymentsOfDividendsCommonStock`, `us-gaap:DividendsCommonStockCash` |
+| `provisions` | `provision`, `provision_for_credit_losses`, `provisions_for_credit_losses` | 流量 | `us-gaap:ProvisionForLoanLeaseAndOtherLosses`, `us-gaap:ProvisionForLoanAndLeaseLosses`, `us-gaap:ProvisionForLoanLossesExpensed` |
+| `interest_expense` | | 流量 | `us-gaap:InterestExpense`, `us-gaap:InterestExpenseOperating` |
+| `interest_income` | | 流量 | `us-gaap:InterestAndDividendIncomeOperating` |
+| `cash` | `cash_and_equivalents`, `cash_and_cash_equivalents` | 余额 | `us-gaap:CashAndCashEquivalentsAtCarryingValue`, `ifrs-full:CashAndCashEquivalents` |
+| `short_term_investments` | | 余额 | `us-gaap:ShortTermInvestments` |
+| `total_assets` | `assets` | 余额 | `us-gaap:Assets` |
+| `equity` | `stockholders_equity`, `shareholders_equity` | 余额 | `us-gaap:StockholdersEquity`, `ifrs-full:Equity` |
+| `total_equity` | | 余额 | `us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest`, `us-gaap:StockholdersEquity`, `ifrs-full:Equity` |
+| `debt` | `long_term_debt` | 余额 | `us-gaap:LongTermDebt` |
+| `long_term_debt_noncurrent` | | 余额 | `us-gaap:LongTermDebtNoncurrent` |
+| `long_term_debt_current` | `current_portion_of_long_term_debt` | 余额 | `us-gaap:LongTermDebtCurrent` |
+| `rpo` | `remaining_performance_obligations` | 余额 | `us-gaap:RevenueRemainingPerformanceObligation` |
+| `diluted_shares` | `weighted_average_diluted_shares` | 流量，股数 | `us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding`, `ifrs-full:WeightedAverageNumberOfOrdinarySharesOutstandingDiluted` |
+| `eps_diluted` | `diluted_eps` | 流量，每股 | `us-gaap:EarningsPerShareDiluted`, `ifrs-full:DilutedEarningsLossPerShare` |
+| `eps_basic` | `basic_eps` | 流量，每股 | `us-gaap:EarningsPerShareBasic`, `ifrs-full:BasicEarningsLossPerShare` |
+
+有些候选是申报人没有标注第一个概念时使用的近似等价物：`total_equity` 退而采用股东权益，公司没有非控制性权益时两者相等；`common_dividends` 在没有标注已付股利时，退而采用已宣告的普通股现金股利；`net_income` 退而采用含非控制性权益的合并利润。`debt` 是含一年内到期部分的长期债务，没有后备概念：公司只标注两部分时，公式把 `long_term_debt_noncurrent` 与 `long_term_debt_current` 相加。
 
 ## 10. 版本
 
@@ -453,3 +520,5 @@ thesis-ci 0.3.0 增加英文支持和 `C-LANGUAGE`（3.4、3.5、5、7.5、8.5�
 thesis-ci 0.4.0 增加定量测试的求值（4.5）和两种新文件：读数与 `ci_results`（`readings.schema.json`、`ci-results.schema.json`）；`C-TEST-METRIC` 还会报告引擎无法判定的规则。档案文件的格式不变；档案的 `spec_version` 仍为 `"0.2"`。
 
 thesis-ci 0.5.0 增加检查组（8.6）和 `repo.yml` 的可选字段 `profiles`；检查本身不变，没有 `profiles` 的档案检查结果与以前相同。档案的 `spec_version` 仍为 `"0.2"`。
+
+thesis-ci 0.6.0 计算 `data: xbrl` 指标定义的公式（9.1），并按公司自己的申报确定季度的起止日期（4.5）。文件格式不变；档案的 `spec_version` 仍为 `"0.2"`。

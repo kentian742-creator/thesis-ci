@@ -252,6 +252,7 @@ Fields every test has: `id` (`<TICKER>-<Q|L|S><n>`), `type`, `claim` (the part o
     evaluate_from: FY2028Q4
 ```
 
+- **A `data: xbrl` definition** is computed from EDGAR companyfacts by its `formula`, written in the formula language of 9.1 (names of quantities such as `operating_income`, the sums `sum_4q` and `sum_<n>y`, and growth forms); its `xbrl` lists the concepts to try first. `thesis_ci.metrics.computable()` says whether a definition can be computed, and why not.
 - **Choosing periods**: `rule` (and its sub-rules) may give `evaluate_on` (evaluate only in these periods) or `evaluate_from` (evaluate from this period on), with values `FY<year>` or `FY<year>Q<quarter>`.
 
 **Qualitative tests** (`type: qualitative`): MUST have `question` (a yes/no question an independent model answers), `fail_if`, `judge: independent_model`, `evidence: required`, `where` (which documents are read for the judgment: a string or a list of strings, which the pipeline fetches) and `lookback` (how many periods of documents are read, the current one included; a positive integer; a period is a fiscal quarter, counted as for `effective_from`, with annual filings converted to fiscal quarters: to reach back to the previous annual report, for example, write 5); optionally `judge_notes` (rules for the judge, a string or a list). A judgment MUST give its source and a quotation of at most one sentence from the original text.
@@ -299,7 +300,8 @@ For every `reviewed` date in `thesis.yml` that equals the `as_of` of an update, 
 - `metric` is a registry id, a test's `metric` or `metric_def.id`, or `<metric>.<component>`; a reading for an `op: event` sub-rule that names no metric is keyed by the test id (`MSFT-Q9`). `period` is `FY<year>`, `FY<year>H<half>` or `FY<year>Q<quarter>`, in the company's fiscal year. `source` is a source tag (3.1).
 - `value` is a number, `true` or `false` for an event, or `null` when the metric was checked and there is nothing to measure (no qualifying event, or not computed by its definition); a `null` reading needs a `note`. A reading that could not be found is left out, never written as `null`.
 - A test with `params.segment` uses only readings whose `segment` equals it, and a test without one only readings without one. Readings of one metric that carry `series` (for example one per holder group in `params.holders`) are judged series by series, and a sub-rule holds when it holds for any series.
-- `data: xbrl` metrics can be computed from EDGAR companyfacts (`thesis_ci.metrics`): only 10-K, 10-Q, 20-F and 40-F facts, each placed in the fiscal calendar by its start and end dates, the most recently filed value of a span winning; quarters no filing reports on their own are derived from year-to-date figures (Q4 = FY − 9M), except share counts and per-share amounts; the source is `<TICKER>-XBRL#<concept>:<accession>`. A metric that cannot be computed is left out.
+- `data: xbrl` metrics, and the formulas of `data: xbrl` metric definitions (9.1), can be computed from EDGAR companyfacts (`thesis_ci.metrics`): only 10-K, 10-Q, 20-F and 40-F facts, each placed in the company's fiscal calendar by its start and end dates, the most recently filed value of a span winning; quarters no filing reports on their own are derived from year-to-date figures (Q4 = FY − 9M), except share counts and per-share amounts; the source is `<TICKER>-XBRL#<concept>:<accession>`. A metric that cannot be computed is left out.
+- **The fiscal calendar** is the company's own. A fiscal quarter ends on the date that the company's 10-Q or 10-K for it reports: the most common end date among that filing's facts. The filing is placed by its accession number, its fiscal period (`fp`: Q1, Q2, Q3, or FY for an annual report) and that date, never by its `fy`, which can name the filing's year rather than the fact's; a date more than 46 days from the one `filer.fiscal_year_end` implies marks a mislabelled `fp` and is not used. A quarter that no filing covers ends on the implied date. Facts match these dates within 10 days. So Costco's quarters of 12, 12, 12 and 16 weeks (FY2026: to 2025-11-23, 2026-02-15, 2026-05-10 and 2026-08-30) are read as filed, not as quarters ending with a month.
 
 **Which tests, which periods.** Only tests in force for the period are judged (`effective_from` ≤ period < `retired_at`); the others are listed under `not_in_force`. A `quarter` or `event` rule reads the evaluated quarter; a `half` rule reads the half that ends with it (`FY<year>H<n>`, judged in Q2 and Q4); a `year` rule reads the fiscal year that ends with it (judged in Q4). A rule is not due when its period does not end with the quarter, when its `evaluate_on` does not name the quarter (a year in `evaluate_on` names each of its quarters), or when its `evaluate_from` is later. `all_of` is due only when all its sub-rules are; `any_of` when at least one is, and then only the due ones are judged. A test with nothing due is reported `not_due`, with the reason: this records that it was not judged this period and is not a fifth result.
 
@@ -442,7 +444,72 @@ Every check belongs to exactly one profile, given by `profile` in `spec/checks.y
 
 ## 9. Metric registry
 
-`spec/metrics.yml` lists the metrics that quantitative tests can reference: `id`, `description`, `unit`, `frequency`, `data` (`xbrl` or `filing_text`), `xbrl` (candidate concepts in order of preference), `formula` and `where`. thesis-ci computes the `xbrl` metrics from EDGAR companyfacts (4.5), except `book_value_per_share_yoy`, whose share count no registered concept gives. XBRL concepts follow the accounting standards the issuer reports under, not the form: a foreign private issuer reporting under US GAAP (for example PDD's 20-F) uses `us-gaap` concepts as well; only issuers reporting under IFRS use `ifrs-full`. A metric not in the registry is defined in place with the test's `metric_def` (the same fields as a registry entry, plus `components`; `data` may also be `external` or `mixed`).
+`spec/metrics.yml` lists the metrics that quantitative tests can reference: `id`, `description`, `unit`, `frequency`, `data` (`xbrl` or `filing_text`), `xbrl` (candidate concepts in order of preference), `formula` and `where`. thesis-ci computes the `xbrl` metrics from EDGAR companyfacts (4.5), except `book_value_per_share_yoy`, whose share count no registered concept gives. XBRL concepts follow the accounting standards the issuer reports under, not the form: a foreign private issuer reporting under US GAAP (for example PDD's 20-F) uses `us-gaap` concepts as well; only issuers reporting under IFRS use `ifrs-full`. A metric not in the registry is defined in place with the test's `metric_def` (the same fields as a registry entry, plus `components`; `data` may also be `external` or `mixed`); thesis-ci computes a `data: xbrl` definition from its `formula` (9.1).
+
+### 9.1 Formulas of metric definitions (thesis-ci 0.6.0)
+
+A `metric_def` with `data: xbrl` is computed from its `formula`. thesis-ci parses the formula itself and runs no code from it.
+
+**The language.**
+
+- Numbers (`1`, `0.5`), names of quantities (the table below), `+ - * /` with the usual precedence, unary minus, and parentheses.
+- `sum_4q(expr)`: `expr` summed over the trailing four fiscal quarters that end with the reading's period. `sum_<n>y(expr)`: `expr` summed over the trailing `n` fiscal years (1 to 99) that end with the reading's fiscal year; it has readings for fiscal years only, so a definition that uses it MUST have `frequency: year`.
+- A time subscript after a name, a parenthesised expression or a sum: `_t` is the reading's own period; `_{t-4q}` and `_{t-1y}` are the same period one fiscal year earlier. The growth forms are written with them: `revenue_t / revenue_{t-4q} - 1`, `(pretax_income + provisions)_t / (pretax_income + provisions)_{t-4q} - 1`. No other subscript is accepted, and no name ends in `_t`.
+- A formula is at most 1,000 characters long and nests parentheses, sums and signs at most 50 levels deep.
+
+**Periods.** A definition is read for the periods of its `frequency` and longer ones: a quarterly definition, or one without `frequency`, for quarters, halves and fiscal years; a half-yearly one for halves and fiscal years; an annual one for fiscal years only. An expression outside a sum is evaluated for the reading's own period: a flow (an income or cash flow statement line) over that period, as reported or derived from year-to-date figures (4.5), and a balance at its last day. Only flows of money add up over periods: a balance, a share count or a per-share amount inside `sum_…()` makes the definition not computable.
+
+**Concepts.** Each name has candidate concepts in order of preference (the table). The concepts the definition lists in `xbrl` that are candidates of a name are tried first, in the order listed, and the name's other candidates follow as fallbacks. For each name, a reading uses the first candidate that has every value the reading needs, so it never mixes two concepts for one quantity. A listed concept that is a candidate of no name in the formula is not read; `computable()` notes it.
+
+**Missing facts.** A fact missing for any quarter or year that a reading needs means no reading for that period. Nothing is interpolated, and a line a filing does not report is not taken as zero. A division by zero or by a negative number gives no reading either.
+
+**Units.** The result of a formula is a ratio, an amount of money, a share count or a per-share amount, and the definition's `unit` must fit it. A ratio is read in `%` or `pp` (the ratio × 100) or `x` (the ratio itself), so a formula is written as the plain ratio and never multiplies by 100. An amount of money takes any currency unit (`USD`, `USD million`) and is read in the reporting currency; a share count takes `shares`, and a per-share amount `<currency>/shares`, for example `USD/shares`.
+
+**Names thesis-ci does not know.** A name that is not in the table makes the definition not computable, with the reason; thesis-ci never guesses what a name means.
+
+**Checking a definition.** `thesis_ci.metrics.computable(definition)` returns `(False, reason)` when no reading can ever be computed: no formula, a syntax error, an unknown name or function, something summed that does not add up, a sum over years without `frequency: year`, or a unit that does not fit. `(True, notes)` promises no reading either, since a period still has none when a fact is missing; the notes name `xbrl` concepts the formula does not read. A pipeline can call it to reject a thesis whose XBRL tests could never be read.
+
+**Before 0.6.0.** A growth formula of a single name (`x_t / x_{t-4q} - 1` or `x_t / x_{t-1y} - 1`) whose definition lists concepts in `xbrl` is still computed over those concepts alone, for every period asked for, as thesis-ci 0.4.0 did.
+
+**Readings.** `basis` gives the formula, the formula with the values used, and for each name the concept used and how each value was taken (as reported, or derived, with accession numbers); `source` lists every concept and accession number the value rests on (3.1).
+
+**The vocabulary.** A flow is measured over a period, a balance at a date; a share count is a weighted average over the period.
+
+| Name | Synonyms | Kind | Candidate concepts, in order of preference |
+| --- | --- | --- | --- |
+| `revenue` | `revenues` | flow | `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax`, `us-gaap:Revenues`, `ifrs-full:Revenue` |
+| `total_revenue` | `total_revenues` | flow | `us-gaap:Revenues`, `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax`, `ifrs-full:Revenue` |
+| `revenue_net_of_interest_expense` | `revenues_net_of_interest_expense` | flow | `us-gaap:RevenuesNetOfInterestExpense` |
+| `gross_profit` | | flow | `us-gaap:GrossProfit`, `ifrs-full:GrossProfit` |
+| `operating_income` | `operating_profit`, `income_from_operations` | flow | `us-gaap:OperatingIncomeLoss`, `ifrs-full:ProfitLossFromOperatingActivities` |
+| `pretax_income` | `pretax_profit`, `income_before_taxes`, `income_before_income_taxes` | flow | `us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest`, `us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments` |
+| `income_tax` | `income_taxes`, `income_tax_expense` | flow | `us-gaap:IncomeTaxExpenseBenefit` |
+| `net_income` | `net_profit`, `net_earnings` | flow | `us-gaap:NetIncomeLoss`, `us-gaap:ProfitLoss`, `ifrs-full:ProfitLoss` |
+| `net_income_to_common` | `net_income_available_to_common`, `net_income_attributable_to_common` | flow | `us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic` |
+| `operating_cash_flow` | `cash_from_operations`, `ocf` | flow | `us-gaap:NetCashProvidedByUsedInOperatingActivities`, `ifrs-full:CashFlowsFromUsedInOperatingActivities` |
+| `capex` | `capital_expenditure`, `capital_expenditures` | flow | `us-gaap:PaymentsToAcquirePropertyPlantAndEquipment`, `ifrs-full:PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities` |
+| `stock_based_compensation` | `share_based_compensation`, `sbc` | flow | `us-gaap:ShareBasedCompensation`, `us-gaap:AllocatedShareBasedCompensationExpense` |
+| `d_and_a` | `depreciation_and_amortization` | flow | `us-gaap:DepreciationDepletionAndAmortization` |
+| `buybacks` | `share_repurchases`, `repurchases` | flow | `us-gaap:PaymentsForRepurchaseOfCommonStock`, `ifrs-full:PaymentsToAcquireOrRedeemEntitysShares` |
+| `dividends` | `dividends_paid` | flow | `us-gaap:PaymentsOfDividends`, `us-gaap:PaymentsOfDividendsCommonStock` |
+| `common_dividends` | `common_stock_dividends` | flow | `us-gaap:PaymentsOfDividendsCommonStock`, `us-gaap:DividendsCommonStockCash` |
+| `provisions` | `provision`, `provision_for_credit_losses`, `provisions_for_credit_losses` | flow | `us-gaap:ProvisionForLoanLeaseAndOtherLosses`, `us-gaap:ProvisionForLoanAndLeaseLosses`, `us-gaap:ProvisionForLoanLossesExpensed` |
+| `interest_expense` | | flow | `us-gaap:InterestExpense`, `us-gaap:InterestExpenseOperating` |
+| `interest_income` | | flow | `us-gaap:InterestAndDividendIncomeOperating` |
+| `cash` | `cash_and_equivalents`, `cash_and_cash_equivalents` | balance | `us-gaap:CashAndCashEquivalentsAtCarryingValue`, `ifrs-full:CashAndCashEquivalents` |
+| `short_term_investments` | | balance | `us-gaap:ShortTermInvestments` |
+| `total_assets` | `assets` | balance | `us-gaap:Assets` |
+| `equity` | `stockholders_equity`, `shareholders_equity` | balance | `us-gaap:StockholdersEquity`, `ifrs-full:Equity` |
+| `total_equity` | | balance | `us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest`, `us-gaap:StockholdersEquity`, `ifrs-full:Equity` |
+| `debt` | `long_term_debt` | balance | `us-gaap:LongTermDebt` |
+| `long_term_debt_noncurrent` | | balance | `us-gaap:LongTermDebtNoncurrent` |
+| `long_term_debt_current` | `current_portion_of_long_term_debt` | balance | `us-gaap:LongTermDebtCurrent` |
+| `rpo` | `remaining_performance_obligations` | balance | `us-gaap:RevenueRemainingPerformanceObligation` |
+| `diluted_shares` | `weighted_average_diluted_shares` | flow, share count | `us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding`, `ifrs-full:WeightedAverageNumberOfOrdinarySharesOutstandingDiluted` |
+| `eps_diluted` | `diluted_eps` | flow, per share | `us-gaap:EarningsPerShareDiluted`, `ifrs-full:DilutedEarningsLossPerShare` |
+| `eps_basic` | `basic_eps` | flow, per share | `us-gaap:EarningsPerShareBasic`, `ifrs-full:BasicEarningsLossPerShare` |
+
+Some candidates are near equivalents that a filer uses when it does not tag the first: `total_equity` falls back to stockholders' equity, which equals it when a company has no noncontrolling interests; `common_dividends` falls back to common cash dividends declared when dividends paid are not tagged; `net_income` falls back to consolidated profit including noncontrolling interests. `debt` is long-term debt including its current portion, and has no fallback: for a company that tags only the two parts, a formula adds `long_term_debt_noncurrent` and `long_term_debt_current`.
 
 ## 10. Versions
 
@@ -453,3 +520,5 @@ thesis-ci 0.3.0 adds English-language support and `C-LANGUAGE` (3.4, 3.5, 5, 7.5
 thesis-ci 0.4.0 adds the evaluation of quantitative tests (4.5) with two new documents, readings and `ci_results` (`readings.schema.json`, `ci-results.schema.json`); `C-TEST-METRIC` now also reports rules the engine cannot judge. The format of archive files is unchanged; archives keep `spec_version: "0.2"`.
 
 thesis-ci 0.5.0 adds check profiles (8.6) and the optional `profiles` field of `repo.yml`; the checks themselves are unchanged, and an archive without `profiles` lints as before. Archives keep `spec_version: "0.2"`.
+
+thesis-ci 0.6.0 computes the formulas of `data: xbrl` metric definitions (9.1) and reads a company's quarters as its own filings date them (4.5). File formats are unchanged; archives keep `spec_version: "0.2"`.
