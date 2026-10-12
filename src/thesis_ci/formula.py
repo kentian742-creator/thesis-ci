@@ -1,21 +1,24 @@
 """The formula language of ``data: xbrl`` metric definitions (SPEC 9.1), parsed without ``eval``.
 
 ``parse(text)`` turns a formula such as ``sum_4q(operating_cash_flow - capex) / sum_4q(revenue)`` into a tree of
-``Number``, ``Name``, ``Negate``, ``Binary``, ``Sum`` and ``At`` nodes, or raises ``FormulaError`` saying where the
-text stops being a formula. This module knows the syntax only; ``metrics.py`` gives the names their meaning and
-evaluates the tree over a companyfacts document.
+``Number``, ``Name``, ``Negate``, ``Binary``, ``Sum``, ``Avg`` and ``At`` nodes, or raises ``FormulaError`` saying
+where the text stops being a formula. This module knows the syntax only; ``metrics.py`` gives the names their meaning
+and evaluates the tree over a companyfacts document.
 
 The language:
 
 - numbers (``1``, ``0.5``), names of quantities (``revenue``), ``+ - * /`` with the usual precedence, unary minus
   and parentheses;
+- the typographic signs ``×``, ``·`` and ``⋅`` for ``*``, ``÷`` for ``/`` and ``−`` (U+2212) for ``-``. A ``·``
+  directly between two digits is refused, because it could be a decimal point (``2·5``);
 - ``sum_4q(expr)``, the sum of ``expr`` over the trailing four fiscal quarters, and ``sum_<n>y(expr)``, its sum over
   the trailing n fiscal years (1 to 99);
-- a time subscript after a name, a parenthesised expression or a sum: ``_t`` is the reading's own period, and
+- ``avg(expr)``, the mean of ``expr`` at the start and at the end of the reading's period;
+- a time subscript after a name, a parenthesised expression or a function: ``_t`` is the reading's own period, and
   ``_{t-4q}`` and ``_{t-1y}`` are the same period one fiscal year earlier. The growth forms ``x_t / x_{t-4q} - 1``
   and ``(a + b)_t / (a + b)_{t-1y} - 1`` are written with them, so a name never ends in ``_t``.
 
-A formula is at most 1,000 characters long and nests parentheses, sums and signs at most 50 levels deep.
+A formula is at most 1,000 characters long and nests parentheses, functions and signs at most 50 levels deep.
 """
 
 from __future__ import annotations
@@ -25,8 +28,10 @@ from dataclasses import dataclass, field
 from typing import Union
 
 MAX_LENGTH = 1000  # characters; formulas in real theses run to a few hundred
-MAX_DEPTH = 50  # nested parentheses, sums and signs
+MAX_DEPTH = 50  # nested parentheses, functions and signs
 SUM_RE = re.compile(r"^sum_(?:(4)q|([1-9][0-9]?)y)$")
+# Typographic signs read as ASCII operators: U+00D7, U+00B7, U+22C5, U+00F7 and U+2212.
+TYPOGRAPHIC = {"×": "*", "·": "*", "⋅": "*", "÷": "/", "−": "-"}
 TIME_RE = re.compile(r"^_(?:t|\{\s*t\s*(?:-\s*(\d+)\s*([qy])\s*)?\})$")
 _SUBSCRIPT = r"_t(?![A-Za-z0-9_{])|_\{[^{}]*\}"
 _TOKEN = re.compile(rf"""
@@ -77,36 +82,61 @@ class Sum:
 
 
 @dataclass(frozen=True)
+class Avg:
+    """``avg(body)``: the mean of ``body`` at the end of the period before the reading's and at the end of the
+    reading's own period, that is, at its start and at its end."""
+
+    body: Node
+
+
+@dataclass(frozen=True)
 class At:
     """``body`` read ``years_back`` fiscal years before the period it is evaluated for (0 for ``_t``)."""
 
     body: Node
     years_back: int
-    text: str = field(compare=False)  # as written: _{t-4q} and _{t-1y} mean the same
+    text: str = field(compare=False)  # as written, in ASCII: _{t-4q} and _{t-1y} mean the same
 
 
-Node = Union[Number, Name, Negate, Binary, Sum, At]
+Node = Union[Number, Name, Negate, Binary, Sum, Avg, At]
 
 
 @dataclass(frozen=True)
 class _Token:
     kind: str  # "number" | "name" | "time" | "op" | "bad" (a character no token starts with) | "end"
-    text: str
+    text: str  # with the typographic signs read as ASCII
     pos: int  # 1-based character position in the formula
+    shown: str = ""  # as written, for messages
+
+
+def ascii_signs(text: str) -> str:
+    """``text`` with the typographic signs of the language written as ASCII, one character for one, so that positions
+    do not move: ``×``, ``·`` and ``⋅`` as ``*``, ``÷`` as ``/``, ``−`` as ``-``. A ``·`` directly between two digits
+    is kept as it is, for the parser to refuse."""
+    return "".join(
+        ch if ch == "·" and 0 < i < len(text) - 1 and text[i - 1].isdecimal() and text[i + 1].isdecimal()
+        else TYPOGRAPHIC.get(ch, ch)
+        for i, ch in enumerate(text))
 
 
 def _tokens(text: str) -> list[_Token]:
+    plain = ascii_signs(text)
     out, pos = [], 0
-    while pos < len(text):
-        m = _TOKEN.match(text, pos)
-        if m is None:  # the parser reports it when it gets there, after any earlier mistake
-            out.append(_Token("bad", text[pos], pos + 1))
+    while pos < len(plain):
+        m = _TOKEN.match(plain, pos)
+        if m is None:
+            if plain[pos] == "·":  # ascii_signs kept it: it stands between two digits
+                raise FormulaError(f"'·' between two digits at character {pos + 1} could be a decimal point or a "
+                                   "multiplication sign: write '.' or '*'")
+            # the parser reports any other character when it gets there, after any earlier mistake
+            out.append(_Token("bad", plain[pos], pos + 1, text[pos]))
             break
         if m.group("stem"):
-            out.append(_Token("name", m.group("stem"), pos + 1))
-            out.append(_Token("time", m.group("stem_time"), m.start("stem_time") + 1))
+            out.append(_Token("name", m.group("stem"), pos + 1, m.group("stem")))
+            start, end = m.span("stem_time")
+            out.append(_Token("time", m.group("stem_time"), start + 1, text[start:end]))
         elif m.lastgroup != "space":
-            out.append(_Token(m.lastgroup or "op", m.group(), pos + 1))
+            out.append(_Token(m.lastgroup or "op", m.group(), pos + 1, text[m.start():m.end()]))
         pos = m.end()
     out.append(_Token("end", "", len(text) + 1))
     return out
@@ -118,17 +148,19 @@ def _years_back(token: _Token) -> int:
         return 0
     if m and (m.group(1), m.group(2)) in (("4", "q"), ("1", "y")):
         return 1
-    raise FormulaError(f"time subscript {token.text} at character {token.pos} is not one of _t, _{{t-4q}}, _{{t-1y}}")
+    raise FormulaError(f"time subscript {token.shown} at character {token.pos} is not one of _t, _{{t-4q}}, "
+                       "_{t-1y}")
 
 
 class _Parser:
-    """Recursive descent over this grammar::
+    """Recursive descent over this grammar, on the tokens of the formula with its typographic signs read as ASCII::
 
         sum      := product (("+" | "-") product)*
         product  := unary (("*" | "/") unary)*
         unary    := ("-" | "+") unary | postfix
         postfix  := primary [time]
         primary  := number | name | function "(" sum ")" | "(" sum ")"
+        function := "sum_4q" | "sum_<n>y" | "avg"
     """
 
     def __init__(self, text: str):
@@ -199,14 +231,16 @@ class _Parser:
         if token.kind == "name":
             if self.peek().text == "(" and self.peek().kind == "op":
                 m = SUM_RE.match(token.text)
-                if m is None:
+                if m is None and token.text != "avg":
                     raise FormulaError(f"unknown function {token.text}() at character {token.pos}: the functions are "
-                                       "sum_4q() and sum_<n>y()")
+                                       "sum_4q(), sum_<n>y() and avg()")
                 opened = self.take()
                 self.nest(opened)
                 body = self.additive()
                 self.expect_close(opened)
                 self.depth -= 1
+                if m is None:
+                    return Avg(body)
                 count, unit = (4, "quarter") if m.group(1) else (int(m.group(2)), "year")
                 return Sum(token.text, count, unit, body)
             return Name(token.text)
@@ -222,7 +256,7 @@ class _Parser:
 def _describe(token: _Token) -> str:
     if token.kind == "end":
         return "the formula ends too early"
-    return f"unexpected {token.text!r} at character {token.pos}"
+    return f"unexpected {token.shown!r} at character {token.pos}"
 
 
 def parse(text: str) -> Node:
@@ -241,7 +275,7 @@ def _nodes(node: Node) -> list[Node]:
         out += _nodes(node.operand)
     elif isinstance(node, Binary):
         out += _nodes(node.left) + _nodes(node.right)
-    elif isinstance(node, (Sum, At)):
+    elif isinstance(node, (Sum, Avg, At)):
         out += _nodes(node.body)
     return out
 
@@ -269,6 +303,8 @@ def text(node: Node) -> str:
             return "-" + (f"({inner})" if prec < 3 else inner), 3
         if isinstance(n, Sum):
             return f"{n.function}({render(n.body)[0]})", 4
+        if isinstance(n, Avg):
+            return f"avg({render(n.body)[0]})", 4
         if isinstance(n, At):
             inner, prec = render(n.body)
             return (f"({inner})" if prec < 4 else inner) + n.text, 4

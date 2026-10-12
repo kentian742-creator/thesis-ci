@@ -3,6 +3,101 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.6.1: typographic signs, avg() and more names in formulas (unreleased)
+
+thesis-ci now computes the formulas that a model writes in practice. Walmart's thesis of 2026-10-11 in Owner's Office
+has six XBRL tests, on five metric definitions, that 0.6.0 rejected: they write `×`, `÷` and `−` for the operators,
+average a balance with `avg()`, and use names the vocabulary did not have, such as `net_sales`, `accounts_payable` and
+`inventories`. All five are now computable, and their FY2026 readings agree with the figures of Walmart's FY2026 10-K.
+File formats are unchanged; archives keep `spec_version: "0.2"`. Every reading 0.6.0 computes for the archive of
+Owner's Office and for Walmart is unchanged.
+
+### New
+
+- Typographic signs (SPEC 9.1): `×`, `·` and `⋅` are read as `*`, `÷` as `/`, and `−` (U+2212) as `-`, in time
+  subscripts too. A `·` directly between two digits is refused, because it could be a decimal point (`2·5`). Error
+  messages quote the signs as written, and a reading's `basis` opens with the formula as written.
+- `avg(expr)`: the mean of a balance at the start and at the end of the reading's period, the start being the end of
+  the period before, of the same length: the previous fiscal year end for a fiscal year, the previous quarter end for
+  a quarter. A flow inside `avg()` makes a definition not computable, and a balance missing at either date means no
+  reading. In a `basis`, `avg()` appears as `(start + end) / 2`.
+- Names a definition declares in its own `components`. A name the vocabulary does not have can be a component that
+  lists concepts in `xbrl`; it is read from them, in the order listed, as an amount of money, a share count or a
+  per-share amount as the component's `unit` says. Whether it is a flow or a balance is decided from the facts when it
+  is read: facts with a start date are a flow, facts without one a balance. When the concepts disagree, or have no
+  fact in a periodic report, the definition is not computable for that company, and neither is it when the facts show
+  a balance summed or a flow averaged. A vocabulary name keeps its meaning: its component's `xbrl` only puts the
+  name's own candidates first, ahead of the definition's `xbrl`, and `computable()` notes the concepts it does not read.
+- `computable(definition, companyfacts=None)`. Without `companyfacts` it accepts a component name and says in its notes
+  that the name's kind is decided only when it is read. With a companyfacts document of the company, it decides that
+  kind at once and returns `(False, reason)` when it cannot.
+- Six names of quantities (37 names and 45 synonyms in all), each with the same discipline as the others: a flow over
+  a period or a balance at its end, and only concepts that hold the quantity itself.
+  - `net_sales` (flow): net sales without the other revenue lines some companies report beside them, such as
+    Walmart's membership and other income. Its candidates are the net sales concepts filers used until 2018
+    (`us-gaap:SalesRevenueNet`, `us-gaap:SalesRevenueGoodsNet`) and revenue from contracts with customers, which
+    counts only where the facts show it to be a part of total revenue: for each span read, the company also reports
+    a larger `us-gaap:Revenues`. Walmart's FY2026 net sales, 706,413, and membership and other income, 6,750, make
+    total revenues of 713,163 ($ million). `net_sales` never falls back to total revenue: where a company tags a single
+    revenue concept, companyfacts cannot show whether it has another line. Costco and BJ's Wholesale Club tag their
+    total revenue, membership fees included, with the concept Home Depot uses for its only line, and tag their net
+    sales only by product, which companyfacts leaves out; so `net_sales` has no reading for them, and a company whose
+    revenue is all net sales is read with `revenue`.
+  - `accounts_payable` (balance): accounts payable, then trade payables, then the payables of an unclassified balance
+    sheet, and the two IFRS trade payables concepts; never `us-gaap:AccountsPayableAndAccruedLiabilitiesCurrent`, which
+    adds accrued liabilities.
+  - `inventories` (balance): `us-gaap:InventoryNet`, `ifrs-full:Inventories`.
+  - `short_term_borrowings` (balance): `us-gaap:ShortTermBorrowings`, `ifrs-full:ShorttermBorrowings`; commercial
+    paper, a part of it, and `us-gaap:DebtCurrent`, which adds the current portion of long-term debt, are not
+    candidates.
+  - `finance_lease_obligations` and `operating_lease_obligations` (balances): the lessee's totals, current and
+    long-term (`us-gaap:FinanceLeaseLiability`, with capital lease obligations before ASC 842;
+    `us-gaap:OperatingLeaseLiability`). IFRS 16 does not divide leases into the two kinds, so neither has an IFRS
+    candidate.
+  - Synonyms `income_tax_provision` and `provision_for_income_taxes` (of `income_tax`), `inventory`,
+    `finance_lease_liabilities`, `capital_lease_obligations` and `operating_lease_liabilities`. `pretax_income` was
+    already a name; `dividends_paid` and `repurchases` were already synonyms of `dividends` and `buybacks`.
+
+### Walmart's readings at FY2026
+
+In millions of US dollars. Every input is a figure of Walmart's 10-K for FY2026 (0000104169-26-000055). A reading
+cites the most recently filed fact, so several balances cite the 10-Q for the second quarter of FY2027, which repeats
+them, and the lease totals at 2025-01-31 cite the 10-K for FY2025; the FY2026 10-K gives the same values (the lease
+totals as the sums of their current and long-term parts, 800 + 5,923 and 1,499 + 12,825). Each reading agrees with
+the baseline the thesis computed: 14.5%, $22.368 billion, 3.77%, 83.6% and 107.2%.
+
+| Test | Reading | Inputs |
+| --- | --- | --- |
+| WMT-Q2, WMT-Q9 | 14.51% | 29,825 × (1 − 7,199 / 29,469) / ((148,498 + 162,255) / 2); invested capital = total equity + short-term borrowings + long-term debt + finance and operating lease obligations − cash: 97,421 + 3,068 + 35,999 + 6,723 + 14,324 − 9,037 at 2025-01-31 and 105,887 + 6,596 + 38,166 + 6,761 + 15,572 − 10,727 at 2026-01-31. FY2025: 15.49% |
+| WMT-Q4 | $22,368 million | free cash flow (35,726 − 20,606) + (36,443 − 23,783) + (41,565 − 26,642) = 42,703 over FY2024 to FY2026, less dividends paid 6,140 + 6,688 + 7,507 = 20,335 |
+| WMT-Q10 | 3.77% | payments for property and equipment 26,642 / net sales 706,413 |
+| WMT-Q11 | 83.59% | (dividends 6,140 + 6,688 + 7,507 and repurchases 2,779 + 4,494 + 8,088 = 35,696) / free cash flow 42,703 |
+| WMT-Q12 | 107.15% | accounts payable 63,061 / inventories 58,851 at 2026-01-31 |
+
+### Unchanged
+
+- Registry readings, recomputed for ten companies (the nine of Owner's Office and Walmart) over every quarter, half
+  and fiscal year from 2015 to 2027: 6,153 readings, all identical to 0.6.0's.
+- The readings of every metric definition 0.6.0 computes (American Express, AppLovin, Costco: 256 readings over the
+  same periods) are identical, and so are the readings for the periods the Owner's Office pipeline asks for.
+
+### Tests
+
+- `tests/test_formula.py`: typographic signs and their mistakes, `avg()` in the parser and the engine (quarters,
+  halves, years, growth of an average, a missing opening balance), component names (read as flows or balances as
+  their facts show, unknown, with a unit that is not an amount, disagreeing, without facts, summed or averaged
+  wrongly), the vocabulary added, and `net_sales` read only below a larger total. The SPEC 9.1 tables, English and
+  Chinese, still must match the code.
+- `tests/test_companyfacts.py`: the Walmart fixture now holds the 20 concepts Walmart's definitions and these tests
+  read, from the companyfacts document of 2026-10-11, trimmed at 2024-01-01 as before; it gives the same fiscal
+  calendar and readings as the full document for the periods tested. Walmart's five definitions at FY2026 (and
+  return on invested capital at FY2025), each recomputed from the 10-K; net sales and membership income adding up to
+  total revenues; lease parts at quarter ends; and Costco's `net_sales`, which has no reading.
+
+### Documentation
+
+- SPEC 4.1, 9.1 and 10, and their Chinese versions; the header of `spec/metrics.yml`.
+
 ## v0.6.0: formulas of metric definitions, and each company's own fiscal calendar (2026-10-11)
 
 thesis-ci now computes the formula of a test's own `data: xbrl` metric definition, where 0.5 computed only the growth

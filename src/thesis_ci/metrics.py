@@ -30,8 +30,11 @@ How values are taken:
 
 A ``metric_def``'s formula is parsed by ``formula.py`` and read through a vocabulary of quantity names
 (``VOCABULARY``, ``SYNONYMS``): each name has candidate concepts in order of preference, and is either a flow over a
-period or a balance at its end. The concepts a definition lists in ``xbrl`` are tried first. ``computable(definition)``
-says whether a definition can be computed at all, and why not.
+period or a balance at its end. The concepts a definition lists for a name are tried first: those in the ``xbrl`` of
+the name's component, then those in the definition's ``xbrl``. A name the vocabulary does not know can be one of the
+definition's own ``components``: it is read from the concepts its component lists, as a flow or a balance as their
+facts show. ``computable(definition)`` says whether a definition can be computed at all, and why not;
+``computable(definition, companyfacts)`` says so for one company.
 
 Each reading's ``source`` is ``<TICKER>-XBRL#<concept>:<accession>``, with ``+`` joining further concept:accession
 pairs when the value rests on several facts; ``basis`` spells out the formula with the values used.
@@ -43,7 +46,7 @@ import datetime as dt
 import difflib
 import re
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable
 
 from . import contract, formula
@@ -70,7 +73,9 @@ class Quantity:
     name: str
     concepts: tuple[str, ...]
     kind: str  # "money" | "shares" | "per_share"
-    instant: bool = False  # a balance at a date; otherwise a flow over a period
+    instant: bool | None = False  # True: a balance at a date; False: a flow over a period; None: as its facts show
+    # (concept, total): a fact of the concept counts only when the company reports a larger total for the same span
+    parts: tuple[tuple[str, str], ...] = ()
 
 
 REVENUE = Quantity("revenue", ("us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax", "us-gaap:Revenues",
@@ -113,6 +118,12 @@ VOCABULARY: dict[str, Quantity] = {q.name: q for q in (
     REVENUE,
     Quantity("total_revenue", ("us-gaap:Revenues", "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
                                "ifrs-full:Revenue"), "money"),
+    # Net sales without the other revenue lines some companies report beside them (Walmart's membership and other
+    # income). Revenue from contracts with customers counts only where it is less than the total revenue the company
+    # reports for the same span; where the company tags it alone, it can be the total (Costco since 2018).
+    Quantity("net_sales", ("us-gaap:SalesRevenueNet", "us-gaap:SalesRevenueGoodsNet",
+                           "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax"), "money",
+             parts=(("us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax", "us-gaap:Revenues"),)),
     Quantity("revenue_net_of_interest_expense", ("us-gaap:RevenuesNetOfInterestExpense",), "money"),
     GROSS_PROFIT,
     OPERATING_INCOME,
@@ -135,13 +146,23 @@ VOCABULARY: dict[str, Quantity] = {q.name: q for q in (
     INTEREST_INCOME,
     CASH,
     SHORT_TERM_INVESTMENTS,
+    Quantity("inventories", ("us-gaap:InventoryNet", "ifrs-full:Inventories"), "money", instant=True),
     TOTAL_ASSETS,
+    Quantity("accounts_payable", ("us-gaap:AccountsPayableCurrent", "us-gaap:AccountsPayableTradeCurrent",
+                                  "us-gaap:AccountsPayableCurrentAndNoncurrent",
+                                  "ifrs-full:TradeAndOtherCurrentPayablesToTradeSuppliers",
+                                  "ifrs-full:TradeAndOtherPayablesToTradeSuppliers"), "money", instant=True),
     EQUITY,
     Quantity("total_equity", ("us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
                               "us-gaap:StockholdersEquity", "ifrs-full:Equity"), "money", instant=True),
+    Quantity("short_term_borrowings", ("us-gaap:ShortTermBorrowings", "ifrs-full:ShorttermBorrowings"), "money",
+             instant=True),
     DEBT,
     Quantity("long_term_debt_noncurrent", ("us-gaap:LongTermDebtNoncurrent",), "money", instant=True),
     Quantity("long_term_debt_current", ("us-gaap:LongTermDebtCurrent",), "money", instant=True),
+    Quantity("finance_lease_obligations", ("us-gaap:FinanceLeaseLiability", "us-gaap:CapitalLeaseObligations"),
+             "money", instant=True),
+    Quantity("operating_lease_obligations", ("us-gaap:OperatingLeaseLiability",), "money", instant=True),
     RPO,
     DILUTED_SHARES,
     Quantity("eps_diluted", ("us-gaap:EarningsPerShareDiluted", "ifrs-full:DilutedEarningsLossPerShare"), "per_share"),
@@ -155,6 +176,7 @@ SYNONYMS: dict[str, str] = {
     "pretax_profit": "pretax_income", "income_before_taxes": "pretax_income",
     "income_before_income_taxes": "pretax_income",
     "income_taxes": "income_tax", "income_tax_expense": "income_tax",
+    "income_tax_provision": "income_tax", "provision_for_income_taxes": "income_tax",
     "net_profit": "net_income", "net_earnings": "net_income",
     "net_income_available_to_common": "net_income_to_common",
     "net_income_attributable_to_common": "net_income_to_common",
@@ -168,10 +190,13 @@ SYNONYMS: dict[str, str] = {
     "provision": "provisions", "provision_for_credit_losses": "provisions",
     "provisions_for_credit_losses": "provisions",
     "cash_and_equivalents": "cash", "cash_and_cash_equivalents": "cash",
+    "inventory": "inventories",
     "assets": "total_assets",
     "stockholders_equity": "equity", "shareholders_equity": "equity",
     "long_term_debt": "debt",
     "current_portion_of_long_term_debt": "long_term_debt_current",
+    "finance_lease_liabilities": "finance_lease_obligations", "capital_lease_obligations": "finance_lease_obligations",
+    "operating_lease_liabilities": "operating_lease_obligations",
     "remaining_performance_obligations": "rpo",
     "weighted_average_diluted_shares": "diluted_shares",
     "diluted_eps": "eps_diluted", "basic_eps": "eps_basic",
@@ -312,48 +337,98 @@ class Facts:
                 if _near(f.end, end) and (f.start is None if start is None else _near(f.start, start))]
         return max(rows, key=lambda f: (f.filed, f.accn)) if rows else None
 
+    def _part(self, concept: str, kind: str, start: dt.date | None, end: dt.date,
+              total: str | None) -> tuple[Fact, Fact | None] | None:
+        """The fact ``_pick`` finds, and with ``total`` the fact of the total for the same span: the fact then counts
+        only when the total is larger, which shows that it is a part of the total and not the total itself."""
+        fact = self._pick(concept, kind, start, end)
+        if fact is None:
+            return None
+        if total is None:
+            return fact, None
+        whole = self._pick(total, kind, start, end)
+        return (fact, whole) if whole is not None and whole.value > fact.value else None
+
     def _ytd(self, year: int, quarter: int) -> tuple[dt.date, dt.date]:
         """First and last day of the fiscal year-to-date span ending with (year, quarter)."""
         return self.quarter_end(year - 1, 4) + dt.timedelta(days=1), self.quarter_end(year, quarter)
 
-    def flow(self, concept: str, kind: str, period: Fiscal) -> Value | None:
-        """A flow (income or cash flow statement line) over a fiscal period, reported or derived from YTD figures."""
+    def flow(self, concept: str, kind: str, period: Fiscal, total: str | None = None) -> Value | None:
+        """A flow (income or cash flow statement line) over a fiscal period, reported or derived from YTD figures; with
+        ``total``, only from facts that are less than the total's facts for the same spans."""
         start, end = self.dates(period)
-        fact = self._pick(concept, kind, start, end)
-        if fact is not None:
-            return Value(fact.value, [fact], f"{period.label} as reported ({fact.form} {fact.accn})")
+        got = self._part(concept, kind, start, end, total)
+        if got is not None:
+            fact, whole = got
+            return Value(fact.value, [fact],
+                         f"{period.label} as reported ({fact.form} {fact.accn}){_below(total, whole)}")
         first_q = period.start_quarter[1]
         if kind != "money" or first_q == 1:
             return None  # share counts and per-share amounts do not add up; a span from Q1 is a YTD span itself
         year, last_q = period.end_quarter
-        whole = self._pick(concept, kind, *self._ytd(year, last_q))
-        before = self._pick(concept, kind, *self._ytd(year, first_q - 1))
-        if whole is None or before is None:
+        ytd = self._part(concept, kind, *self._ytd(year, last_q), total)
+        before = self._part(concept, kind, *self._ytd(year, first_q - 1), total)
+        if ytd is None or before is None:
             return None
-        return Value(whole.value - before.value, [whole, before],
+        (a, a_total), (b, b_total) = ytd, before
+        return Value(a.value - b.value, [a, b],
                      f"{period.label} = {_span(last_q)} - {_span(first_q - 1)} "
-                     f"({_fmt(whole.value)} {whole.form} {whole.accn} - {_fmt(before.value)} {before.form} {before.accn})")
+                     f"({_fmt(a.value)} {a.form} {a.accn} - {_fmt(b.value)} {b.form} {b.accn})"
+                     f"{_below(total, a_total, b_total)}")
 
-    def stock(self, concept: str, kind: str, period: Fiscal) -> Value | None:
-        """A balance (an instant) at the end of a fiscal period."""
+    def stock(self, concept: str, kind: str, period: Fiscal, total: str | None = None) -> Value | None:
+        """A balance (an instant) at the end of a fiscal period; with ``total``, only when it is less than the total."""
         end = self.dates(period)[1]
-        fact = self._pick(concept, kind, None, end)
-        if fact is None:
+        got = self._part(concept, kind, None, end, total)
+        if got is None:
             return None
-        return Value(fact.value, [fact], f"at {fact.end.isoformat()} ({fact.form} {fact.accn})")
+        fact, whole = got
+        return Value(fact.value, [fact], f"at {fact.end.isoformat()} ({fact.form} {fact.accn}){_below(total, whole)}")
 
     def first(self, quantity: Quantity, periods: list[Fiscal], stock: bool = False) -> tuple[str, list[Value]] | None:
         """(concept, values) from the first candidate concept that has a value for every period asked for."""
         read = self.stock if stock else self.flow
+        totals = dict(quantity.parts)
         for concept in quantity.concepts:
-            values = [read(concept, quantity.kind, p) for p in periods]
+            values = [read(concept, quantity.kind, p, totals.get(concept)) for p in periods]
             if all(v is not None for v in values):
                 return concept, values  # type: ignore[return-value]
         return None
 
+    def periodicity(self, quantity: Quantity) -> tuple[bool | None, str]:
+        """Whether a quantity is a balance (True) or a flow (False), as the facts of its concepts show: a fact with a
+        start date is a flow over a period, a fact without one a balance at a date. (None, the reason) when the
+        concepts disagree, or when no periodic report has a fact of any of them in the quantity's unit."""
+        unit = self.unit_for(quantity.kind)
+        flows, balances = [], []
+        for concept in quantity.concepts:
+            instants = {f.start is None for f in self._rows.get((concept, unit), [])}
+            if False in instants:
+                flows.append(concept)
+            if True in instants:
+                balances.append(concept)
+        if flows and balances:
+            return None, (f"its concepts disagree: {_listing(flows)} {'is' if len(flows) == 1 else 'are'} reported "
+                          f"over periods, as a flow, and {_listing(balances)} at dates, as a balance")
+        if not flows and not balances:
+            return None, f"no periodic report has a fact of {_listing(quantity.concepts, 'or')} in {unit}"
+        return bool(balances), ""
+
 
 def _span(quarter: int) -> str:
     return {1: "3M", 2: "6M", 3: "9M", 4: "FY"}[quarter]
+
+
+def _below(total: str | None, *wholes: Fact | None) -> str:
+    """For a basis: the totals a part was found to be less than ("" when none was checked)."""
+    found = [w for w in wholes if w is not None]
+    return f", below {total} {' and '.join(_fmt(w.value) for w in found)}" if total and found else ""
+
+
+def _listing(items: Any, word: str = "and") -> str:
+    """``a``, ``a and b``, ``a, b and c``."""
+    items = list(items)
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + f" {word} " + items[-1]
 
 
 class _Calc:
@@ -561,7 +636,7 @@ class _Calc:
 
     def defined_growth(self, definition: dict, p: Fiscal) -> Result | None:
         """A metric_def whose formula is the growth of one quantity (``x_t / x_{t-4q} - 1``) over its xbrl list."""
-        m = GROWTH_FORMULA.match(str(definition.get("formula") or ""))
+        m = GROWTH_FORMULA.match(formula.ascii_signs(str(definition.get("formula") or "")))
         concepts = tuple(c for c in definition.get("xbrl") or [] if isinstance(c, str) and ":" in c)
         if not m or not concepts:
             return None
@@ -574,8 +649,13 @@ class _Calc:
     def defined(self, plan: Plan, p: Fiscal) -> Result | None:
         """A metric_def's formula for period ``p`` (SPEC 9.1); None when ``p`` is shorter than the definition's
         frequency, when a sum over fiscal years is asked for a quarter or a half, when any fact the formula needs is
-        missing, or when a denominator is zero or negative."""
+        missing, when a denominator is zero or negative, or when a name read from its component cannot be taken as
+        the flow or the balance the formula needs (``settle``)."""
         points: dict[str, list[Fiscal]] = defaultdict(list)
+        settled = settle(plan, self.f)[0]
+        if settled is None:
+            return None
+        plan = settled
         if QUARTERS_PER[p.unit] < plan.shortest or not _collect(plan.tree, p, points):
             return None
         values: dict[str, tuple[str, dict[Fiscal, Value]]] = {}
@@ -608,7 +688,8 @@ PER_SHARE_UNIT = re.compile(r"^[A-Z]{3}/shares$")
 
 @dataclass
 class Plan:
-    """A metric_def's formula checked against the vocabulary: what to read, and in which unit to report it."""
+    """A metric_def's formula checked against the vocabulary and the definition's components: what to read, and in
+    which unit to report it."""
 
     text: str  # the formula as written
     tree: formula.Node
@@ -622,28 +703,37 @@ class Plan:
 
 def _legacy_growth(definition: dict) -> bool:
     """The single-quantity growth formula that 0.4.0 computes over the definition's own xbrl list (kept as it was)."""
-    return bool(GROWTH_FORMULA.match(str(definition.get("formula") or ""))) and any(
+    return bool(GROWTH_FORMULA.match(formula.ascii_signs(str(definition.get("formula") or "")))) and any(
         isinstance(c, str) and ":" in c for c in definition.get("xbrl") or [])
 
 
-def _quantity(name: str, listed: list[str]) -> Quantity | None:
-    """The vocabulary's quantity for a name or a synonym, with the definition's listed candidates tried first."""
-    quantity = VOCABULARY.get(SYNONYMS.get(name, name))
-    if quantity is None:
-        return None
-    first = [c for c in listed if c in quantity.concepts]
-    return Quantity(quantity.name, tuple(dict.fromkeys(first + list(quantity.concepts))), quantity.kind,
-                    quantity.instant)
+def _listed(value: Any) -> list[str]:
+    """The concepts an ``xbrl`` list names (its strings; nothing when it is not a list)."""
+    return [c for c in value if isinstance(c, str)] if isinstance(value, list) else []
 
 
-def _unknown(name: str) -> str:
-    near = difflib.get_close_matches(name, list(VOCABULARY) + list(SYNONYMS), n=1, cutoff=0.75)
+def _component_kind(unit: Any) -> str | None:
+    """What a component's ``unit`` makes it: "money" (a currency), "shares" or "per_share" (<currency>/shares)."""
+    norm = normalize_unit(unit)
+    if readings_currency(norm) is not None:
+        return "money"
+    if norm == "shares":
+        return "shares"
+    return "per_share" if norm and PER_SHARE_UNIT.match(norm) else None
+
+
+def _unknown(name: str, components: dict) -> str:
+    if name in components:
+        return f"{name!r} (components.{name} lists no xbrl concepts)"
+    near = difflib.get_close_matches(name, list(VOCABULARY) + list(SYNONYMS) + list(components), n=1, cutoff=0.75)
     return f"{name!r}" + (f" (did you mean {near[0]}?)" if near else "")
 
 
 def _dimension(node: formula.Node, quantities: dict[str, Quantity], problems: list[str],
-               inside: formula.Sum | None = None) -> tuple[int, int]:
-    """The exponents of money and of shares in a node's value; adds to ``problems`` what the formula gets wrong."""
+               inside: formula.Sum | None = None, averaged: bool = False) -> tuple[int, int]:
+    """The exponents of money and of shares in a node's value; adds to ``problems`` what the formula gets wrong. A name
+    whose quantity is a flow or a balance as its facts show (``instant`` None) is checked against sums and averages
+    once the facts are known (``settle``)."""
     if isinstance(node, formula.Number):
         return 0, 0
     if isinstance(node, formula.Name):
@@ -655,15 +745,20 @@ def _dimension(node: formula.Node, quantities: dict[str, Quantity], problems: li
         elif inside is not None and q.kind != "money":
             problems.append(f"{inside.function}() adds up amounts of money, but {node.name} is "
                             f"{RESULT_WORDS[q.kind]}, which does not add up over periods")
+        if averaged and q.instant is False:
+            problems.append(f"avg() averages a balance at the start and at the end of a period, but {node.name} is a "
+                            "flow over a period")
         return DIMENSIONS[q.kind]
     if isinstance(node, formula.Negate):
-        return _dimension(node.operand, quantities, problems, inside)
+        return _dimension(node.operand, quantities, problems, inside, averaged)
     if isinstance(node, formula.At):
-        return _dimension(node.body, quantities, problems, inside)
+        return _dimension(node.body, quantities, problems, inside, averaged)
     if isinstance(node, formula.Sum):
-        return _dimension(node.body, quantities, problems, node)
-    a = _dimension(node.left, quantities, problems, inside)
-    b = _dimension(node.right, quantities, problems, inside)
+        return _dimension(node.body, quantities, problems, node, averaged)
+    if isinstance(node, formula.Avg):
+        return _dimension(node.body, quantities, problems, inside, True)
+    a = _dimension(node.left, quantities, problems, inside, averaged)
+    b = _dimension(node.right, quantities, problems, inside, averaged)
     if node.op in "+-":
         if a != b:
             problems.append(f"{formula.text(node)} {'adds' if node.op == '+' else 'subtracts'} "
@@ -679,11 +774,13 @@ def _words(dimension: tuple[int, int]) -> str:
 
 
 def formula_plan(definition: Any) -> Plan:
-    """Check a ``data: xbrl`` metric_def's formula against the vocabulary (SPEC 9.1).
+    """Check a ``data: xbrl`` metric_def's formula against the vocabulary and the definition's components (SPEC 9.1).
 
-    Raises FormulaError with every reason the definition cannot be computed: no formula, a syntax error, a name the
-    vocabulary does not know, a balance or a share count summed over periods, a sum over fiscal years in a definition
-    whose frequency is not year, or a result that does not fit the definition's ``unit``.
+    Raises FormulaError with every reason the definition cannot be computed: no formula, a syntax error, a name that is
+    neither in the vocabulary nor a component listing xbrl concepts, a component whose unit is not an amount of money,
+    a share count or a per-share amount, a balance or a share count summed over periods, a flow averaged, a sum over
+    fiscal years in a definition whose frequency is not year, or a result that does not fit the definition's
+    ``unit``.
     """
     if not isinstance(definition, dict):
         raise FormulaError("the metric definition is not a mapping")
@@ -693,16 +790,38 @@ def formula_plan(definition: Any) -> Plan:
     if not isinstance(text, str) or not text.strip():
         raise FormulaError("the definition has no formula")
     tree = formula.parse(text)
-    listed = [c for c in definition.get("xbrl") or [] if isinstance(c, str)]
+    listed = _listed(definition.get("xbrl"))
+    declared = definition.get("components")
+    components = {k: v for k, v in declared.items() if isinstance(v, dict)} if isinstance(declared, dict) else {}
     names = formula.names(tree)
     if not names:
         raise FormulaError("the formula reads no quantity")
-    quantities = {name: q for name in names if (q := _quantity(name, listed)) is not None}
-    problems = []
-    unknown = [name for name in names if name not in quantities]
+    quantities: dict[str, Quantity] = {}
+    unknown: list[str] = []
+    problems: list[str] = []
+    notes: list[str] = []
+    for name in names:
+        own = list(dict.fromkeys(_listed(components.get(name, {}).get("xbrl"))))
+        known = VOCABULARY.get(SYNONYMS.get(name, name))
+        if known is not None:  # a vocabulary name keeps its meaning; the concepts listed for it are tried first
+            first = [c for c in own + listed if c in known.concepts]
+            quantities[name] = replace(known, concepts=tuple(dict.fromkeys(first + list(known.concepts))))
+            notes += [f"{c} in components.{name}.xbrl is not a candidate of {known.name} in the vocabulary, so it is "
+                      "not read" for c in own if c not in known.concepts]
+        elif not own:
+            unknown.append(name)
+        elif (kind := _component_kind(components[name].get("unit"))) is None:
+            problems.append(f"components.{name} has unit {components[name].get('unit')!r}: a name read from its "
+                            "component is an amount of money (a currency), a share count (shares) or a per-share "
+                            "amount (<currency>/shares)")
+        else:  # a flow or a balance as its facts show, decided when it is read (settle)
+            quantities[name] = Quantity(name, tuple(own), kind, None)
+            notes.append(f"{name} is read from components.{name}.xbrl ({', '.join(own)}); whether it is a flow or a "
+                         "balance is decided from the facts when it is read")
     if unknown:
-        problems.append(f"unknown quantity name{'s' if len(unknown) > 1 else ''} "
-                        f"{', '.join(_unknown(n) for n in unknown)}: SPEC 9.1 lists the names thesis-ci knows")
+        problems.insert(0, f"unknown quantity name{'s' if len(unknown) > 1 else ''} "
+                           f"{', '.join(_unknown(n, components) for n in unknown)}: a name is in the vocabulary of "
+                           "SPEC 9.1, or is a component of the definition that lists xbrl concepts")
     result = RESULTS.get(_dimension(tree, quantities, problems))
     frequency = definition.get("frequency")
     years = [s.function for s in formula.sums(tree) if s.unit == "year"]
@@ -711,7 +830,7 @@ def formula_plan(definition: Any) -> Plan:
                         f"{frequency if frequency is not None else 'not given'}: write frequency: year")
     raw_unit = definition.get("unit")
     unit = normalize_unit(raw_unit)
-    if unknown:
+    if len(quantities) < len(names):
         pass  # what the result is, and whether the unit fits it, is judged once every name is known
     elif result is None:
         problems.append("the formula's result is not a ratio, an amount of money, a share count or a per-share amount")
@@ -728,9 +847,8 @@ def formula_plan(definition: Any) -> Plan:
             and any(isinstance(n, formula.Number) and n.value == 100 for n in (tree.left, tree.right))):
         problems.append(f"the formula multiplies by 100, and unit {unit} does so again: write the plain ratio")
     if problems:
-        raise FormulaError("; ".join(problems))
+        raise FormulaError("; ".join(dict.fromkeys(problems)))
     used = {c for q in quantities.values() for c in q.concepts}
-    notes = []
     for concept in dict.fromkeys(c for c in listed if c not in used):
         owners = [q.name for q in VOCABULARY.values() if concept in q.concepts]
         notes.append(f"{concept} in xbrl is a candidate of {' and '.join(owners)}, which the formula does not read"
@@ -741,15 +859,43 @@ def formula_plan(definition: Any) -> Plan:
                 QUARTERS_PER.get(frequency, 1) if isinstance(frequency, str) else 1, notes)
 
 
-def computable(definition: Any) -> tuple[bool, str]:
+def settle(plan: Plan, facts: Facts) -> tuple[Plan | None, str]:
+    """The plan with each name read from its own component decided as a flow or a balance from the facts (SPEC 9.1).
+
+    (None, the reason) when the concepts a component lists disagree or have no facts, or when the formula sums a name
+    the facts show to be a balance or averages one they show to be a flow. A plan without such names is returned as
+    it is.
+    """
+    open_names = [name for name, q in plan.quantities.items() if q.instant is None]
+    if not open_names:
+        return plan, ""
+    quantities, problems = dict(plan.quantities), []
+    for name in open_names:
+        instant, why = facts.periodicity(quantities[name])
+        if instant is None:
+            problems.append(f"{name}: {why}")
+        else:
+            quantities[name] = replace(quantities[name], instant=instant)
+    if not problems:
+        _dimension(plan.tree, quantities, problems)
+    if problems:
+        return None, "; ".join(dict.fromkeys(problems))
+    return replace(plan, quantities=quantities), ""
+
+
+def computable(definition: Any, companyfacts: dict | None = None) -> tuple[bool, str]:
     """Whether thesis-ci can compute a ``data: xbrl`` metric_def from companyfacts, and why not (SPEC 9.1).
 
-    It parses the formula and checks its names against the vocabulary, its functions, that no balance or share count
-    is summed over periods, that a sum over fiscal years has ``frequency: year``, and that the result fits ``unit``.
-    ``(False, reason)`` means no reading can ever be computed. ``(True, notes)`` promises no reading either: a period
-    still has none when the filings lack a fact it needs. The notes name ``xbrl`` concepts that the formula does not
-    read; they are empty when there is nothing to say. A single-quantity growth formula over the definition's own
-    ``xbrl`` list, which 0.4.0 already computed, is computable when its unit is %.
+    It parses the formula and checks its names against the vocabulary and the definition's components, its functions,
+    that no balance or share count is summed over periods and no flow averaged, that a sum over fiscal years has
+    ``frequency: year``, and that the result fits ``unit``. ``(False, reason)`` means no reading can ever be computed.
+    ``(True, notes)`` promises no reading either: a period still has none when the filings lack a fact it needs. The
+    notes name ``xbrl`` concepts that the formula does not read, and each name read from its own component, whose
+    kind, flow or balance, is decided from the facts only when it is read; they are empty when there is nothing to
+    say. With ``companyfacts``, a document of the company the definition is for, those kinds are decided at once, and
+    the definition is not computable for that company when a component's concepts disagree or have no facts, or when
+    the formula sums a balance or averages a flow. A single-quantity growth formula over the definition's own ``xbrl``
+    list, which 0.4.0 already computed, is computable when its unit is %.
     """
     if isinstance(definition, dict) and definition.get("data") == "xbrl" and _legacy_growth(definition):
         if normalize_unit(definition.get("unit")) != "%":
@@ -759,6 +905,10 @@ def computable(definition: Any) -> tuple[bool, str]:
         plan = formula_plan(definition)
     except FormulaError as exc:
         return False, str(exc)
+    if companyfacts is not None:
+        settled, why = settle(plan, Facts(companyfacts, (12, 31)))
+        if settled is None:
+            return False, why
     return True, "; ".join(plan.notes)
 
 
@@ -795,6 +945,8 @@ def _collect(node: formula.Node, period: Fiscal, points: dict[str, list[Fiscal]]
     if isinstance(node, formula.Sum):
         spans = _sum_periods(node, period)
         return spans is not None and all(_collect(node.body, s, points) for s in spans)
+    if isinstance(node, formula.Avg):  # at the end of the period before (the opening balance) and at its own end
+        return _collect(node.body, period.shift(-1), points) and _collect(node.body, period, points)
     return _collect(node.left, period, points) and _collect(node.right, period, points)
 
 
@@ -812,6 +964,9 @@ def _evaluate(node: formula.Node, period: Fiscal, values: dict[str, tuple[str, d
     if isinstance(node, formula.Sum):
         terms = [_evaluate(node.body, s, values) for s in _sum_periods(node, period) or []]
         return None if any(t is None for t in terms) else sum(terms)  # type: ignore[arg-type]
+    if isinstance(node, formula.Avg):
+        start, end = _evaluate(node.body, period.shift(-1), values), _evaluate(node.body, period, values)
+        return None if start is None or end is None else (start + end) / 2
     a, b = _evaluate(node.left, period, values), _evaluate(node.right, period, values)
     if a is None or b is None:
         return None
@@ -836,6 +991,9 @@ def _render(node: formula.Node, period: Fiscal, values: dict[str, tuple[str, dic
     if isinstance(node, formula.Sum):
         terms = [_render(node.body, s, values) for s in _sum_periods(node, period) or []]
         return "(" + " + ".join(f"({t})" if prec < 2 else t for t, prec in terms) + ")", 4
+    if isinstance(node, formula.Avg):  # (start + end) / 2, the start being the end of the period before
+        ends = [_render(node.body, p, values) for p in (period.shift(-1), period)]
+        return "(" + " + ".join(f"({t})" if prec < 2 else t for t, prec in ends) + ") / 2", 2
     prec = 1 if node.op in "+-" else 2
     (left, lp), (right, rp) = _render(node.left, period, values), _render(node.right, period, values)
     if lp < prec:

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from thesis_ci import readings
-from thesis_ci.formula import At, Binary, FormulaError, Name, Number, Sum, names, parse, text
+from thesis_ci.formula import At, Avg, Binary, FormulaError, Name, Number, Sum, ascii_signs, names, parse, text
 from thesis_ci.metrics import SYNONYMS, VOCABULARY, Facts, computable, formula_plan, readings_from_companyfacts
 from thesis_ci.periods import Fiscal, fiscal_year_end, quarter_end_date
 
@@ -45,7 +45,7 @@ def test_names_with_time_subscripts_and_precedence():
     ("revenue +", "the formula ends too early"),
     ("revenue capex", "unexpected 'capex' at character 9"),
     ("(revenue", "expected ')' to close the '(' at character 1"),
-    ("avg(equity)", "unknown function avg()"),
+    ("median(equity)", "unknown function median() at character 1: the functions are sum_4q(), sum_<n>y() and avg()"),
     ("sum_8q(revenue)", "unknown function sum_8q()"),
     ("max(revenue, capex)", "unknown function max()"),
     ("revenue_{t-1q}", "time subscript _{t-1q} at character 8 is not one of _t, _{t-4q}, _{t-1y}"),
@@ -56,6 +56,42 @@ def test_syntax_errors_say_where(formula, message):
     with pytest.raises(FormulaError) as err:
         parse(formula)
     assert message in str(err.value)
+
+
+def test_typographic_signs_are_read_as_ascii_operators():
+    assert parse("a × (1 − b ÷ c)") == parse("a * (1 - b / c)")
+    assert parse("a · b") == parse("a ⋅ b") == parse("a * b") == Binary("*", Name("a"), Name("b"))
+    assert parse("−revenue") == parse("-revenue")
+    assert parse("x_t ÷ x_{t−4q} − 1") == parse("x_t / x_{t-4q} - 1")  # a minus sign in a time subscript too
+    assert text(parse("sum_3y(dividends_paid + repurchases) ÷ sum_3y(operating_cash_flow − capex)")) == (
+        "sum_3y(dividends_paid + repurchases) / sum_3y(operating_cash_flow - capex)")
+    assert parse("2 · 5") == Binary("*", Number(2.0, "2"), Number(5.0, "5"))  # spaced, it can only be a product
+    assert ascii_signs("a×b÷c−d·e⋅f") == "a*b/c-d*e*f"
+    assert ascii_signs("0·5 · x") == "0·5 * x"  # one character for one, so positions in messages stay right
+
+
+@pytest.mark.parametrize("formula,message", [
+    ("0·5 * revenue", "'·' between two digits at character 2 could be a decimal point or a multiplication sign: "
+                      "write '.' or '*'"),
+    ("revenue ×× capex", "unexpected '×' at character 10"),  # messages quote the sign as written
+    ("revenue – capex", "unexpected '–' at character 9"),  # an en dash is not a minus sign
+    ("revenue_{t−1q}", "time subscript _{t−1q} at character 8 is not one of _t, _{t-4q}, _{t-1y}"),
+])
+def test_typographic_mistakes_say_where(formula, message):
+    with pytest.raises(FormulaError) as err:
+        parse(formula)
+    assert message in str(err.value)
+
+
+def test_avg_parses_and_takes_subscripts():
+    tree = parse("operating_income / avg(total_equity + debt - cash)")
+    assert tree == Binary("/", Name("operating_income"),
+                          Avg(Binary("-", Binary("+", Name("total_equity"), Name("debt")), Name("cash"))))
+    assert names(tree) == ["operating_income", "total_equity", "debt", "cash"]
+    assert text(parse("avg(cash)_t / avg(cash)_{t-4q} - 1")) == "avg(cash)_t / avg(cash)_{t-4q} - 1"
+    assert isinstance(parse("avg (cash)"), Avg)
+    with pytest.raises(FormulaError, match="nests more than 50 levels deep"):
+        parse("avg(" * 51 + "cash" + ")" * 51)
 
 
 def test_the_parser_never_evaluates_text():
@@ -92,6 +128,26 @@ def test_vocabulary_has_the_names_formulas_need():
     assert {"cash", "short_term_investments", "total_assets", "total_equity", "debt", "long_term_debt_noncurrent",
             "long_term_debt_current"} <= balances
     assert not balances & {"revenue", "operating_cash_flow", "capex", "net_income", "provisions"}
+    assert all(q.instant in (True, False) for q in VOCABULARY.values())  # every vocabulary name has its kind
+
+
+def test_vocabulary_names_added_in_0_6_1():
+    flows = {n for n, q in VOCABULARY.items() if q.instant is False}
+    balances = {n for n, q in VOCABULARY.items() if q.instant is True}
+    assert "net_sales" in flows
+    assert {"accounts_payable", "inventories", "short_term_borrowings", "finance_lease_obligations",
+            "operating_lease_obligations"} <= balances
+    assert {SYNONYMS[n] for n in ("income_tax_provision", "dividends_paid", "repurchases")} == {
+        "income_tax", "dividends", "buybacks"}
+    assert "pretax_income" in VOCABULARY
+    # net_sales reads revenue from contracts with customers only as a part of a larger us-gaap:Revenues
+    assert VOCABULARY["net_sales"].parts == (("us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+                                              "us-gaap:Revenues"),)
+    assert "us-gaap:Revenues" not in VOCABULARY["net_sales"].concepts
+    # concepts that hold more than the quantity are not candidates
+    assert "us-gaap:AccountsPayableAndAccruedLiabilitiesCurrent" not in VOCABULARY["accounts_payable"].concepts
+    assert not {"us-gaap:DebtCurrent", "us-gaap:CommercialPaper"} & set(VOCABULARY["short_term_borrowings"].concepts)
+    assert all(q.parts == () for name, q in VOCABULARY.items() if name != "net_sales")
 
 
 KINDS = {"spec/SPEC.md": {"flow": ("money", False), "balance": ("money", True),
@@ -144,6 +200,13 @@ def definition(formula, unit="%", frequency="quarter", xbrl=None, data="xbrl"):
     ("net_income / diluted_shares", "USD/shares", "year"),
     ("diluted_shares_t - diluted_shares_{t-1y}", "shares", "year"),
     ("revenues_t / revenues_{t-4q} - 1", "%", None),  # a synonym, no frequency
+    ("revenues_t ÷ revenues_{t−4q} − 1", "%", None),  # typographic signs
+    ("net_income / avg(equity)", "%", "year"),
+    ("operating_income × (1 − income_tax_provision ÷ pretax_income) ÷ avg(total_equity + short_term_borrowings + "
+     "long_term_debt + finance_lease_obligations + operating_lease_obligations − cash)", "%", "year"),
+    ("avg(cash)_t / avg(cash)_{t-4q} - 1", "%", "quarter"),
+    ("accounts_payable ÷ inventories", "%", "year"),
+    ("capex ÷ net_sales", "%", "year"),
 ])
 def test_computable_formulas(formula, unit, frequency):
     assert computable(definition(formula, unit, frequency)) == (True, "")
@@ -168,6 +231,13 @@ def test_computable_formulas(formula, unit, frequency):
     ("operating_income / revenue * 100", "%", "year", "the formula multiplies by 100, and unit % does so again"),
     ("1 + 2", "x", "year", "the formula reads no quantity"),
     ("operating_income / revenue", "%", "year", None),
+    ("avg(revenue)", "USD", "year",
+     "avg() averages a balance at the start and at the end of a period, but revenue is a flow over a period"),
+    ("avg(sum_4q(revenue))", "USD", "year", "avg() averages a balance at the start and at the end of a period, but "
+                                            "revenue is a flow over a period"),
+    ("sum_4q(avg(cash))", "USD", "quarter", "sum_4q() adds up flows over periods, but cash is a balance at a date"),
+    ("avg(cash) ÷ avg(cash) * 100", "%", "year", "the formula multiplies by 100"),
+    ("0·5 * revenue", "USD", "year", "'·' between two digits at character 2 could be a decimal point"),
 ])
 def test_what_cannot_be_computed_and_why(formula, unit, frequency, reason):
     ok, why = computable(definition(formula, unit, frequency))
@@ -200,6 +270,64 @@ def test_listed_concepts_go_first_and_unused_ones_are_noted():
     ok, notes = computable(definition("(debt - cash) / sum_4q(operating_cash_flow)", "x",
                                       xbrl=["us-gaap:LongTermDebtNoncurrent"]))
     assert ok and "us-gaap:LongTermDebtNoncurrent in xbrl is a candidate of long_term_debt_noncurrent" in notes
+
+
+def with_components(formula, unit="%", frequency="year", xbrl=None, **components):
+    """A definition whose components are given as name=(unit, [concepts]) or name=(unit, None) for no xbrl."""
+    out = definition(formula, unit, frequency, xbrl)
+    out["components"] = {name: {"description": name, "unit": u, **({"xbrl": c} if c is not None else {})}
+                         for name, (u, c) in components.items()}
+    return out
+
+
+def test_a_component_lists_concepts_first_for_a_vocabulary_name():
+    """A vocabulary name keeps its meaning: its component's xbrl goes first, then the definition's xbrl, as far as
+    they are candidates of the name; a concept that is not a candidate is noted and not read."""
+    plan = formula_plan(with_components(
+        "sum_3y(dividends_paid) / sum_3y(operating_cash_flow - capex)", xbrl=["us-gaap:PaymentsOfDividends"],
+        dividends_paid=("USD", ["us-gaap:PaymentsOfDividendsCommonStock"]),
+        capex=("USD", ["us-gaap:PaymentsToAcquireProductiveAssets"])))
+    assert plan.quantities["dividends_paid"].concepts == ("us-gaap:PaymentsOfDividendsCommonStock",
+                                                          "us-gaap:PaymentsOfDividends")
+    assert plan.quantities["capex"] == VOCABULARY["capex"]
+    assert plan.notes == ["us-gaap:PaymentsToAcquireProductiveAssets in components.capex.xbrl is not a candidate of "
+                          "capex in the vocabulary, so it is not read"]
+    # the component's unit does not change what a vocabulary name is
+    capex = ("%", ["us-gaap:PaymentsToAcquirePropertyPlantAndEquipment"])
+    assert computable(with_components("capex / revenue", capex=capex)) == (True, "")
+
+
+def test_a_component_name_is_read_from_its_own_concepts():
+    ok, notes = computable(with_components("membership_income / total_revenue", unit="%", frequency="quarter",
+                                           membership_income=("USD", ["us-gaap:OtherIncome"])))
+    assert ok and notes == ("membership_income is read from components.membership_income.xbrl (us-gaap:OtherIncome); "
+                            "whether it is a flow or a balance is decided from the facts when it is read")
+    shares = ("shares", ["us-gaap:WeightedAverageNumberOfSharesOutstandingBasic"])
+    plan = formula_plan(with_components("net_income / weighted_shares", unit="USD/shares", weighted_shares=shares))
+    assert plan.quantities["weighted_shares"].kind == "shares" and plan.quantities["weighted_shares"].instant is None
+    assert plan.result == "per_share"
+
+
+@pytest.mark.parametrize("formula,components,reason", [
+    ("recurring / revenue", {"recurring": ("USD", None)},
+     "unknown quantity name 'recurring' (components.recurring lists no xbrl concepts): a name is in the vocabulary of "
+     "SPEC 9.1, or is a component of the definition that lists xbrl concepts"),
+    ("membership_incom / revenue", {"membership_income": ("USD", ["us-gaap:OtherIncome"])},
+     "unknown quantity name 'membership_incom' (did you mean membership_income?)"),
+    ("churn / revenue", {"churn": ("%", ["us-gaap:Foo"])},
+     "components.churn has unit '%': a name read from its component is an amount of money (a currency), a share count "
+     "(shares) or a per-share amount (<currency>/shares)"),
+    ("store_count", {"store_count": ("stores", ["us-gaap:NumberOfStores"])},
+     "components.store_count has unit 'stores'"),
+    ("sum_3y(weighted_shares)",
+     {"weighted_shares": ("shares", ["us-gaap:WeightedAverageNumberOfSharesOutstandingBasic"])},
+     "sum_3y() adds up amounts of money, but weighted_shares is a share count"),
+    ("membership_income", {"membership_income": ("USD", ["us-gaap:OtherIncome"])},
+     "the formula gives an amount of money, but unit '%' is not a currency"),
+])
+def test_components_that_cannot_be_read(formula, components, reason):
+    ok, why = computable(with_components(formula, **components))
+    assert not ok and reason in why, why
 
 
 # ---------------------------------------------------------------------------------------------------- the engine
@@ -384,6 +512,144 @@ def test_readings_are_a_valid_readings_document():
         "b": definition("(debt - cash) / sum_4q(operating_cash_flow)", "x")})
     assert len(out) == 4
     assert readings.problems({"company": "ACME", "as_of": "2026-09-01", "readings": out}) == []
+
+
+def test_typographic_formulas_read_as_their_ascii_twins():
+    plain = compute("sum_4q(operating_cash_flow - capex) / sum_4q(revenue)", ["FY2025Q2"])["FY2025Q2"]
+    typographic = compute("sum_4q(operating_cash_flow − capex) ÷ sum_4q(revenue)", ["FY2025Q2"])["FY2025Q2"]
+    assert typographic["value"] == plain["value"] and typographic["source"] == plain["source"]
+    # the basis opens with the formula as written; the values follow in ASCII
+    assert typographic["basis"] == plain["basis"].replace(
+        "sum_4q(operating_cash_flow - capex) / sum_4q(revenue) = ",
+        "sum_4q(operating_cash_flow − capex) ÷ sum_4q(revenue) = ", 1)
+    # the growth of one quantity over the definition's own xbrl list keeps its 0.4.0 reading
+    legacy = compute("revenue_t ÷ revenue_{t−4q} − 1", ["FY2025Q2"], xbrl=["us-gaap:Revenues"])["FY2025Q2"]
+    assert legacy == compute("revenue_t / revenue_{t-4q} - 1", ["FY2025Q2"], xbrl=["us-gaap:Revenues"])["FY2025Q2"]
+    assert computable(definition("revenue_t ÷ revenue_{t−4q} − 1", xbrl=["us-gaap:Revenues"])) == (True, "")
+
+
+# ---------------------------------------------------------------------------------------------------- avg()
+
+
+def test_avg_reads_a_balance_at_the_start_and_at_the_end_of_the_period():
+    # cash is 500 at 2023-12-31, 510 at 2024-03-31, 540 at 2024-12-31, 550 at 2025-03-31, 560 at 2025-06-30 and 580
+    # at 2025-12-31; no filing reports it at 2023-09-30
+    got = compute("avg(cash)", ["FY2025Q2", "FY2025H1", "FY2025", "FY2024Q1", "FY2023Q4"], unit="USD")
+    assert {p: r["value"] for p, r in got.items()} == {"FY2025Q2": 555, "FY2025H1": 550, "FY2025": 560,
+                                                      "FY2024Q1": 505}  # FY2023Q4 lacks its opening balance
+    assert got["FY2025Q2"]["basis"] == ("avg(cash) = (550 + 560) / 2; cash: "
+                                        "us-gaap:CashAndCashEquivalentsAtCarryingValue: at 2025-03-31 (10-Q A25Q1); "
+                                        "at 2025-06-30 (10-Q A25Q2)")
+    assert got["FY2025"]["basis"].startswith("avg(cash) = (540 + 580) / 2; ")
+
+
+def test_avg_in_a_return_on_average_equity_and_in_a_growth_form():
+    # equity is 300 at the end of 2024 and 330 at the end of 2025; none is reported at the end of 2023
+    got = compute("net_income / avg(equity)", ["FY2025", "FY2024"], frequency="year")
+    assert set(got) == {"FY2025"}
+    assert got["FY2025"]["value"] == near(100 / 315 * 100)
+    assert got["FY2025"]["basis"].startswith("net_income / avg(equity) = 100 / ((300 + 330) / 2); ")
+    growth = compute("avg(cash)_t / avg(cash)_{t-4q} - 1", ["FY2025Q2"])
+    assert growth["FY2025Q2"]["value"] == near((555 / 515 - 1) * 100)  # 515 = (510 + 520) / 2, a year earlier
+    sums = compute("avg(debt - cash) / sum_4q(operating_cash_flow)", ["FY2025Q2"], unit="x")
+    assert sums["FY2025Q2"]["basis"].startswith(
+        "avg(debt - cash) / sum_4q(operating_cash_flow) = ((800 - 550) + (800 - 560)) / 2 / (35 + 45 + 32 + 42); ")
+
+
+# ---------------------------------------------------------------------------------------------------- components
+
+
+def read_definition(defn, periods, facts=COMPANY):
+    return {r["period"]: r for r in readings_from_companyfacts(facts, ["m"], periods, "12-31", ticker="ACME",
+                                                               definitions={"m": defn})}
+
+
+def test_a_component_name_is_a_flow_or_a_balance_as_its_facts_show():
+    repurchased = {"repurchased": ("USD", ["us-gaap:PaymentsForRepurchaseOfCommonStock"])}
+    defn = with_components("sum_3y(repurchased) / sum_3y(net_income)", **repurchased)
+    assert computable(defn, COMPANY)[0]
+    got = read_definition(defn, ["FY2025"])
+    assert got["FY2025"]["value"] == near((20 + 30 + 40) / (80 + 90 + 100) * 100)
+    assert ("repurchased: us-gaap:PaymentsForRepurchaseOfCommonStock: FY2023 as reported (10-K A23K)"
+            in got["FY2025"]["basis"])
+    borrowings = {"borrowings": ("USD", ["us-gaap:Foo", "us-gaap:LongTermDebt"])}  # a concept without facts is passed
+    got = read_definition(with_components("avg(borrowings) / avg(cash)", unit="x", frequency="quarter", **borrowings),
+                          ["FY2025Q2"])
+    assert got["FY2025Q2"]["value"] == near(800 / 555)
+    assert "borrowings: us-gaap:LongTermDebt: at 2025-03-31 (10-Q A25Q1)" in got["FY2025Q2"]["basis"]
+
+
+@pytest.mark.parametrize("formula,unit,components,reason", [
+    ("sum_4q(borrowings)", "USD", {"borrowings": ("USD", ["us-gaap:LongTermDebt"])},
+     "sum_4q() adds up flows over periods, but borrowings is a balance at a date"),
+    ("avg(repurchased)", "USD", {"repurchased": ("USD", ["us-gaap:PaymentsForRepurchaseOfCommonStock"])},
+     "avg() averages a balance at the start and at the end of a period, but repurchased is a flow over a period"),
+    ("mixed", "USD", {"mixed": ("USD", ["us-gaap:LongTermDebt", "us-gaap:PaymentsForRepurchaseOfCommonStock"])},
+     "mixed: its concepts disagree: us-gaap:PaymentsForRepurchaseOfCommonStock is reported over periods, as a flow, "
+     "and us-gaap:LongTermDebt at dates, as a balance"),
+    ("ghost", "USD", {"ghost": ("USD", ["us-gaap:Nothing", "us-gaap:NothingElse"])},
+     "ghost: no periodic report has a fact of us-gaap:Nothing or us-gaap:NothingElse in USD"),
+    ("counted", "shares", {"counted": ("shares", ["us-gaap:LongTermDebt"])},  # its facts are in USD
+     "counted: no periodic report has a fact of us-gaap:LongTermDebt in shares"),
+])
+def test_a_component_name_the_facts_cannot_settle(formula, unit, components, reason):
+    """computable() accepts each of these on its own, since a component's kind is decided only from the facts. This
+    company's facts make the name a balance summed or a flow averaged, or decide nothing, so for it the definition is
+    not computable, with the reason, and has no reading."""
+    defn = with_components(formula, unit=unit, frequency="quarter", **components)
+    ok, notes = computable(defn)
+    assert ok and "is decided from the facts when it is read" in notes
+    assert computable(defn, COMPANY) == (False, reason)
+    assert read_definition(defn, ["FY2025Q2", "FY2025"]) == {}
+
+
+# ---------------------------------------------------------------------------------------------------- net sales
+
+# A retailer whose net sales sit beside membership income. Revenue from contracts with customers carries its net
+# sales; us-gaap:Revenues, when tagged, carries net sales plus membership income, or the same figure.
+NET_SALES = by_quarter({2024: [100, 110, 120, 130], 2025: [120, 130, 140, 150]})
+MEMBERSHIP = by_quarter({2024: [5, 5, 5, 5], 2025: [6, 6, 6, 6]})
+
+
+def club(total):
+    tags = {"RevenueFromContractWithCustomerExcludingAssessedTax": {"units": {"USD": flow(NET_SALES, quarterly=True)}}}
+    if total == "net sales plus membership":
+        tags["Revenues"] = {"units": {"USD": flow({p: v + MEMBERSHIP[p] for p, v in NET_SALES.items()},
+                                                  quarterly=True)}}
+    elif total == "the same figure":
+        tags["Revenues"] = {"units": {"USD": flow(NET_SALES, quarterly=True)}}
+    return {"cik": 3, "entityName": "CLUB", "facts": {"us-gaap": tags}}
+
+
+def test_net_sales_are_read_where_the_facts_show_them_beside_a_larger_total():
+    got = compute("net_sales", ["FY2025", "FY2025Q2", "FY2025Q4"], unit="USD", facts=club("net sales plus membership"))
+    assert {p: r["value"] for p, r in got.items()} == {"FY2025": 540, "FY2025Q2": 130, "FY2025Q4": 150}
+    assert got["FY2025Q2"]["basis"] == (
+        "net_sales = 130; net_sales: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax: FY2025Q2 as "
+        "reported (10-Q A25Q2), below us-gaap:Revenues 136")
+    assert got["FY2025Q4"]["basis"].endswith(  # each fact the fourth quarter is derived from is checked
+        "FY2025Q4 = FY - 9M (540 10-K A25K - 390 10-Q A25Q3), below us-gaap:Revenues 564 and 408")
+    assert got["FY2025"]["source"] == "ACME-XBRL#us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax:A25K"
+
+
+@pytest.mark.parametrize("total", ["the same figure", None])
+def test_net_sales_never_fall_back_to_total_revenue(total):
+    """Where revenue from contracts with customers equals the total, or is the only revenue tagged, the facts cannot
+    tell it from total revenue, so net_sales has no reading; revenue and total_revenue still read it."""
+    facts = club(total)
+    assert compute("net_sales", ["FY2025", "FY2025Q2", "FY2025Q4"], unit="USD", facts=facts) == {}
+    for name in ("revenue", "total_revenue"):
+        assert compute(name, ["FY2025"], unit="USD", facts=facts)["FY2025"]["value"] == 540
+    assert computable(definition("capex / net_sales", frequency="year"), facts) == (True, "")
+
+
+def test_net_sales_named_as_such_are_read_as_they_are():
+    legacy = {"cik": 4, "facts": {"us-gaap": {
+        "SalesRevenueNet": {"units": {"USD": annual({2024: 460})}},
+        "Revenues": {"units": {"USD": annual({2024: 460})}}}}}  # a single revenue line, tagged twice
+    got = compute("net_sales", ["FY2024"], unit="USD", facts=legacy)
+    assert got["FY2024"]["value"] == 460
+    assert got["FY2024"]["basis"].endswith("net_sales: us-gaap:SalesRevenueNet: FY2024 as reported (10-K A24K)")
 
 
 # ---------------------------------------------------------------------------------------------------- the calendar
