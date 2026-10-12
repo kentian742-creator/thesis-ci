@@ -3,6 +3,84 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
+## v0.6.0: formulas of metric definitions, and each company's own fiscal calendar (unreleased)
+
+thesis-ci now computes the formula of a test's own `data: xbrl` metric definition, where 0.5 computed only the growth
+of a single quantity, and it reads a company's quarters on the dates its filings give. Until now every other formula
+left its test undetermined, and Costco had readings for no quarter but its first. File
+formats are unchanged; archives keep `spec_version: "0.2"`. Every reading 0.5.4 computes for the archive of
+Owner's Office (nine companies, the periods its pipeline asks for) is unchanged.
+
+### New
+
+- A formula language for `metric_def` with `data: xbrl` (SPEC 9.1), parsed by thesis-ci itself, never with `eval`
+  (`thesis_ci.formula`): numbers, names of quantities, `+ - * /` and parentheses; `sum_4q(expr)` over the trailing
+  four fiscal quarters and `sum_<n>y(expr)` over the trailing n fiscal years; and the time subscripts `_t`,
+  `_{t-4q}` and `_{t-1y}`, with which the growth forms `x_t / x_{t-4q} - 1` and `(a + b)_t / (a + b)_{t-4q} - 1`
+  are written.
+- A vocabulary of 31 quantity names and 39 synonyms (`VOCABULARY` and `SYNONYMS` in `thesis_ci.metrics`, listed in
+  SPEC 9.1). Each name is a flow over a period or a balance at its end, with candidate concepts in order of
+  preference. The concepts a definition lists in `xbrl` are tried first and the name's other candidates follow; a
+  reading never mixes two concepts for one quantity. Beyond the registry's quantities: `total_revenue` (with
+  `us-gaap:Revenues` first, then the undimensioned revenue from contracts with customers, which is all Costco
+  tags), `provisions` (with `ProvisionForLoanLossesExpensed`, which American Express uses), `common_dividends`
+  (common dividends declared when dividends paid are not tagged), `total_equity` (stockholders' equity when no
+  equity including noncontrolling interests is tagged), `net_income` (consolidated `ProfitLoss` after
+  `NetIncomeLoss`), `net_income_to_common`, `stock_based_compensation`, `long_term_debt_noncurrent`,
+  `long_term_debt_current`, `revenue_net_of_interest_expense`, `eps_diluted` and `eps_basic`.
+- How periods are read: a definition has readings for its `frequency` and longer periods (an annual one for fiscal
+  years only); a flow is taken over the period, as reported or derived from year-to-date figures, and a balance at
+  its last day. Only flows of money add up, so a balance, a share count or a per-share amount inside `sum_…()` is an
+  error, and `sum_<n>y` needs `frequency: year`. A fact missing for any quarter or year that a reading needs means
+  no reading for that period: nothing is interpolated, and a line a filing does not report is not taken as zero. A
+  zero or negative denominator gives no reading.
+- `thesis_ci.metrics.computable(definition) -> (bool, str)` says whether a `data: xbrl` definition can ever be
+  computed, and why not: a syntax error, an unknown name (with the nearest known one), an unknown function, a sum of
+  something that does not add up, a missing `frequency: year`, or a unit that does not fit the result. For a
+  computable definition it notes the `xbrl` concepts the formula does not read. A pipeline can call it to reject a
+  thesis whose XBRL tests could never be read.
+- `readings_from_companyfacts` computes definitions with the new engine. A reading's `basis` gives the formula, the
+  formula with the values used, and for each name the concept and how each value was taken, with accession numbers.
+- The fiscal calendar comes from the filings (SPEC 4.5). A quarter ends on the date the company's own 10-Q or 10-K
+  for it reports, the most common end date among that filing's facts; the filing is placed by its accession number
+  and its `fp`, never by its `fy`, which can name the filing's year rather than the fact's. A date more than 46
+  days from the one `fiscal_year_end` implies marks a mislabelled `fp` and is ignored (NVIDIA's 10-Qs of 2010 label
+  the first and second quarters of fiscal 2011 Q2 and Q3). A quarter no filing covers keeps the implied date.
+  Costco's quarters of 12, 12, 12 and 16 weeks now have readings: its second and third quarters end up to 24 days
+  before the month ends that `fiscal_year_end` implies (13 and 20 days in FY2026), beyond the 10-day tolerance. For
+  the other eight companies of the archive and for Walmart, the filed dates lie within the tolerance of the implied
+  ones, and their readings do not change.
+
+### Unchanged
+
+- The registry metrics are computed as before (`REGISTRY_FORMULAS`); the formulas in `spec/metrics.yml` document
+  them.
+- A single-quantity growth formula whose definition lists concepts in `xbrl` (AXP-Q1, AXP-Q15 in Owner's Office)
+  is computed as in 0.4.0: over those concepts alone, for every period asked for.
+- `book_value_per_share_yoy` is still not computed.
+
+### Tests
+
+- `tests/test_formula.py`: the parser and its error messages, the vocabulary, `computable()`, and the engine on
+  small synthetic companyfacts (quarters derived from year-to-date figures, sums, growth, balances, missing quarters,
+  unknown names, fallback concepts, frequencies, units, and a calendar of 12- and 16-week quarters with a
+  mislabelled filing). The vocabulary tables of SPEC 9.1, English and Chinese, must match the code.
+- `tests/test_companyfacts.py`, on real companyfacts fetched from EDGAR on 2026-10-11 and trimmed to the concepts
+  read (`tests/fixtures/companyfacts/`):
+  - Costco: FY2026 operating margin on total revenue 3.85% (11,685 / 303,154), pretax return on capital 53.7%,
+    three-year free cash flow conversion 96.6%; its FY2026 quarter ends; quarterly revenue and operating cash flow
+    derived from year-to-date figures, the 16-week fourth quarter included; the tests judged end to end.
+  - AppLovin: the owner free-cash-flow margin has no reading at FY2026Q2, because AppLovin has reported no capital
+    expenditure line since FY2025. Computed without capex it would be 62.16%; the thesis baseline's 61.9% starts
+    from the company's own free cash flow, which also deducts capital expenditure and finance lease payments.
+  - American Express: pre-provision pretax income growth of 4.0% in the second quarter of 2026 and 7.9% in the
+    first half; the three-year capital return to common shareholders, 73.9% over FY2023 to FY2025.
+  - Walmart's January fiscal year, and December fiscal years unchanged.
+
+### Documentation
+
+- SPEC 4.1, 4.5, 9, 9.1 (new) and 10, and their Chinese versions; the header of `spec/metrics.yml`.
+
 ## v0.5.4: a semicolon inside parentheses does not end a sentence (2026-10-01)
 
 `C-SRC-TAG` no longer splits a sentence at a semicolon inside parentheses, so "($156.2bn against $109.0bn for
