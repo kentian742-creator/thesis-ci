@@ -3,7 +3,7 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
-## v0.6.0: formulas of metric definitions, and each company's own fiscal calendar (unreleased)
+## v0.6.0: formulas of metric definitions, and each company's own fiscal calendar (2026-10-11)
 
 thesis-ci now computes the formula of a test's own `data: xbrl` metric definition, where 0.5 computed only the growth
 of a single quantity, and it reads a company's quarters on the dates its filings give. Until now every other formula
