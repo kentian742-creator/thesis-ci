@@ -252,7 +252,7 @@ source: MSFT-10K-FY2026#Item8
     evaluate_from: FY2028Q4
 ```
 
-- **`data: xbrl` 的定义**按它的 `formula` 从 EDGAR companyfacts 计算，公式用 9.1 的公式语言书写（`operating_income` 这样的量名、求和 `sum_4q` 与 `sum_<n>y`、增长式）；它的 `xbrl` 列出优先尝试的概念。`thesis_ci.metrics.computable()` 说明一条定义能否计算、为什么不能。
+- **`data: xbrl` 的定义**按它的 `formula` 从 EDGAR companyfacts 计算，公式用 9.1 的公式语言书写（`operating_income` 这样的量名或定义自己的组件名、求和 `sum_4q` 与 `sum_<n>y`、平均 `avg()`、增长式）；量名所属组件的 `xbrl`、其次定义的 `xbrl`，列出优先尝试的概念。`thesis_ci.metrics.computable()` 说明一条定义能否计算、为什么不能。
 - **期间选择**：`rule`（及子规则）可以写 `evaluate_on`（只在这些期间求值）或 `evaluate_from`（从这一期起求值），取值为 `FY<年>` 或 `FY<年>Q<季>`。
 
 **定性测试**（`type: qualitative`）：必须有 `question`（独立模型要回答的是非题）、`fail_if`、`judge: independent_model`、`evidence: required`、`where`（判定时读哪些文件：字符串或字符串列表，流水线据此抓取）和 `lookback`（读几期文件，含本期，正整数；一期是一个财季，与 `effective_from` 同一计法，年度文件按财季折算，例如要读到上一份年报写 5）；可选 `judge_notes`（交给判定员的判定规则，字符串或列表）。判定时必须附出处和一句以内的原文摘录。
@@ -452,26 +452,29 @@ thesis-ci init <目录> [--visibility public|private] [--profiles <检查组>,..
 
 **语言。**
 
-- 数字（`1`、`0.5`）、量名（见下表）、按通常优先级计算的 `+ - * /`、负号和括号。
+- 数字（`1`、`0.5`）、量名（见下表，或定义自己的组件）、按通常优先级计算的 `+ - * /`、负号和括号。印刷体符号 `×`、`·`、`⋅` 读作 `*`，`÷` 读作 `/`，`−`（U+2212）读作 `-`；紧夹在两个数字之间的 `·` 不予接受，因为它可能是小数点（`2·5`）。
 - `sum_4q(expr)`：`expr` 在以读数所属期间结束的最近四个财季上的合计。`sum_<n>y(expr)`：`expr` 在以读数所属财年结束的最近 `n` 个财年（1 到 99）上的合计；它只有财年读数，因此用到它的定义必须写 `frequency: year`。
-- 量名、括号表达式或求和之后可以跟时间下标：`_t` 是读数自己的期间，`_{t-4q}` 与 `_{t-1y}` 是早一个财年的同一期间。增长式就用它们写：`revenue_t / revenue_{t-4q} - 1`、`(pretax_income + provisions)_t / (pretax_income + provisions)_{t-4q} - 1`。不接受其他下标，也没有以 `_t` 结尾的量名。
-- 一个公式最多 1,000 个字符，括号、求和与正负号最多嵌套 50 层。
+- `avg(expr)`：余额 `expr` 在读数所属期间期初与期末的平均值（见“期间”）。
+- 量名、括号表达式或函数之后可以跟时间下标：`_t` 是读数自己的期间，`_{t-4q}` 与 `_{t-1y}` 是早一个财年的同一期间。增长式就用它们写：`revenue_t / revenue_{t-4q} - 1`、`(pretax_income + provisions)_t / (pretax_income + provisions)_{t-4q} - 1`。不接受其他下标，也没有以 `_t` 结尾的量名。
+- 一个公式最多 1,000 个字符，括号、函数与正负号最多嵌套 50 层。
 
-**期间。** 一条定义按它的 `frequency` 及更长的期间读取：季度定义或没写 `frequency` 的定义读季度、半年和财年；半年定义读半年和财年；年度定义只读财年。求和之外的表达式按读数自己的期间计算：流量（利润表或现金流量表的项目）取该期间的数值，原样报告的或由年初至今的数字推出的（4.5）；余额取期末那一天的数值。只有金额流量能跨期相加：`sum_…()` 中出现余额、股数或每股数据，定义即不可计算。
+**期间。** 一条定义按它的 `frequency` 及更长的期间读取：季度定义或没写 `frequency` 的定义读季度、半年和财年；半年定义读半年和财年；年度定义只读财年。求和之外的表达式按读数自己的期间计算：流量（利润表或现金流量表的项目）取该期间的数值，原样报告的或由年初至今的数字推出的（4.5）；余额取期末那一天的数值。只有金额流量能跨期相加：`sum_…()` 中出现余额、股数或每股数据，定义即不可计算。`avg(expr)` 取 `expr` 在读数所属期间的前一个同长度期间期末与本期期末的平均值：财年取上一个与本个财年年末，半年取上一个与本个半年末，季度取上一个与本个季度末。只有余额才取平均：`avg()` 中出现流量，定义即不可计算；任一日期缺少余额，就没有读数。
 
-**概念。** 每个量名都有按优先顺序排列的候选概念（见下表）。定义在 `xbrl` 中列出、且属于某个量名候选的概念先试，按列出的顺序；该量名的其余候选随后作为后备。对每个量名，读数采用第一个具备该读数所需全部数值的候选，因此一个读数绝不把同一个量的两个概念混在一起。列出的概念若不是公式中任何量名的候选，就不读取；`computable()` 会注明。
+**概念。** 每个量名都有按优先顺序排列的候选概念（见下表）。定义为一个量名列出的概念先试，按列出的顺序：先是该量名所属组件的 `xbrl`（`components.<量名>.xbrl`），再是定义的 `xbrl`，都只限于该量名的候选；该量名的其余候选随后作为后备。对每个量名，读数采用第一个具备该读数所需全部数值的候选，因此一个读数绝不把同一个量的两个概念混在一起。列出的概念若不是公式中任何量名的候选，就不读取；`computable()` 会注明。
+
+**定义在组件中声明的量名。** 不在表中的量名，可以是定义 `components` 中的一个键，只要该组件在 `xbrl` 中列出了概念。这样的量名从这些概念读取，按列出的顺序；组件的 `unit` 说明它是金额（`USD` 这样的货币）、股数（`shares`）还是每股数据（`<货币>/shares`），其他单位使定义不可计算。它是流量还是余额，在读取时由事实本身决定：有起始日期的事实按期间报告（流量），没有起始日期的按日期报告（余额）。若这些概念彼此不一致，或没有任何 10-K、10-Q、20-F 或 40-F 以该单位（金额按报告货币）报告其中任何一个概念的事实，该定义对这家公司不可计算，并写明原因；事实表明 `sum_…()` 中是余额、或 `avg()` 中是流量时，同样不可计算。表中已有的量名，即使定义里有同名组件，也保持原意：组件的 `xbrl` 只是让其中属于该量名候选的概念先试。
 
 **缺少事实。** 读数所需的任何一个季度或年度缺少事实，该期间就没有读数。不做插值，申报中没有报告的项目也不当作零。除以零或负数同样没有读数。
 
 **单位。** 公式的结果是比率、金额、股数或每股数据，定义的 `unit` 必须与之相符。比率以 `%` 或 `pp`（比率乘以 100）或 `x`（比率本身）读取，所以公式写成单纯的比率，从不乘以 100。金额可用任何货币单位（`USD`、`USD million`），按报告货币读取；股数用 `shares`，每股数据用 `<货币>/shares`，例如 `USD/shares`。
 
-**不认识的量名。** 不在表中的量名使定义不可计算，并写明原因；thesis-ci 从不猜测一个量名的含义。
+**不认识的量名。** 既不在表中、也不是列出了 `xbrl` 概念的组件的量名，使定义不可计算，并写明原因；thesis-ci 从不猜测一个量名的含义。
 
-**检查一条定义。** `thesis_ci.metrics.computable(definition)` 在任何读数都不可能算出时返回 `(False, 原因)`：没有公式、语法错误、不认识的量名或函数、对不能相加的东西求和、按年求和却没写 `frequency: year`，或单位不符。`(True, 注释)` 同样不保证有读数，因为缺少事实的期间仍然没有读数；注释列出公式不读取的 `xbrl` 概念。流水线可以调用它，拒收 XBRL 测试永远读不出的论点。
+**检查一条定义。** `thesis_ci.metrics.computable(definition)` 在任何读数都不可能算出时返回 `(False, 原因)`：没有公式、语法错误、不认识的量名或函数、组件的单位既非金额也非股数或每股数据、对不能相加的东西求和、对流量取平均、按年求和却没写 `frequency: year`，或单位不符。`(True, 注释)` 同样不保证有读数，因为缺少事实的期间仍然没有读数；注释列出公式不读取的 `xbrl` 概念，以及每个从自己组件读取的量名，因为它是流量还是余额要到读取时才决定。`computable(definition, companyfacts)` 用该定义所属公司的 companyfacts 文件当即作出这一决定，决定不了时返回 `(False, 原因)`。流水线可以调用它，拒收 XBRL 测试永远读不出的论点。
 
 **0.6.0 之前的写法。** 单个量名的增长式（`x_t / x_{t-4q} - 1` 或 `x_t / x_{t-1y} - 1`），若定义在 `xbrl` 中列出了概念，仍只在这些概念上计算，并且对要求的每个期间都计算，与 thesis-ci 0.4.0 相同。
 
-**读数。** `basis` 给出公式、代入数值后的公式，以及每个量名所用的概念和每个数值的来历（原样报告或推出，附登记号）；`source` 列出数值所依据的全部概念和登记号（3.1）。
+**读数。** `basis` 给出公式、代入数值后的公式（`avg()` 写作 `(期初 + 期末) / 2`），以及每个量名所用的概念和每个数值的来历（原样报告或推出，附登记号）；`source` 列出数值所依据的全部概念和登记号（3.1）。
 
 **词汇表。** 流量按期间计量，余额按日期计量；股数是期间内的加权平均数。
 
@@ -479,11 +482,12 @@ thesis-ci init <目录> [--visibility public|private] [--profiles <检查组>,..
 | --- | --- | --- | --- |
 | `revenue` | `revenues` | 流量 | `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax`, `us-gaap:Revenues`, `ifrs-full:Revenue` |
 | `total_revenue` | `total_revenues` | 流量 | `us-gaap:Revenues`, `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax`, `ifrs-full:Revenue` |
+| `net_sales` | | 流量 | `us-gaap:SalesRevenueNet`, `us-gaap:SalesRevenueGoodsNet`, `us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax`（仅当它小于总收入时，见下文） |
 | `revenue_net_of_interest_expense` | `revenues_net_of_interest_expense` | 流量 | `us-gaap:RevenuesNetOfInterestExpense` |
 | `gross_profit` | | 流量 | `us-gaap:GrossProfit`, `ifrs-full:GrossProfit` |
 | `operating_income` | `operating_profit`, `income_from_operations` | 流量 | `us-gaap:OperatingIncomeLoss`, `ifrs-full:ProfitLossFromOperatingActivities` |
 | `pretax_income` | `pretax_profit`, `income_before_taxes`, `income_before_income_taxes` | 流量 | `us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest`, `us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments` |
-| `income_tax` | `income_taxes`, `income_tax_expense` | 流量 | `us-gaap:IncomeTaxExpenseBenefit` |
+| `income_tax` | `income_taxes`, `income_tax_expense`, `income_tax_provision`, `provision_for_income_taxes` | 流量 | `us-gaap:IncomeTaxExpenseBenefit` |
 | `net_income` | `net_profit`, `net_earnings` | 流量 | `us-gaap:NetIncomeLoss`, `us-gaap:ProfitLoss`, `ifrs-full:ProfitLoss` |
 | `net_income_to_common` | `net_income_available_to_common`, `net_income_attributable_to_common` | 流量 | `us-gaap:NetIncomeLossAvailableToCommonStockholdersBasic` |
 | `operating_cash_flow` | `cash_from_operations`, `ocf` | 流量 | `us-gaap:NetCashProvidedByUsedInOperatingActivities`, `ifrs-full:CashFlowsFromUsedInOperatingActivities` |
@@ -498,18 +502,25 @@ thesis-ci init <目录> [--visibility public|private] [--profiles <检查组>,..
 | `interest_income` | | 流量 | `us-gaap:InterestAndDividendIncomeOperating` |
 | `cash` | `cash_and_equivalents`, `cash_and_cash_equivalents` | 余额 | `us-gaap:CashAndCashEquivalentsAtCarryingValue`, `ifrs-full:CashAndCashEquivalents` |
 | `short_term_investments` | | 余额 | `us-gaap:ShortTermInvestments` |
+| `inventories` | `inventory` | 余额 | `us-gaap:InventoryNet`, `ifrs-full:Inventories` |
 | `total_assets` | `assets` | 余额 | `us-gaap:Assets` |
+| `accounts_payable` | | 余额 | `us-gaap:AccountsPayableCurrent`, `us-gaap:AccountsPayableTradeCurrent`, `us-gaap:AccountsPayableCurrentAndNoncurrent`, `ifrs-full:TradeAndOtherCurrentPayablesToTradeSuppliers`, `ifrs-full:TradeAndOtherPayablesToTradeSuppliers` |
 | `equity` | `stockholders_equity`, `shareholders_equity` | 余额 | `us-gaap:StockholdersEquity`, `ifrs-full:Equity` |
 | `total_equity` | | 余额 | `us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest`, `us-gaap:StockholdersEquity`, `ifrs-full:Equity` |
+| `short_term_borrowings` | | 余额 | `us-gaap:ShortTermBorrowings`, `ifrs-full:ShorttermBorrowings` |
 | `debt` | `long_term_debt` | 余额 | `us-gaap:LongTermDebt` |
 | `long_term_debt_noncurrent` | | 余额 | `us-gaap:LongTermDebtNoncurrent` |
 | `long_term_debt_current` | `current_portion_of_long_term_debt` | 余额 | `us-gaap:LongTermDebtCurrent` |
+| `finance_lease_obligations` | `finance_lease_liabilities`, `capital_lease_obligations` | 余额 | `us-gaap:FinanceLeaseLiability`, `us-gaap:CapitalLeaseObligations` |
+| `operating_lease_obligations` | `operating_lease_liabilities` | 余额 | `us-gaap:OperatingLeaseLiability` |
 | `rpo` | `remaining_performance_obligations` | 余额 | `us-gaap:RevenueRemainingPerformanceObligation` |
 | `diluted_shares` | `weighted_average_diluted_shares` | 流量，股数 | `us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding`, `ifrs-full:WeightedAverageNumberOfOrdinarySharesOutstandingDiluted` |
 | `eps_diluted` | `diluted_eps` | 流量，每股 | `us-gaap:EarningsPerShareDiluted`, `ifrs-full:DilutedEarningsLossPerShare` |
 | `eps_basic` | `basic_eps` | 流量，每股 | `us-gaap:EarningsPerShareBasic`, `ifrs-full:BasicEarningsLossPerShare` |
 
-有些候选是申报人没有标注第一个概念时使用的近似等价物：`total_equity` 退而采用股东权益，公司没有非控制性权益时两者相等；`common_dividends` 在没有标注已付股利时，退而采用已宣告的普通股现金股利；`net_income` 退而采用含非控制性权益的合并利润。`debt` 是含一年内到期部分的长期债务，没有后备概念：公司只标注两部分时，公式把 `long_term_debt_noncurrent` 与 `long_term_debt_current` 相加。
+有些候选是申报人没有标注第一个概念时使用的近似等价物：`total_equity` 退而采用股东权益，公司没有非控制性权益时两者相等；`common_dividends` 在没有标注已付股利时，退而采用已宣告的普通股现金股利；`net_income` 退而采用含非控制性权益的合并利润；`accounts_payable` 退而采用应付贸易账款，以及不分流动与非流动的资产负债表上的应付账款；`finance_lease_obligations` 退而采用资本租赁负债，即 2019 年（ASC 842）之前的名称。`debt` 是含一年内到期部分的长期债务，没有后备概念：公司只标注两部分时，公式把 `long_term_debt_noncurrent` 与 `long_term_debt_current` 相加。有些概念是有意不收的：`us-gaap:AccountsPayableAndAccruedLiabilitiesCurrent` 在应付账款之外还含应计负债；商业票据只是短期借款的一部分，`us-gaap:DebtCurrent` 还含长期债务一年内到期的部分，而 `debt` 已经包括它；IFRS 16 不把承租人的租赁分为融资租赁与经营租赁，所以两个租赁量名都没有 IFRS 候选。许多公司只在财年末、在租赁附注中标注租赁负债总额；季度公式可以把流动与非流动两部分作为组件相加。
+
+`net_sales` 是净销售额，不含一些公司在其旁另列的收入项目，例如 Walmart 与 Costco 的会员收入。它的候选是申报人在 2018 年之前使用的、以净销售额命名的概念（`us-gaap:SalesRevenueNet`、`us-gaap:SalesRevenueGoodsNet`），以及来自客户合同的收入；后者只有在事实表明它是总收入的一部分时才算作净销售额：对读取的每个区间，公司都报告了同一区间的 `us-gaap:Revenues`，且数额更大。Walmart 2026 财年的净销售额 706,413 百万美元，加上会员及其他收入 6,750 百万美元，合计总收入 713,163 百万美元，所以它的净销售额可以读取；`basis` 写明每个数值低于哪个总数。`net_sales` 从不退而采用总收入。公司只标注一个收入概念时，companyfacts 无法显示它是否另有收入项目，因为按产品或服务报告的事实不在其中：Costco 自 2018 财年起把含会员费的总收入标注为来自客户合同的收入，净销售额只按产品标注，BJ's Wholesale Club 也是如此；而 Home Depot 用同一概念标注它唯一的收入项目，即净销售额。对这样的公司，`net_sales` 没有读数；收入全部是净销售额的公司，请写 `revenue`。
 
 ## 10. 版本
 
@@ -522,3 +533,5 @@ thesis-ci 0.4.0 增加定量测试的求值（4.5）和两种新文件：读数�
 thesis-ci 0.5.0 增加检查组（8.6）和 `repo.yml` 的可选字段 `profiles`；检查本身不变，没有 `profiles` 的档案检查结果与以前相同。档案的 `spec_version` 仍为 `"0.2"`。
 
 thesis-ci 0.6.0 计算 `data: xbrl` 指标定义的公式（9.1），并按公司自己的申报确定季度的起止日期（4.5）。文件格式不变；档案的 `spec_version` 仍为 `"0.2"`。
+
+thesis-ci 0.6.1 在公式语言（9.1）中增加印刷体符号 `×`、`·`、`⋅`、`÷` 与 `−`，平均 `avg()`，定义在自己的 `components` 中声明的量名，以及六个量名（其中包括 `net_sales`）。文件格式不变；档案的 `spec_version` 仍为 `"0.2"`。
