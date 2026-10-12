@@ -3,7 +3,7 @@
 The specification (`spec/`) and the tool (`thesis_ci`) are released together. Incompatible specification changes
 before v1.0 are listed here one by one.
 
-## v0.6.1: typographic signs, avg() and more names in formulas (unreleased)
+## v0.6.1: typographic signs, avg() and more names in formulas (2026-10-11)
 
 thesis-ci now computes the formulas that a model writes in practice. Walmart's thesis of 2026-10-11 in Owner's Office
 has six XBRL tests, on five metric definitions, that 0.6.0 rejected: they write `×`, `÷` and `−` for the operators,
